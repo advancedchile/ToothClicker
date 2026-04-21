@@ -2,7 +2,7 @@
 
 Un clicker/idle game dental desarrollado como experimento por **Atom Labs**.
 
-👉 **Jugá ahora:** [TU-USUARIO.github.io/tooth-clicker](https://TU-USUARIO.github.io/tooth-clicker/) *(reemplazá con tu URL)*
+👉 **Juega ahora:** [advancedchile.github.io/tooth-clicker]
 
 ## ¿Qué es?
 
