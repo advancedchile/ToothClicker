@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tooth Clicker — Atom Labs</title>
+<link rel="stylesheet" href="colors_and_type.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--bg-canvas); }
+  * { box-sizing: border-box; }
+  button { font-family: var(--font-sans); }
+
+  @keyframes floatUp {
+    0%   { transform: translate(-50%, -50%) translateY(0) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) translateY(-80px) scale(1.2); opacity: 0; }
+  }
+  @keyframes goldFloat {
+    0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+    50%      { transform: translate(-50%, -50%) translateY(-14px); }
+  }
+  @keyframes goldSpin {
+    0%, 45%  { filter: drop-shadow(0 10px 24px rgba(255, 194, 32, 0.5)); }
+    50%      { filter: drop-shadow(0 10px 24px rgba(255, 194, 32, 1)); }
+    100%     { filter: drop-shadow(0 10px 24px rgba(255, 194, 32, 0.5)); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.7; }
+  }
+  /* Gate hero: hide on narrow viewports, collapse layout to single column */
+  @media (max-width: 980px) {
+    .gate-hero { display: none !important; }
+    .gate-hero-wrap { grid-template-columns: 1fr !important; max-width: 620px !important; }
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--neutral-i020); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--neutral-i030); }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="content.jsx"></script>
+<script type="text/babel" src="game.jsx"></script>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="cloud.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+<script type="text/babel" src="gate.jsx"></script>
+<script type="text/babel" src="boot.jsx"></script>
+</body>
+</html>

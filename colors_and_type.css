@@ -1,0 +1,241 @@
+/* ============================================================
+   Atom Design System — Colors & Type
+   Source: Engenis-Ltda/ha-design-system (src/theme + src/components/Typography)
+   Base: 16px = 1rem. All spacing tokens use rem.
+   ============================================================ */
+
+/* Inter — variable font, self-hosted */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('fonts/Inter-VariableFont_opsz_wght.ttf') format('truetype-variations'),
+       url('fonts/Inter-VariableFont_opsz_wght.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('fonts/Inter-Italic-VariableFont_opsz_wght.ttf') format('truetype-variations'),
+       url('fonts/Inter-Italic-VariableFont_opsz_wght.ttf') format('truetype');
+}
+
+:root {
+  /* ------- Neutral ------- */
+  --neutral-i000: #FFFFFF;
+  --neutral-i001: #FAFAFA;
+  --neutral-i005: #F4F4F4;
+  --neutral-i010: #E8E8E8;
+  --neutral-i020: #D1D1D1;
+  --neutral-i030: #BABABB;
+  --neutral-i040: #A3A3A4;
+  --neutral-i050: #8C8C8D;
+  --neutral-i060: #767676;
+  --neutral-i070: #5F5F5F;
+  --neutral-i080: #484849;
+  --neutral-i090: #313132;
+  --neutral-i100: #1A1A1B;
+
+  /* ------- Primary (the Atom blue) ------- */
+  --primary-i005: #F6FBFF;
+  --primary-i010: #EBF4FC;
+  --primary-i020: #CCE4F8;
+  --primary-i030: #B2D6F4;
+  --primary-i040: #99C8F1;
+  --primary-i050: #80BAED;
+  --primary-i060: #66ADE9;
+  --primary-i070: #4D9FE6;
+  --primary-i080: #3391E2;
+  --primary-i090: #1A84DF;
+  --primary-i100: #0076DB;
+  --primary-i130: #0062B8;
+  --primary-i150: #005199;
+  --primary-i170: #005199;
+  --primary-i200: #0E2336;
+  --primary-i230: #010203;
+
+  /* ------- Positive ------- */
+  --positive-i010: #E6F3E6;
+  --positive-i050: #83C381;
+  --positive-i070: #52AA4F;
+  --positive-i100: #088604;
+  --positive-i130: #055F02;
+  --positive-i150: #034701;
+
+  /* ------- Warning ------- */
+  --warning-i005: #FFFCF5;
+  --warning-i010: #FFF9E9;
+  --warning-i020: #FFF3D2;
+  --warning-i050: #FFE18F;
+  --warning-i070: #FFD463;
+  --warning-i100: #FFC220;
+  --warning-i120: #7F6A33;
+  --warning-i130: #4C4226;
+  --warning-i150: #19170F;
+
+  /* ------- Negative ------- */
+  --negative-i005: #FFF4F5;
+  --negative-i010: #FCE8E9;
+  --negative-i030: #F6BBBD;
+  --negative-i050: #F08E91;
+  --negative-i070: #EA6166;
+  --negative-i100: #E11D24;
+  --negative-i130: #A3151A;
+  --negative-i150: #6B0E12;
+
+  /* ------- Complementary (slate-blue neutral) ------- */
+  --complementary-i010: #F1F8FE;
+  --complementary-i020: #DFE7F0;
+  --complementary-i030: #CCD6E0;
+  --complementary-i040: #A6B5C5;
+  --complementary-i050: #8394A5;
+  --complementary-i060: #6B7B8C;
+  --complementary-i070: #495E72;
+  --complementary-i080: #2D3C4A;
+  --complementary-i090: #151E27;
+  --complementary-i100: #05090D;
+
+  /* ------- Alternative (indigo/violet) ------- */
+  --alternative-i005: #F6F5FF;
+  --alternative-i010: #ECEBFF;
+  --alternative-i020: #D9D7FF;
+  --alternative-i030: #C6C3FF;
+  --alternative-i040: #B3AFFF;
+  --alternative-i050: #A09AFF;
+  --alternative-i060: #8E86FF;
+  --alternative-i070: #7B72FF;
+  --alternative-i080: #685EFF;
+  --alternative-i090: #554AFF;
+  --alternative-i100: #4236FF;
+  --alternative-i130: #0F00FF;
+  --alternative-i170: #0C00CC;
+  --alternative-i200: #090099;
+  --alternative-i230: #060066;
+
+  /* ------- Semantic aliases (role-based) ------- */
+  --fg-1:      var(--neutral-i100);        /* main text */
+  --fg-2:      var(--complementary-i080);  /* secondary text */
+  --fg-3:      var(--neutral-i060);        /* muted text */
+  --fg-4:      var(--neutral-i040);        /* disabled text */
+  --fg-accent: var(--primary-i100);
+  --fg-on-accent: var(--neutral-i000);
+
+  --bg-1:      var(--neutral-i000);        /* surface */
+  --bg-2:      var(--neutral-i001);        /* subtle surface */
+  --bg-3:      var(--neutral-i005);        /* alt surface */
+  --bg-canvas: var(--complementary-i010);  /* app canvas */
+  --bg-accent-soft: var(--primary-i010);
+
+  --border-subtle: var(--neutral-i010);
+  --border-default: var(--neutral-i020);
+  --border-strong: var(--complementary-i040);
+  --border-focus:  var(--primary-i100);
+
+  --status-success: var(--positive-i100);
+  --status-warning: var(--warning-i100);
+  --status-danger:  var(--negative-i100);
+  --status-info:    var(--primary-i100);
+
+  /* ------- Spacing (rem, base 16px) ------- */
+  --spacing-0:    0rem;
+  --spacing-0-5:  0.125rem;
+  --spacing-1:    0.25rem;
+  --spacing-1-5:  0.375rem;
+  --spacing-2:    0.5rem;
+  --spacing-2-5:  0.625rem;
+  --spacing-3:    0.75rem;
+  --spacing-3-5:  0.875rem;
+  --spacing-4:    1rem;
+  --spacing-4-5:  1.125rem;
+  --spacing-5:    1.25rem;
+  --spacing-5-5:  1.375rem;
+  --spacing-6:    1.5rem;
+  --spacing-7:    1.75rem;
+  --spacing-7-5:  1.875rem;
+  --spacing-8:    2rem;
+  --spacing-9-5:  2.375rem;
+  --spacing-10:   2.5rem;
+  --spacing-10-5: 2.625rem;
+  --spacing-12:   3rem;
+  --spacing-12-5: 3.125rem;
+  --spacing-14:   3.5rem;
+  --spacing-16:   4rem;
+  --spacing-20:   5rem;
+  --spacing-24:   6rem;
+
+  /* ------- Radii ------- */
+  --radius-s:  0.25rem;  /* 4px  — inputs, buttons */
+  --radius-m:  0.5rem;   /* 8px  — cards, modals */
+  --radius-l:  1rem;     /* 16px */
+  --radius-xl: 2rem;     /* 32px — pills (full-round) */
+  --radius-pill: 999px;
+
+  /* ------- Shadows / Elevation ------- */
+  --elevation-10:
+    0px 0px 0.5rem 0px rgba(0, 0, 0, 0.20),
+    0px 0px 0.125rem 0px rgba(0, 0, 0, 0.16);
+  --elevation-20:
+    0px 1rem 2.5rem 0px rgba(0, 0, 0, 0.20),
+    0px 0px 0.125rem 0px rgba(0, 0, 0, 0.16);
+  --elevation-30:
+    0px 1.875rem 3.125rem 0px rgba(0, 0, 0, 0.20),
+    0px 0px 0.125rem 0px rgba(0, 0, 0, 0.16);
+
+  /* ------- Typography base ------- */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+}
+
+/* ============================================================
+   Typography scale — 1:1 with Typography.styles.ts
+   ============================================================ */
+.t-display-s { font: var(--fw-regular) 2.25rem/3.375rem var(--font-sans); }    /* 36/54 */
+.t-heading-xl { font: var(--fw-semibold) 1.75rem/2.625rem var(--font-sans); }  /* 28/42 */
+.t-heading-l  { font: var(--fw-semibold) 1.5rem/2.25rem var(--font-sans); }    /* 24/36 */
+.t-heading-m  { font: var(--fw-semibold) 1.25rem/1.875rem var(--font-sans); }  /* 20/30 */
+.t-heading-s  { font: var(--fw-semibold) 1rem/1.5rem var(--font-sans); }       /* 16/24 */
+.t-heading-xs { font: var(--fw-semibold) 0.875rem/1.375rem var(--font-sans); } /* 14/22 */
+
+.t-subtitle-xl { font: var(--fw-regular) 1.5rem/2.25rem var(--font-sans); }    /* 24/36 */
+.t-subtitle-l  { font: var(--fw-regular) 1.125rem/1.75rem var(--font-sans); }  /* 18/28 */
+.t-subtitle-m  { font: var(--fw-regular) 1rem/1.5rem var(--font-sans); }       /* 16/24 */
+.t-subtitle-s  { font: var(--fw-regular) 0.875rem/1.375rem var(--font-sans); } /* 14/22 */
+
+.t-body-l  { font: var(--fw-regular) 1rem/1.5rem var(--font-sans); }           /* 16/24 */
+.t-body-m  { font: var(--fw-regular) 0.875rem/1.375rem var(--font-sans); }     /* 14/22 */
+.t-body-s  { font: var(--fw-regular) 0.75rem/1.125rem var(--font-sans); }      /* 12/18 */
+.t-body-xs { font: var(--fw-regular) 0.625rem/1rem var(--font-sans); }         /* 10/16 */
+
+.t-mini-xs { font: var(--fw-medium) 0.625rem/1rem var(--font-sans); }
+.t-mini-caps {
+  font: var(--fw-medium) 0.625rem/1rem var(--font-sans);
+  letter-spacing: 0.0375rem;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   Semantic element defaults (so raw HTML reads correctly)
+   ============================================================ */
+html { font-size: 16px; }
+body {
+  font-family: var(--font-sans);
+  color: var(--fg-1);
+  background: var(--bg-1);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 { font: var(--fw-regular) 2.25rem/3.375rem var(--font-sans); margin: 0; }
+h2 { font: var(--fw-semibold) 1.5rem/2.25rem var(--font-sans);  margin: 0; }
+h3 { font: var(--fw-regular) 1.125rem/1.75rem var(--font-sans); margin: 0; }
+h4 { font: var(--fw-semibold) 1rem/1.5rem var(--font-sans);     margin: 0; }
+p  { font: var(--fw-regular) 0.875rem/1.375rem var(--font-sans); margin: 0; color: var(--fg-1); }
+small { font: var(--fw-regular) 0.75rem/1.125rem var(--font-sans); color: var(--fg-3); }
+
+code, pre, kbd { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
