@@ -1,639 +1,96 @@
-// ==========================================================================
-// Gate (start screen) + Cloud Leaderboard
-// ==========================================================================
-
+// Gate screen — user selection + self-registration + admin access (no password)
 const { useState: useStateG, useEffect: useEffectG, useMemo: useMemoG, useCallback: useCallbackG, useRef: useRefG } = React;
 
-// ---- custom hook: cloud leaderboard with polling ----
+// ── Leaderboard hooks ───────────────────────────────────────────────────────
 function useCloudLeaderboard({ pollMs = 15000, enabled = true } = {}) {
   const [state, setState] = useStateG({ loading: true, error: null, scores: [], lastUpdate: 0 });
-
   const refresh = useCallbackG(async () => {
     setState(s => ({ ...s, loading: true, error: null }));
-    const res = await cloudFetchLeaderboard();
-    if (res.ok) {
-      setState({ loading: false, error: null, scores: res.scores, lastUpdate: Date.now() });
-    } else {
-      setState(s => ({ ...s, loading: false, error: res.error }));
-    }
+    const res = await window.cloudFetchLeaderboard();
+    if (res.ok) setState({ loading: false, error: null, scores: res.scores, lastUpdate: Date.now() });
+    else setState(s => ({ ...s, loading: false, error: res.error }));
   }, []);
-
   useEffectG(() => {
     if (!enabled) return;
     refresh();
     const id = setInterval(refresh, pollMs);
     return () => clearInterval(id);
   }, [enabled, pollMs, refresh]);
-
   return { ...state, refresh };
 }
 
-function formatRelTime(ms, lang) {
-  const t = STRINGS[lang];
-  if (!ms) return '—';
-  const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
-  return `${s}${t.lbSec}`;
-}
-
-function Gate({ lang, onLangChange, onStart, existingUser, onContinue, soundOn, onSoundToggle, onDeleteUser }) {
-  const t = STRINGS[lang];
-  const [name, setName] = useStateG('');
-  const [tab, setTab] = useStateG('game');
-  const [menuOpen, setMenuOpen] = useStateG(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useStateG(false);
-  const menuRef = useRefG(null);
-  const lb = useCloudLeaderboard({ pollMs: 15000 });
-  const [, forceTick] = useStateG(0);
-
-  useEffectG(() => {
-    const id = setInterval(() => forceTick(x => x + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffectG(() => {
-    if (!menuOpen) return;
-    const onDoc = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [menuOpen]);
-
-  const existing = useMemoG(() => {
-    const trimmed = name.trim();
-    if (!trimmed) return null;
-    return lb.scores.find(p => (p.name || '').toLowerCase() === trimmed.toLowerCase()) || null;
-  }, [lb.scores, name]);
-
-  const canPlay = name.trim().length > 0 && !existing;
-
-  const handleSubmit = (e) => {
-    e && e.preventDefault();
-    if (!canPlay) return;
-    onStart(name.trim(), lang);
-  };
-  const handleContinueClick = (e) => {
-    e && e.preventDefault();
-    onContinue && onContinue();
-  };
-
-  const myRecord = useMemoG(() => {
-    if (!existingUser) return null;
-    return lb.scores.find(p => (p.name || '').toLowerCase() === existingUser.toLowerCase()) || null;
-  }, [lb.scores, existingUser]);
-
-  const toggleLang = () => onLangChange(lang === 'es' ? 'en' : 'es');
-
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'radial-gradient(circle at 0% 0%, var(--primary-i010), var(--bg-canvas) 60%), var(--bg-canvas)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 'var(--spacing-6)',
-      fontFamily: 'var(--font-sans)',
-    }}>
-      <div className="gate-hero-wrap" style={{
-        width: '100%', maxWidth: 1060,
-        display: 'grid',
-        gridTemplateColumns: 'minmax(0, 0.85fr) minmax(0, 620px)',
-        gap: 'var(--spacing-6)',
-        alignItems: 'center',
-      }}>
-        {/* LEFT: hero visual */}
-        <div className="gate-hero" style={{
-          position: 'relative',
-          minHeight: 520,
-          borderRadius: 'var(--radius-m)',
-          padding: 'var(--spacing-8)',
-          background: 'linear-gradient(160deg, var(--primary-i130) 0%, var(--primary-i100) 60%, var(--alternative-i130) 130%)',
-          color: '#fff',
-          overflow: 'hidden',
-          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-          boxShadow: '0 20px 60px -20px rgba(0, 40, 100, 0.35)',
-        }}>
-          {/* floating tooth pattern */}
-          <svg aria-hidden="true" style={{
-            position: 'absolute', inset: 0, width: '100%', height: '100%',
-            opacity: 0.13, pointerEvents: 'none',
-          }}>
-            <defs>
-              <pattern id="tp" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
-                <path d="M40 20 c-8 0-14 5-14 14 0 6 2 11 3 18 l1 6 c0 4 3 7 4 7 1 0 2-3 2-7 l0-6 c0-2 1-3 2-3 s2 1 2 3 l0 6 c0 4 1 7 2 7 1 0 4-3 4-7 l1-6 c1-7 3-12 3-18 0-9-6-14-10-14z" fill="#fff" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#tp)" />
-          </svg>
-          {/* giant background tooth */}
-          <div style={{
-            position: 'absolute', right: -60, bottom: -80,
-            width: 420, height: 420,
-            opacity: 0.18,
-            filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.2))',
-          }} aria-hidden="true">
-            <ToothIcon size={420} />
-          </div>
-
-          <div style={{ position: 'relative' }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '6px 12px', borderRadius: 'var(--radius-pill)',
-              background: 'rgba(255,255,255,0.18)',
-              backdropFilter: 'blur(6px)',
-              color: '#fff', fontSize: 11, fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase',
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px #fff' }} />
-              Atom Labs · Tooth Clicker
-            </div>
-          </div>
-
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: 'clamp(28px, 3.2vw, 42px)', lineHeight: 1.05, fontWeight: 700,
-              letterSpacing: -0.5,
-              marginBottom: 14,
-              textWrap: 'balance',
-            }}>
-              {lang === 'es' ? 'Del primer click' : 'From the first click'}<br/>
-              <span style={{ color: '#fff', opacity: 0.72 }}>
-                {lang === 'es' ? 'a la clínica global.' : 'to the global clinic.'}
-              </span>
-            </div>
-            <div style={{ fontSize: 15, lineHeight: 1.55, opacity: 0.92, maxWidth: 340 }}>
-              {lang === 'es'
-                ? '120+ generadores, 100+ mejoras de click y 300+ logros. Tu progreso se queda contigo hasta cuando cerrás la pestaña.'
-                : '120+ generators, 100+ click upgrades and 300+ achievements. Your progress stays — even when the tab is closed.'}
-            </div>
-          </div>
-
-          <div style={{
-            position: 'relative', zIndex: 1,
-            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
-          }}>
-            <HeroStat n="120+" l={lang === 'es' ? 'Generadores' : 'Generators'} />
-            <HeroStat n="100+" l={lang === 'es' ? 'Mejoras' : 'Upgrades'} />
-            <HeroStat n="300+" l={lang === 'es' ? 'Logros' : 'Achievements'} />
-          </div>
-        </div>
-
-        {/* RIGHT: card */}
-        <div style={{
-        width: '100%',
-        background: 'var(--bg-1)',
-        borderRadius: 'var(--radius-m)',
-        boxShadow: 'var(--elevation-10)',
-        border: '1px solid var(--border-subtle)',
-        overflow: 'hidden',
-        display: 'flex', flexDirection: 'column',
-      }}>
-        {/* HEADER */}
-        <div style={{
-          padding: 'var(--spacing-6) var(--spacing-6) var(--spacing-5)',
-          display: 'flex', alignItems: 'center', gap: 12,
-        }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 'var(--radius-s)',
-            background: 'var(--primary-i100)', color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(0,118,219,0.25)',
-          }}>
-            <i className="fa-solid fa-tooth" style={{ fontSize: 22 }}></i>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="t-mini-caps" style={{ color: 'var(--primary-i100)' }}>Atom Labs</div>
-            <div className="t-heading-l" style={{ color: 'var(--fg-1)' }}>{t.gateTitle}</div>
-          </div>
-          <div ref={menuRef} style={{ position: 'relative' }}>
-            <button
-              onClick={() => setMenuOpen(o => !o)}
-              style={{
-                all: 'unset', boxSizing: 'border-box',
-                width: 40, height: 40, borderRadius: 'var(--radius-s)',
-                border: '1px solid var(--border-subtle)',
-                background: menuOpen ? 'var(--bg-3)' : 'transparent',
-                color: 'var(--fg-2)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-              title={t.menuOptions}
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-            >
-              <i className="fa-solid fa-ellipsis-vertical"></i>
-            </button>
-            {menuOpen && (
-              <div role="menu" style={{
-                position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-                minWidth: 220,
-                background: 'var(--bg-1)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-s)',
-                boxShadow: 'var(--elevation-20)',
-                padding: 6,
-                zIndex: 20,
-                display: 'flex', flexDirection: 'column', gap: 2,
-              }}>
-                <MenuItem
-                  icon={soundOn ? 'fa-volume-high' : 'fa-volume-xmark'}
-                  label={soundOn ? t.soundOn : t.soundOff}
-                  onClick={() => { onSoundToggle && onSoundToggle(); }}
-                />
-                <MenuItem
-                  icon="fa-language"
-                  label={lang === 'es' ? 'Español' : 'English'}
-                  trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'EN →' : 'ES →'}</span>}
-                  onClick={() => { toggleLang(); }}
-                />
-                {existingUser && (
-                  <React.Fragment>
-                    <MenuDivider />
-                    <MenuItem
-                      icon="fa-trash"
-                      label={t.reset}
-                      danger
-                      onClick={() => { setMenuOpen(false); setShowDeleteConfirm(true); }}
-                    />
-                  </React.Fragment>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* TABS */}
-        <div style={{
-          display: 'flex', gap: 4,
-          padding: '0 var(--spacing-6)',
-          borderBottom: '1px solid var(--border-subtle)',
-        }}>
-          <GateTab active={tab === 'game'} onClick={() => setTab('game')} label={t.gateTabGame} icon="fa-play" />
-          <GateTab active={tab === 'lb'} onClick={() => setTab('lb')} label={t.gateTabLeaderboard} icon="fa-ranking-star" />
-        </div>
-
-        {/* TAB BODY */}
-        <div style={{ padding: 'var(--spacing-6)' }}>
-          {tab === 'game' && (
-            existingUser ? (
-              <form onSubmit={handleContinueClick} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-                <div style={{
-                  padding: 'var(--spacing-4) var(--spacing-5)',
-                  background: 'var(--primary-i005)',
-                  border: '1px solid var(--primary-i020)',
-                  borderRadius: 'var(--radius-s)',
-                  display: 'flex', alignItems: 'center', gap: 14,
-                }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: '50%',
-                    background: 'var(--primary-i100)', color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 18, fontWeight: 700,
-                  }}>{(existingUser[0] || '?').toUpperCase()}</div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="t-mini-caps" style={{ color: 'var(--primary-i100)' }}>{t.gateWelcomeBack}</div>
-                    <div className="t-heading-m" style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{existingUser}</div>
-                  </div>
-                </div>
-
-                <div className="t-body-m" style={{ color: 'var(--fg-2)' }}>{t.gateWelcomeBackSub}</div>
-
-                {myRecord && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    <MiniStat label={t.lbTotal} value={formatNum(myRecord.totalEarned || 0)} icon="fa-tooth" color="var(--primary-i100)" />
-                    <MiniStat label={t.lbPrestige} value={formatNum(myRecord.prestige || 0)} icon="fa-crown" color="var(--warning-i100)" />
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  autoFocus
-                  style={{
-                    all: 'unset', boxSizing: 'border-box', textAlign: 'center',
-                    padding: '14px 20px', borderRadius: 'var(--radius-s)',
-                    background: 'var(--primary-i100)', color: '#fff',
-                    fontWeight: 600, fontSize: 15, cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)', transition: 'background 150ms',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary-i130)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--primary-i100)'; }}
-                >
-                  <i className="fa-solid fa-play" style={{ fontSize: 13 }}></i>
-                  {t.gateContinue}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-                <div className="t-body-l" style={{ color: 'var(--fg-2)' }}>{t.gateTagline}</div>
-                <div>
-                  <label className="t-mini-caps" style={{ color: 'var(--fg-3)', display: 'block', marginBottom: 6 }}>
-                    {t.gateNameLabel}
-                  </label>
-                  <input
-                    autoFocus
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    maxLength={24}
-                    placeholder={t.gateNamePlaceholder}
-                    style={{
-                      width: '100%', padding: '12px 14px', fontSize: 15,
-                      fontFamily: 'var(--font-sans)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-s)',
-                      background: 'var(--bg-1)', color: 'var(--fg-1)',
-                      outline: 'none',
-                      transition: 'border 150ms, box-shadow 150ms',
-                      boxSizing: 'border-box',
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--primary-i100)';
-                      e.currentTarget.style.boxShadow = '0 0 0 3px var(--primary-i010)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-default)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  />
-                  {existing && (
-                    <div className="t-body-s" style={{ color: 'var(--negative-i130)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <i className="fa-solid fa-circle-xmark"></i>
-                      {t.gateExisting}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={!canPlay}
-                  style={{
-                    all: 'unset', boxSizing: 'border-box', textAlign: 'center',
-                    padding: '14px 20px', borderRadius: 'var(--radius-s)',
-                    background: canPlay ? 'var(--primary-i100)' : 'var(--bg-3)',
-                    color: canPlay ? '#fff' : 'var(--fg-4)',
-                    fontWeight: 600, fontSize: 15,
-                    cursor: canPlay ? 'pointer' : 'not-allowed',
-                    fontFamily: 'var(--font-sans)', transition: 'background 150ms',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  }}
-                  onMouseEnter={e => { if (canPlay) e.currentTarget.style.background = 'var(--primary-i130)'; }}
-                  onMouseLeave={e => { if (canPlay) e.currentTarget.style.background = 'var(--primary-i100)'; }}
-                >
-                  {t.gatePlay}
-                  <i className="fa-solid fa-arrow-right" style={{ fontSize: 13 }}></i>
-                </button>
-              </form>
-            )
-          )}
-
-          {tab === 'lb' && (
-            <div>
-              <LeaderboardHeader lb={lb} lang={lang} />
-              <LeaderboardBody lb={lb} lang={lang} currentUser={existingUser} />
-            </div>
-          )}
-        </div>
-      </div>
-      </div>
-
-      {/* Delete user confirm modal */}
-      {showDeleteConfirm && (
-        <Modal onClose={() => setShowDeleteConfirm(false)}>
-          <div style={{
-            width: 54, height: 54, borderRadius: 'var(--radius-s)',
-            background: 'var(--negative-i010)', color: 'var(--negative-i100)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            marginBottom: 'var(--spacing-3)',
-          }}>
-            <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 22 }}></i>
-          </div>
-          <div className="t-heading-m">{t.reset}</div>
-          <div className="t-body-m" style={{ color: 'var(--fg-2)', marginTop: 6 }}>{t.confirmReset}</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 'var(--spacing-5)' }}>
-            <button onClick={() => setShowDeleteConfirm(false)} style={secondaryBtnStyle}>
-              {lang === 'es' ? 'Cancelar' : 'Cancel'}
-            </button>
-            <button
-              onClick={() => {
-                setShowDeleteConfirm(false);
-                if (existingUser) {
-                  try { cloudDeleteScore(existingUser); } catch (e) {}
-                  try { deleteUserSave(existingUser); } catch (e) {}
-                }
-                onDeleteUser && onDeleteUser();
-              }}
-              style={{ ...primaryBtnStyle, background: 'var(--negative-i100)' }}
-            >
-              {t.reset}
-            </button>
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-function HeroStat({ n, l }) {
-  return (
-    <div style={{
-      padding: '10px 12px',
-      background: 'rgba(255,255,255,0.14)',
-      borderRadius: 'var(--radius-s)',
-      backdropFilter: 'blur(8px)',
-      border: '1px solid rgba(255,255,255,0.12)',
-    }}>
-      <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{n}</div>
-      <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', opacity: 0.78, marginTop: 4 }}>{l}</div>
-    </div>
-  );
-}
-
-function GateTab({ active, onClick, label, icon }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        all: 'unset', boxSizing: 'border-box',
-        padding: '12px 16px',
-        cursor: 'pointer',
-        color: active ? 'var(--primary-i100)' : 'var(--fg-3)',
-        fontWeight: active ? 600 : 500,
-        fontSize: 14,
-        fontFamily: 'var(--font-sans)',
-        borderBottom: `2px solid ${active ? 'var(--primary-i100)' : 'transparent'}`,
-        marginBottom: -1,
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        transition: 'all 120ms',
-      }}
-      onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--fg-1)'; }}
-      onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--fg-3)'; }}
-    >
-      <i className={`fa-solid ${icon}`} style={{ fontSize: 13 }}></i>
-      {label}
-    </button>
-  );
-}
-
-
-function LeaderboardHeader({ lb, lang, subtitle }) {
-  const t = STRINGS[lang];
+function LeaderboardHeader({ lb, lang }) {
+  const t = window.STRINGS[lang];
+  const [, tick] = useStateG(0);
+  useEffectG(() => { const id = setInterval(() => tick(x => x + 1), 1000); return () => clearInterval(id); }, []);
   let status;
-  if (lb.loading && !lb.lastUpdate) {
-    status = <><i className="fa-solid fa-circle-notch fa-spin" style={{ color: 'var(--fg-3)' }}></i> {t.lbLoading}</>;
-  } else if (lb.error) {
-    status = <><i className="fa-solid fa-triangle-exclamation" style={{ color: 'var(--negative-i100)' }}></i> {t.lbError}</>;
-  } else {
-    status = <><i className="fa-solid fa-circle" style={{ color: 'var(--positive-i100)', fontSize: 8 }}></i> {t.lbLastUpdate} {formatRelTime(lb.lastUpdate, lang)}</>;
-  }
+  if (lb.loading && !lb.lastUpdate) status = <><i className="fa-solid fa-circle-notch fa-spin" style={{ color: 'var(--fg-3)' }}></i> {t.lbLoading}</>;
+  else if (lb.error) status = <><i className="fa-solid fa-triangle-exclamation" style={{ color: 'var(--negative-i100)' }}></i> {t.lbError}</>;
+  else { const s = Math.max(0, Math.floor((Date.now() - lb.lastUpdate) / 1000)); status = <><i className="fa-solid fa-circle" style={{ color: 'var(--positive-i100)', fontSize: 8 }}></i> {t.lbLastUpdate} {s}s</>; }
   return (
     <div style={{ marginBottom: 'var(--spacing-4)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <i className="fa-solid fa-ranking-star" style={{ color: 'var(--warning-i100)', fontSize: 20 }}></i>
-          <div className="t-heading-m" style={{ color: 'var(--fg-1)' }}>{t.lbTitle}</div>
+          <div className="t-heading-m">{t.lbTitle}</div>
         </div>
-        <button
-          onClick={lb.refresh}
-          disabled={lb.loading}
-          style={{
-            all: 'unset',
-            boxSizing: 'border-box',
-            padding: '6px 10px',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-s)',
-            color: 'var(--fg-2)',
-            fontSize: 12, fontWeight: 500,
-            cursor: lb.loading ? 'wait' : 'pointer',
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontFamily: 'var(--font-sans)',
-            opacity: lb.loading ? 0.6 : 1,
-          }}
-          title={t.lbRefresh}
-        >
+        <button onClick={lb.refresh} disabled={lb.loading} style={{ all: 'unset', boxSizing: 'border-box', padding: '6px 10px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', color: 'var(--fg-2)', fontSize: 12, fontWeight: 500, cursor: lb.loading ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', opacity: lb.loading ? 0.6 : 1 }}>
           <i className={lb.loading ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-rotate'} style={{ fontSize: 11 }}></i>
           {t.lbRefresh}
         </button>
       </div>
       <div className="t-body-m" style={{ color: 'var(--fg-3)', marginTop: 4 }}>{t.lbSub}</div>
-      <div className="t-body-s" style={{
-        color: lb.error ? 'var(--negative-i130)' : 'var(--fg-3)',
-        marginTop: 8,
-        display: 'flex', alignItems: 'center', gap: 6,
-      }}>
+      <div className="t-body-s" style={{ color: lb.error ? 'var(--negative-i130)' : 'var(--fg-3)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
         {status}
-        {lb.error && (
-          <button onClick={lb.refresh} style={{
-            all: 'unset', cursor: 'pointer',
-            color: 'var(--primary-i100)', fontWeight: 600,
-            textDecoration: 'underline', marginLeft: 6,
-          }}>{t.lbRetry}</button>
-        )}
+        {lb.error && <button onClick={lb.refresh} style={{ all: 'unset', cursor: 'pointer', color: 'var(--primary-i100)', fontWeight: 600, textDecoration: 'underline', marginLeft: 6 }}>{t.lbRetry}</button>}
       </div>
     </div>
   );
 }
 
-function LeaderboardBody({ lb, lang, selectedName, currentUser, onPick }) {
-  const t = STRINGS[lang];
+function LeaderboardBody({ lb, lang, currentUser }) {
+  const t = window.STRINGS[lang];
   const rows = lb.scores || [];
-
-  if (lb.loading && rows.length === 0 && !lb.error) {
-    return (
-      <div style={{
-        padding: 'var(--spacing-8) var(--spacing-4)',
-        textAlign: 'center',
-        color: 'var(--fg-3)',
-      }}>
-        <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 22, marginBottom: 10 }}></i>
-        <div className="t-body-m">{t.lbLoading}</div>
-      </div>
-    );
-  }
-
-  if (!lb.loading && rows.length === 0 && !lb.error) {
-    return (
-      <div style={{
-        padding: 'var(--spacing-8) var(--spacing-4)',
-        textAlign: 'center',
-        background: 'var(--bg-3)',
-        borderRadius: 'var(--radius-m)',
-        color: 'var(--fg-3)',
-      }}>
-        <i className="fa-solid fa-trophy" style={{ fontSize: 28, color: 'var(--fg-4)', display: 'block', marginBottom: 10 }}></i>
-        <div className="t-body-m">{t.lbEmpty}</div>
-      </div>
-    );
-  }
-
+  if (lb.loading && rows.length === 0 && !lb.error) return (
+    <div style={{ padding: 'var(--spacing-8) var(--spacing-4)', textAlign: 'center', color: 'var(--fg-3)' }}>
+      <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 22, marginBottom: 10 }}></i>
+      <div className="t-body-m">{t.lbLoading}</div>
+    </div>
+  );
+  if (!lb.loading && rows.length === 0 && !lb.error) return (
+    <div style={{ padding: 'var(--spacing-8) var(--spacing-4)', textAlign: 'center', background: 'var(--bg-3)', borderRadius: 'var(--radius-m)', color: 'var(--fg-3)' }}>
+      <i className="fa-solid fa-trophy" style={{ fontSize: 28, color: 'var(--fg-4)', display: 'block', marginBottom: 10 }}></i>
+      <div className="t-body-m">{t.lbEmpty}</div>
+    </div>
+  );
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflow: 'auto', maxHeight: 460 }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '36px 1fr 80px 130px',
-        gap: 'var(--spacing-3)',
-        padding: '0 var(--spacing-3)',
-        color: 'var(--fg-3)',
-        marginBottom: 2,
-      }} className="t-mini-caps">
-        <div>{t.lbRank}</div>
-        <div>{t.lbPlayer}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', maxHeight: 460 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 80px 130px', gap: 'var(--spacing-3)', padding: '0 var(--spacing-3)', color: 'var(--fg-3)', marginBottom: 2 }} className="t-mini-caps">
+        <div>{t.lbRank}</div><div>{t.lbPlayer}</div>
         <div style={{ textAlign: 'right' }}>{t.lbPrestige}</div>
         <div style={{ textAlign: 'right' }}>{t.lbTotal}</div>
       </div>
-
       {rows.map((r, i) => {
-        const isSelected = selectedName && (r.name || '').toLowerCase() === selectedName.toLowerCase();
         const isCurrent = currentUser && r.name === currentUser;
-        const highlight = isSelected || isCurrent;
         const medal = i === 0 ? '#FFC220' : i === 1 ? '#A6B5C5' : i === 2 ? '#E8A06E' : null;
         return (
-          <div
-            key={r.name + '-' + i}
-            onClick={onPick ? () => onPick(r.name) : undefined}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '36px 1fr 80px 130px',
-              gap: 'var(--spacing-3)',
-              alignItems: 'center',
-              padding: '10px var(--spacing-3)',
-              background: highlight ? 'var(--primary-i010)' : 'var(--bg-1)',
-              border: `1px solid ${highlight ? 'var(--primary-i100)' : 'var(--border-subtle)'}`,
-              borderRadius: 'var(--radius-s)',
-              cursor: onPick ? 'pointer' : 'default',
-              transition: 'all 120ms',
-            }}
-            onMouseEnter={e => { if (onPick && !highlight) { e.currentTarget.style.background = 'var(--primary-i005)'; e.currentTarget.style.borderColor = 'var(--primary-i020)'; } }}
-            onMouseLeave={e => { if (onPick && !highlight) { e.currentTarget.style.background = 'var(--bg-1)'; e.currentTarget.style.borderColor = 'var(--border-subtle)'; } }}
-          >
-            <div style={{
-              width: 28, height: 28, borderRadius: '50%',
-              background: medal || 'var(--bg-3)',
-              color: medal ? '#fff' : 'var(--fg-2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 700,
-              boxShadow: medal ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
-            }}>{i + 1}</div>
-            <div style={{ minWidth: 0 }}>
-              <div className="t-heading-xs" style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {r.name}
-                {isCurrent && (
-                  <span style={{
-                    marginLeft: 8,
-                    fontSize: 10, fontWeight: 600,
-                    background: 'var(--primary-i100)', color: '#fff',
-                    padding: '2px 6px', borderRadius: 999,
-                  }}>{t.lbYou}</span>
-                )}
-              </div>
-              <div className="t-body-s" style={{ color: 'var(--fg-3)' }}>
-                {formatTime(r.timePlayed || 0)}
+          <div key={r.name + '-' + i} style={{ display: 'grid', gridTemplateColumns: '36px 1fr 80px 130px', gap: 'var(--spacing-3)', alignItems: 'center', padding: '10px var(--spacing-3)', background: isCurrent ? 'var(--primary-i010)' : 'var(--bg-1)', border: `1px solid ${isCurrent ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 'var(--radius-s)', transition: 'all 120ms' }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: medal || 'var(--bg-3)', color: medal ? '#fff' : 'var(--fg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, boxShadow: medal ? '0 2px 6px rgba(0,0,0,0.15)' : 'none' }}>{i + 1}</div>
+            <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {window.TOOTH_STAGES && <img src={window.getToothStage(r.prestige || 0).img} alt="" style={{ width: 40, height: 40, objectFit: 'contain', flexShrink: 0 }} />}
+              <div style={{ minWidth: 0 }}>
+                <div className="t-heading-xs" style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {r.name}
+                  {isCurrent && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: 'var(--primary-i100)', color: '#fff', padding: '2px 6px', borderRadius: 999 }}>{t.lbYou}</span>}
+                </div>
+                <div className="t-body-s" style={{ color: 'var(--fg-3)' }}>{window.formatTime(r.timePlayed || 0)}</div>
               </div>
             </div>
             <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--warning-i130)', fontWeight: 600 }}>
               <i className="fa-solid fa-crown" style={{ color: 'var(--warning-i100)', fontSize: 11, marginRight: 4 }}></i>
-              {formatNum(r.prestige || 0)}
+              {window.formatNum(r.prestige || 0)}
             </div>
-            <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--primary-i100)', fontWeight: 600 }}>
-              {formatNum(r.totalEarned || 0)}
-            </div>
+            <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--primary-i100)', fontWeight: 600 }}>{window.formatNum(r.totalEarned || 0)}</div>
           </div>
         );
       })}
@@ -643,37 +100,13 @@ function LeaderboardBody({ lb, lang, selectedName, currentUser, onPick }) {
 
 function LeaderboardPanel({ username, lang }) {
   const lb = useCloudLeaderboard({ pollMs: 15000 });
-  const [, tick] = useStateG(0);
-  useEffectG(() => {
-    const id = setInterval(() => tick(x => x + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <div>
-      <LeaderboardHeader lb={lb} lang={lang} />
-      <LeaderboardBody lb={lb} lang={lang} currentUser={username} />
-    </div>
-  );
+  return <div><LeaderboardHeader lb={lb} lang={lang} /><LeaderboardBody lb={lb} lang={lang} currentUser={username} /></div>;
 }
-
-Object.assign(window, { Gate, LeaderboardPanel, useCloudLeaderboard, MiniStat });
 
 function MiniStat({ label, value, icon, color }) {
   return (
-    <div style={{
-      padding: '10px 12px',
-      background: 'var(--bg-1)',
-      border: '1px solid var(--border-subtle)',
-      borderRadius: 'var(--radius-s)',
-      display: 'flex', alignItems: 'center', gap: 10,
-    }}>
-      <div style={{
-        width: 32, height: 32, borderRadius: '50%',
-        background: 'var(--bg-3)', color: color || 'var(--fg-2)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 13,
-      }}>
+    <div style={{ padding: '10px 12px', background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-3)', color: color || 'var(--fg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
         <i className={`fa-solid ${icon}`}></i>
       </div>
       <div style={{ minWidth: 0 }}>
@@ -683,3 +116,156 @@ function MiniStat({ label, value, icon, color }) {
     </div>
   );
 }
+
+// ── User pill ───────────────────────────────────────────────────────────────
+function UserPill({ name, onSelect, isOwn }) {
+  const [hov, setHov] = useStateG(false);
+  return (
+    <button
+      style={{
+        all: 'unset', boxSizing: 'border-box',
+        display: 'flex', alignItems: 'center', gap: 14,
+        width: '100%', padding: '12px 20px',
+        borderRadius: 999,
+        background: hov ? 'rgba(26,143,255,0.18)' : 'rgba(255,255,255,0.82)',
+        border: `2px solid ${hov ? 'rgba(26,143,255,0.6)' : (isOwn ? 'rgba(26,143,255,0.4)' : 'rgba(100,160,230,0.3)')}`,
+        boxShadow: hov ? '0 4px 16px rgba(26,143,255,0.18)' : '0 2px 10px rgba(80,140,220,0.08)',
+        cursor: 'pointer', transition: 'all 140ms',
+        fontFamily: "'PixelifySans', var(--font-sans)",
+        transform: hov ? 'translateY(-1px)' : 'none',
+        backdropFilter: 'blur(6px)',
+      }}
+      onClick={() => onSelect(name)}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+    >
+      <div style={{ width: 34, height: 34, borderRadius: '50%', background: hov ? '#1a8fff' : (isOwn ? 'rgba(26,143,255,0.2)' : 'rgba(100,160,230,0.2)'), color: hov ? '#fff' : '#3a6a9a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, flexShrink: 0, transition: 'all 140ms' }}>
+        {(name[0] || '?').toUpperCase()}
+      </div>
+      <span style={{ fontSize: 16, fontWeight: 600, color: hov ? '#1a6acc' : '#334455', flex: 1, transition: 'color 140ms' }}>{name}</span>
+      {isOwn && <span style={{ fontSize: 10, fontWeight: 600, color: '#1a8fff', background: 'rgba(26,143,255,0.12)', padding: '3px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
+        {window.__lang === 'en' ? 'YOU' : 'TÚ'}
+      </span>}
+      <i className="fa-solid fa-arrow-right" style={{ fontSize: 12, color: hov ? '#1a8fff' : 'rgba(100,160,200,0.5)', transition: 'color 140ms' }}></i>
+    </button>
+  );
+}
+
+// ── Gate ─────────────────────────────────────────────────────────────────────
+function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, users, deviceUser, soundOn, onSoundToggle, onShowAbout }) {
+  const [name, setName] = useStateG('');
+  const [showLb, setShowLb] = useStateG(false);
+  const lb = useCloudLeaderboard({ pollMs: 15000 });
+
+  const nameExists = useMemoG(() => {
+    const t = name.trim().toLowerCase();
+    if (!t) return false;
+    return users.some(u => u.toLowerCase() === t);
+  }, [users, name]);
+
+  const canCreate = name.trim().length > 0 && !nameExists && !deviceUser;
+
+  const handleSubmit = (e) => {
+    e && e.preventDefault();
+    if (!canCreate) return;
+    onCreateUser(name.trim());
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#e8f2fb', fontFamily: "'PixelifySans', var(--font-sans)" }}>
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(uploads/background-e5bd6167.png)', backgroundSize: 'cover', backgroundPosition: 'center', pointerEvents: 'none' }} />
+
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 24px 24px', width: '100%', maxWidth: 400 }}>
+
+        <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 200, objectFit: 'contain', marginBottom: 28, filter: 'drop-shadow(0 8px 24px rgba(80,140,220,0.22))' }} />
+
+        {/* Registration form — only shown if this device hasn't created a user yet */}
+        {!deviceUser && (
+          <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <div style={{ position: 'relative', width: '100%' }}>
+              <input
+                autoFocus
+                value={name}
+                onChange={e => setName(e.target.value)}
+                maxLength={24}
+                placeholder={lang === 'es' ? 'Tu nombre...' : 'Your name...'}
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  padding: '13px 52px 13px 22px',
+                  fontSize: 16, fontFamily: "'PixelifySans', var(--font-sans)",
+                  border: `2px solid ${nameExists ? '#e55' : 'rgba(100,160,230,0.5)'}`,
+                  borderRadius: 999, background: 'rgba(255,255,255,0.88)', color: '#334',
+                  outline: 'none', backdropFilter: 'blur(4px)',
+                  boxShadow: '0 2px 12px rgba(80,140,220,0.10)', transition: 'border 150ms',
+                }}
+              />
+              <button type="submit" disabled={!canCreate} style={{
+                all: 'unset', boxSizing: 'border-box',
+                position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                width: 36, height: 36, borderRadius: 999,
+                background: canCreate ? '#1a8fff' : 'rgba(100,140,180,0.2)',
+                color: canCreate ? '#fff' : 'rgba(100,140,180,0.5)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: canCreate ? 'pointer' : 'not-allowed', transition: 'background 150ms',
+              }}>
+                <i className="fa-solid fa-arrow-right-to-bracket" style={{ fontSize: 14 }}></i>
+              </button>
+            </div>
+            <div style={{ fontSize: 12, color: nameExists ? '#c33' : 'rgba(80,110,150,0.7)', fontFamily: 'var(--font-sans)', textAlign: 'center' }}>
+              {nameExists
+                ? (lang === 'es' ? '⚠ Ese nombre ya existe' : '⚠ That name already exists')
+                : (lang === 'es' ? 'Regístrate con tu nombre para jugar' : 'Register with your name to play')}
+            </div>
+          </form>
+        )}
+
+        {/* Existing users list */}
+        {users.length > 0 && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+            {deviceUser && (
+              <div style={{ fontSize: 12, color: 'rgba(80,110,150,0.65)', fontFamily: 'var(--font-sans)', textAlign: 'center', marginBottom: 4 }}>
+                {lang === 'es' ? 'Selecciona tu perfil' : 'Select your profile'}
+              </div>
+            )}
+            {users.map(u => (
+              <UserPill key={u} name={u} onSelect={onSelectUser} isOwn={u === deviceUser} />
+            ))}
+          </div>
+        )}
+
+        {/* Bottom row */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20, width: '100%' }}>
+          <button onClick={() => setShowLb(true)} style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(6px)', border: '1px solid rgba(100,160,230,0.3)', borderRadius: 999, color: '#4a6a8a', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 140ms', fontFamily: "'PixelifySans', var(--font-sans)" }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.9)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.7)'}>
+            <span style={{ fontSize: 16 }}>👑</span> Leaderboard
+          </button>
+          <button onClick={() => onLangChange(lang === 'es' ? 'en' : 'es')} style={{ all: 'unset', boxSizing: 'border-box', padding: '11px 16px', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(6px)', border: '1px solid rgba(100,160,230,0.3)', borderRadius: 999, color: '#4a6a8a', fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'background 140ms', fontFamily: "'PixelifySans', var(--font-sans)" }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.9)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.7)'}>
+            {lang === 'es' ? '🇬🇧 EN' : '🇪🇸 ES'}
+          </button>
+        </div>
+
+        {/* Admin access — direct, no password */}
+        <button onClick={onAdminAccess} style={{ all: 'unset', cursor: 'pointer', fontSize: 12, color: 'rgba(80,110,150,0.45)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 999, transition: 'color 140ms' }}
+          onMouseEnter={e => e.currentTarget.style.color = 'rgba(26,143,255,0.75)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'rgba(80,110,150,0.45)'}>
+          <i className="fa-solid fa-shield-halved" style={{ fontSize: 11 }}></i>
+          {lang === 'es' ? 'Administrador' : 'Administrator'}
+        </button>
+
+        <div style={{ marginTop: 8, fontSize: 11, color: 'rgba(80,110,150,0.4)', fontFamily: 'var(--font-sans)', letterSpacing: 0.2 }}>{APP_VERSION}</div>
+      </div>
+
+      {showLb && (
+        <window.Modal onClose={() => setShowLb(false)}>
+          <LeaderboardHeader lb={lb} lang={lang} />
+          <LeaderboardBody lb={lb} lang={lang} currentUser={null} />
+        </window.Modal>
+      )}
+    </div>
+  );
+}
+
+Object.assign(window, { Gate, LeaderboardPanel, MiniStat, useCloudLeaderboard });

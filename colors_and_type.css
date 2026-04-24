@@ -1,29 +1,17 @@
 /* ============================================================
    Atom Design System — Colors & Type
-   Source: Engenis-Ltda/ha-design-system (src/theme + src/components/Typography)
-   Base: 16px = 1rem. All spacing tokens use rem.
    ============================================================ */
 
-/* Inter — variable font, self-hosted */
 @font-face {
-  font-family: 'Inter';
+  font-family: 'PixelifySans';
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('fonts/Inter-VariableFont_opsz_wght.ttf') format('truetype-variations'),
-       url('fonts/Inter-VariableFont_opsz_wght.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Inter';
-  font-style: italic;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('fonts/Inter-Italic-VariableFont_opsz_wght.ttf') format('truetype-variations'),
-       url('fonts/Inter-Italic-VariableFont_opsz_wght.ttf') format('truetype');
+  src: url('uploads/PixelifySans-VariableFont_wght.ttf') format('truetype-variations'),
+       url('uploads/PixelifySans-VariableFont_wght.ttf') format('truetype');
 }
 
 :root {
-  /* ------- Neutral ------- */
   --neutral-i000: #FFFFFF;
   --neutral-i001: #FAFAFA;
   --neutral-i005: #F4F4F4;
@@ -38,7 +26,6 @@
   --neutral-i090: #313132;
   --neutral-i100: #1A1A1B;
 
-  /* ------- Primary (the Atom blue) ------- */
   --primary-i005: #F6FBFF;
   --primary-i010: #EBF4FC;
   --primary-i020: #CCE4F8;
@@ -56,7 +43,6 @@
   --primary-i200: #0E2336;
   --primary-i230: #010203;
 
-  /* ------- Positive ------- */
   --positive-i010: #E6F3E6;
   --positive-i050: #83C381;
   --positive-i070: #52AA4F;
@@ -64,7 +50,6 @@
   --positive-i130: #055F02;
   --positive-i150: #034701;
 
-  /* ------- Warning ------- */
   --warning-i005: #FFFCF5;
   --warning-i010: #FFF9E9;
   --warning-i020: #FFF3D2;
@@ -75,7 +60,6 @@
   --warning-i130: #4C4226;
   --warning-i150: #19170F;
 
-  /* ------- Negative ------- */
   --negative-i005: #FFF4F5;
   --negative-i010: #FCE8E9;
   --negative-i030: #F6BBBD;
@@ -85,7 +69,6 @@
   --negative-i130: #A3151A;
   --negative-i150: #6B0E12;
 
-  /* ------- Complementary (slate-blue neutral) ------- */
   --complementary-i010: #F1F8FE;
   --complementary-i020: #DFE7F0;
   --complementary-i030: #CCD6E0;
@@ -97,7 +80,6 @@
   --complementary-i090: #151E27;
   --complementary-i100: #05090D;
 
-  /* ------- Alternative (indigo/violet) ------- */
   --alternative-i005: #F6F5FF;
   --alternative-i010: #ECEBFF;
   --alternative-i020: #D9D7FF;
@@ -114,18 +96,17 @@
   --alternative-i200: #090099;
   --alternative-i230: #060066;
 
-  /* ------- Semantic aliases (role-based) ------- */
-  --fg-1:      var(--neutral-i100);        /* main text */
-  --fg-2:      var(--complementary-i080);  /* secondary text */
-  --fg-3:      var(--neutral-i060);        /* muted text */
-  --fg-4:      var(--neutral-i040);        /* disabled text */
+  --fg-1:      var(--neutral-i100);
+  --fg-2:      var(--complementary-i080);
+  --fg-3:      var(--neutral-i060);
+  --fg-4:      var(--neutral-i040);
   --fg-accent: var(--primary-i100);
   --fg-on-accent: var(--neutral-i000);
 
-  --bg-1:      var(--neutral-i000);        /* surface */
-  --bg-2:      var(--neutral-i001);        /* subtle surface */
-  --bg-3:      var(--neutral-i005);        /* alt surface */
-  --bg-canvas: var(--complementary-i010);  /* app canvas */
+  --bg-1:      var(--neutral-i000);
+  --bg-2:      var(--neutral-i001);
+  --bg-3:      var(--neutral-i005);
+  --bg-canvas: var(--complementary-i010);
   --bg-accent-soft: var(--primary-i010);
 
   --border-subtle: var(--neutral-i010);
@@ -138,7 +119,6 @@
   --status-danger:  var(--negative-i100);
   --status-info:    var(--primary-i100);
 
-  /* ------- Spacing (rem, base 16px) ------- */
   --spacing-0:    0rem;
   --spacing-0-5:  0.125rem;
   --spacing-1:    0.25rem;
@@ -165,14 +145,12 @@
   --spacing-20:   5rem;
   --spacing-24:   6rem;
 
-  /* ------- Radii ------- */
-  --radius-s:  0.25rem;  /* 4px  — inputs, buttons */
-  --radius-m:  0.5rem;   /* 8px  — cards, modals */
-  --radius-l:  1rem;     /* 16px */
-  --radius-xl: 2rem;     /* 32px — pills (full-round) */
+  --radius-s:  0.25rem;
+  --radius-m:  0.5rem;
+  --radius-l:  1rem;
+  --radius-xl: 2rem;
   --radius-pill: 999px;
 
-  /* ------- Shadows / Elevation ------- */
   --elevation-10:
     0px 0px 0.5rem 0px rgba(0, 0, 0, 0.20),
     0px 0px 0.125rem 0px rgba(0, 0, 0, 0.16);
@@ -183,34 +161,27 @@
     0px 1.875rem 3.125rem 0px rgba(0, 0, 0, 0.20),
     0px 0px 0.125rem 0px rgba(0, 0, 0, 0.16);
 
-  /* ------- Typography base ------- */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'PixelifySans', monospace;
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
   --fw-bold: 700;
 }
 
-/* ============================================================
-   Typography scale — 1:1 with Typography.styles.ts
-   ============================================================ */
-.t-display-s { font: var(--fw-regular) 2.25rem/3.375rem var(--font-sans); }    /* 36/54 */
-.t-heading-xl { font: var(--fw-semibold) 1.75rem/2.625rem var(--font-sans); }  /* 28/42 */
-.t-heading-l  { font: var(--fw-semibold) 1.5rem/2.25rem var(--font-sans); }    /* 24/36 */
-.t-heading-m  { font: var(--fw-semibold) 1.25rem/1.875rem var(--font-sans); }  /* 20/30 */
-.t-heading-s  { font: var(--fw-semibold) 1rem/1.5rem var(--font-sans); }       /* 16/24 */
-.t-heading-xs { font: var(--fw-semibold) 0.875rem/1.375rem var(--font-sans); } /* 14/22 */
-
-.t-subtitle-xl { font: var(--fw-regular) 1.5rem/2.25rem var(--font-sans); }    /* 24/36 */
-.t-subtitle-l  { font: var(--fw-regular) 1.125rem/1.75rem var(--font-sans); }  /* 18/28 */
-.t-subtitle-m  { font: var(--fw-regular) 1rem/1.5rem var(--font-sans); }       /* 16/24 */
-.t-subtitle-s  { font: var(--fw-regular) 0.875rem/1.375rem var(--font-sans); } /* 14/22 */
-
-.t-body-l  { font: var(--fw-regular) 1rem/1.5rem var(--font-sans); }           /* 16/24 */
-.t-body-m  { font: var(--fw-regular) 0.875rem/1.375rem var(--font-sans); }     /* 14/22 */
-.t-body-s  { font: var(--fw-regular) 0.75rem/1.125rem var(--font-sans); }      /* 12/18 */
-.t-body-xs { font: var(--fw-regular) 0.625rem/1rem var(--font-sans); }         /* 10/16 */
-
+.t-display-s { font: var(--fw-regular) 2.25rem/3.375rem var(--font-sans); }
+.t-heading-xl { font: var(--fw-semibold) 1.75rem/2.625rem var(--font-sans); }
+.t-heading-l  { font: var(--fw-semibold) 1.5rem/2.25rem var(--font-sans); }
+.t-heading-m  { font: var(--fw-semibold) 1.25rem/1.875rem var(--font-sans); }
+.t-heading-s  { font: var(--fw-semibold) 1rem/1.5rem var(--font-sans); }
+.t-heading-xs { font: var(--fw-semibold) 0.875rem/1.375rem var(--font-sans); }
+.t-subtitle-xl { font: var(--fw-regular) 1.5rem/2.25rem var(--font-sans); }
+.t-subtitle-l  { font: var(--fw-regular) 1.125rem/1.75rem var(--font-sans); }
+.t-subtitle-m  { font: var(--fw-regular) 1rem/1.5rem var(--font-sans); }
+.t-subtitle-s  { font: var(--fw-regular) 0.875rem/1.375rem var(--font-sans); }
+.t-body-l  { font: var(--fw-regular) 1rem/1.5rem var(--font-sans); }
+.t-body-m  { font: var(--fw-regular) 0.875rem/1.375rem var(--font-sans); }
+.t-body-s  { font: var(--fw-regular) 0.75rem/1.125rem var(--font-sans); }
+.t-body-xs { font: var(--fw-regular) 0.625rem/1rem var(--font-sans); }
 .t-mini-xs { font: var(--fw-medium) 0.625rem/1rem var(--font-sans); }
 .t-mini-caps {
   font: var(--fw-medium) 0.625rem/1rem var(--font-sans);
@@ -218,9 +189,6 @@
   text-transform: uppercase;
 }
 
-/* ============================================================
-   Semantic element defaults (so raw HTML reads correctly)
-   ============================================================ */
 html { font-size: 16px; }
 body {
   font-family: var(--font-sans);
@@ -229,6 +197,7 @@ body {
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  margin: 0;
 }
 
 h1 { font: var(--fw-regular) 2.25rem/3.375rem var(--font-sans); margin: 0; }
@@ -237,5 +206,3 @@ h3 { font: var(--fw-regular) 1.125rem/1.75rem var(--font-sans); margin: 0; }
 h4 { font: var(--fw-semibold) 1rem/1.5rem var(--font-sans);     margin: 0; }
 p  { font: var(--fw-regular) 0.875rem/1.375rem var(--font-sans); margin: 0; color: var(--fg-1); }
 small { font: var(--fw-regular) 0.75rem/1.125rem var(--font-sans); color: var(--fg-3); }
-
-code, pre, kbd { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
