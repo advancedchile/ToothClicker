@@ -1717,7 +1717,22 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 {lang === 'es' ? 'Mensajes de Jugadores' : 'Player Feedback'}
                 <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({feedback.length})</span>
               </span>
-              {feedbackLoading && <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 12, color: 'var(--alternative-i050)', marginLeft: 'auto' }}></i>}
+              {feedback.length > 0 && (
+                <button 
+                  onClick={() => {
+                    if (confirm(lang === 'es' ? '¿ESTÁS SEGURO? Se borrarán TODOS los mensajes permanentemente.' : 'ARE YOU SURE? ALL messages will be permanently deleted.')) {
+                      window.cloudClearAllFeedback().then(res => {
+                        if (res.ok) setFeedback([]);
+                      });
+                    }
+                  }}
+                  style={{ ...btn, padding: '4px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 11, border: '1px solid rgba(220,50,50,0.2)', borderRadius: 8, marginLeft: 'auto' }}
+                >
+                  <i className="fa-solid fa-dumpster-fire" style={{ marginRight: 6 }}></i>
+                  {lang === 'es' ? 'Borrar todo' : 'Clear all'}
+                </button>
+              )}
+              {feedbackLoading && <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 12, color: 'var(--alternative-i050)', marginLeft: feedback.length > 0 ? 8 : 'auto' }}></i>}
             </div>
             
             {feedback.length === 0 ?

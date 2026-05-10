@@ -146,8 +146,18 @@ async function cloudDeleteFeedback(timestamp) {
   });
 }
 
+async function cloudClearAllFeedback() {
+  return _enqueue(async () => {
+    try {
+      const record = await _cloudGet();
+      await _cloudPut({ ...record, feedback: [] });
+      return { ok: true };
+    } catch (e) { return { ok: false, error: e.message || 'network' }; }
+  });
+}
+
 Object.assign(window, {
   cloudFetchLeaderboard, cloudSubmitScore, cloudDeleteScore,
   cloudResetAll, cloudLoadAdminAccounts, cloudSaveAdminAccounts,
-  cloudSubmitFeedback, cloudFetchFeedback, cloudDeleteFeedback
+  cloudSubmitFeedback, cloudFetchFeedback, cloudDeleteFeedback, cloudClearAllFeedback
 });
