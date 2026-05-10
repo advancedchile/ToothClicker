@@ -70,33 +70,77 @@ function BossMarquee({ msg, lang, danger, onDismiss }) {
   const border = danger ? 'oklch(0.6 0.25 25)' : 'var(--border-subtle)';
   const textColor = danger ? '#FFE6E0' : 'var(--fg-1)';
   const iconColor = danger ? 'oklch(0.85 0.2 25)' : 'var(--alternative-i100)';
-  const finalNameColor = danger ? 'oklch(0.85 0.2 25)' : nameColor;
+  const finalNameColor = danger ? 'oklch(0.85 0.2 25)' : msg.color || nameColor;
   const sayWord = lang === 'es' ? 'dice' : 'says';
 
+  // Particle System
+  const [particles, setParticles] = useState([]);
+  useEffect(() => {
+    if (!msg.particles || msg.particles === 'none') return;
+    const count = msg.particles === 'confetti' ? 40 : 15;
+    const p = Array.from({ length: count }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      s: 4 + Math.random() * 8,
+      d: Math.random() * 360,
+      v: 1 + Math.random() * 2
+    }));
+    setParticles(p);
+  }, [msg]);
+
+  const posStyles = {
+    top: { top: 40, bottom: 'auto' },
+    center: { top: '50%', transform: 'translateY(-50%)', bottom: 'auto' },
+    bottom: { bottom: 20, top: 'auto' }
+  };
+  const sizeStyles = {
+    small: { maxWidth: 600, fontSize: 13 },
+    medium: { maxWidth: 900, fontSize: 15 },
+    large: { maxWidth: 1200, fontSize: 18 }
+  };
+  const animClass = msg.animation && msg.animation !== 'none' ? `anim-${msg.animation}` : '';
+
   return (
-    <div style={{ position: 'fixed', bottom: 20, left: 16, right: 16, zIndex: 1500, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
-      <div style={{
+    <div style={{ position: 'fixed', left: 16, right: 16, zIndex: 1500, display: 'flex', justifyContent: 'center', pointerEvents: 'none', ...posStyles[msg.position || 'bottom'] }}>
+      {/* Particles Layer */}
+      {particles.map(pt => (
+        <div key={pt.id} className={`particle-${msg.particles}`} style={{
+          position: 'absolute', left: `${pt.x}%`, top: `${pt.y}%`, width: pt.s, height: pt.s,
+          pointerEvents: 'none', zIndex: -1, opacity: 0.6
+        }} />
+      ))}
+      
+      <div className={animClass} style={{
         background: bg,
         border: `1.5px solid ${border}`,
         borderRadius: 'var(--radius-m)',
-        padding: '10px 16px',
+        padding: '12px 20px',
         boxShadow: danger ? '0 0 32px oklch(0.6 0.25 25 / 0.5), 0 6px 24px rgba(0,0,0,0.25)' : 'var(--elevation-20)',
         width: '100%',
-        maxWidth: 'min(1100px, calc(100vw - 32px))',
+        ...sizeStyles[msg.size || 'medium'],
         display: 'flex',
         alignItems: 'center',
         gap: 12,
         animation: danger ? 'dangerPulse 1.2s ease-in-out infinite, modalIn 280ms ease' : 'modalIn 280ms ease',
         pointerEvents: 'auto',
+        position: 'relative'
       }}>
-        <i className={danger ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-info'} style={{ color: iconColor, fontSize: 18, flex: '0 0 auto' }}></i>
-        <div style={{ fontSize: 15, color: textColor, fontFamily: 'var(--font-sans)', lineHeight: 1.4, fontWeight: danger ? 600 : 500, textAlign: 'left', flex: 1, minWidth: 0 }}>
+        <i className={danger ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-info'} style={{ color: iconColor, fontSize: 20, flex: '0 0 auto' }}></i>
+        <div style={{ fontSize: 'inherit', color: textColor, fontFamily: 'var(--font-sans)', lineHeight: 1.4, fontWeight: danger ? 600 : 500, textAlign: 'left', flex: 1, minWidth: 0 }}>
           <span style={{ color: finalNameColor, fontWeight: 700 }}>{msg.who} {sayWord}:</span>{' '}
           {containerReady && (<>
             {shown}
             {shown.length < messageBody.length && <span style={{ display: 'inline-block', width: 2, height: '1em', background: textColor, marginLeft: 1, verticalAlign: 'middle', animation: 'cursorBlink 0.8s steps(1) infinite' }}></span>}
           </>)}
         </div>
+        <button 
+          onClick={() => onDismiss()}
+          style={{ all: 'unset', width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--fg-4)', transition: 'all 0.2s' }}
+          className="hover-bg-danger"
+        >
+          <i className="fa-solid fa-xmark" style={{ fontSize: 14 }}></i>
+        </button>
       </div>
     </div>
   );
@@ -1575,6 +1619,12 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [newMsgName, setNewMsgName] = useState('');
   const [newMsgText, setNewMsgText] = useState('');
   const [newMsgMilestone, setNewMsgMilestone] = useState(1);
+  const [newMsgColor, setNewMsgColor] = useState('#1a8fff');
+  const [newMsgPos, setNewMsgPos] = useState('bottom'); // top, center, bottom
+  const [newMsgSize, setNewMsgSize] = useState('medium'); // small, medium, large
+  const [newMsgAnim, setNewMsgAnim] = useState('none'); // none, pulse, shake, float
+  const [newMsgParticles, setNewMsgParticles] = useState('none'); // none, stars, teeth, fire, confetti
+  const [successNote, setSuccessNote] = useState('');
 
   const MILESTONE_OPTIONS = [1, 2, 3, 4, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 360];
 
@@ -1899,6 +1949,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 {lang === 'es' ? 'Mensajes por Tiempo de Juego' : 'Playtime Milestone Messages'}
                 <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({customMessages.length})</span>
               </span>
+              {successNote && <span style={{ fontSize: 11, color: '#2ecc71', fontWeight: 700, marginLeft: 12, animation: 'fadeIn 0.3s' }}><i className="fa-solid fa-check-circle"></i> {successNote}</span>}
               {(messagesLoading || isSavingMessages) && <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 12, color: '#ff9800', marginLeft: 'auto' }}></i>}
               {isSavingMessages && <span style={{ fontSize: 10, color: '#ff9800', marginLeft: 8 }}>{lang === 'es' ? 'Guardando...' : 'Saving...'}</span>}
             </div>
@@ -1928,59 +1979,106 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                     {newMsgText.length}/100
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, color: '#718096', marginBottom: 2, marginLeft: 2 }}>
-                      {lang === 'es' ? 'Se muestra al minuto:' : 'Shows at minute:'}
-                    </div>
-                    <select 
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: '#718096', marginBottom: 2 }}>{lang === 'es' ? 'Minuto de juego:' : 'Playtime Minute:'}</div>
+                    <input 
+                      type="number" 
+                      min={1}
                       value={newMsgMilestone}
-                      onChange={e => setNewMsgMilestone(parseInt(e.target.value))}
-                      style={{ all: 'unset', boxSizing: 'border-box', width: '100%', padding: '8px 12px', background: '#fff', borderRadius: 8, fontSize: 13, border: '1px solid #e2e8f0', cursor: 'pointer' }}
-                    >
-                      {MILESTONE_OPTIONS.map(opt => {
-                        const isTaken = customMessages.some(m => m.milestone === opt);
-                        return <option key={opt} value={opt} disabled={isTaken}>
-                          {opt} {opt === 1 ? 'min' : 'mins'} {isTaken ? (lang === 'es' ? '(Ocupado)' : '(Taken)') : ''}
-                        </option>;
-                      })}
-                    </select>
+                      onChange={e => setNewMsgMilestone(parseInt(e.target.value) || 1)}
+                      style={{ all: 'unset', boxSizing: 'border-box', width: '100%', padding: '8px 12px', background: '#fff', borderRadius: 8, fontSize: 13, border: '1px solid #e2e8f0' }}
+                    />
+                    {(() => {
+                      const taken = customMessages.some(m => m.milestone === newMsgMilestone);
+                      if (taken) {
+                        let next = 1; while(customMessages.some(m => m.milestone === next)) next++;
+                        return <div style={{ fontSize: 9, color: '#e53e3e', marginTop: 4 }}>{lang === 'es' ? `¡Ocupado! Prueba con el ${next}` : `Taken! Try minute ${next}`}</div>;
+                      }
+                      return null;
+                    })()}
                   </div>
-                  <button 
-                    onClick={() => {
-                      if (!newMsgName || !newMsgText) return;
-                      if (customMessages.some(m => m.milestone === newMsgMilestone)) return;
-                      const newMsg = {
-                        id: Math.random().toString(36).substr(2, 9),
-                        who: newMsgName,
-                        text: newMsgText,
-                        milestone: newMsgMilestone,
-                        createdAt: Date.now()
-                      };
-                      const updated = [...customMessages, newMsg];
-                      setCustomMessages(updated);
-                      saveMessagesToCloud(updated);
-                      setNewMsgName(''); setNewMsgText('');
-                    }}
-                    style={{ ...btn, height: 36, padding: '0 16px', background: '#2d3748', color: '#fff', marginTop: 14 }}
-                  >
-                    {lang === 'es' ? 'Agregar' : 'Add'}
-                  </button>
+                  <div>
+                    <div style={{ fontSize: 10, color: '#718096', marginBottom: 2 }}>{lang === 'es' ? 'Color del Nombre:' : 'Name Color:'}</div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input type="color" value={newMsgColor} onChange={e => setNewMsgColor(e.target.value)} style={{ width: 36, height: 36, border: 'none', borderRadius: 8, cursor: 'pointer', padding: 0, background: 'none' }} />
+                      <div style={{ fontSize: 11, color: '#4a5568', alignSelf: 'center' }}>{newMsgColor}</div>
+                    </div>
+                  </div>
                 </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: '#718096', marginBottom: 2 }}>{lang === 'es' ? 'Posición y Tamaño:' : 'Pos & Size:'}</div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <select value={newMsgPos} onChange={e => setNewMsgPos(e.target.value)} style={{ flex: 1, padding: '6px', fontSize: 11, borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                        <option value="top">{lang === 'es' ? 'Arriba' : 'Top'}</option>
+                        <option value="center">{lang === 'es' ? 'Centro' : 'Center'}</option>
+                        <option value="bottom">{lang === 'es' ? 'Abajo' : 'Bottom'}</option>
+                      </select>
+                      <select value={newMsgSize} onChange={e => setNewMsgSize(e.target.value)} style={{ flex: 1, padding: '6px', fontSize: 11, borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                        <option value="small">S</option>
+                        <option value="medium">M</option>
+                        <option value="large">L</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: '#718096', marginBottom: 2 }}>{lang === 'es' ? 'Efecto y Partículas:' : 'Effect & Particles:'}</div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <select value={newMsgAnim} onChange={e => setNewMsgAnim(e.target.value)} style={{ flex: 1, padding: '6px', fontSize: 11, borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                        <option value="none">-</option>
+                        <option value="pulse">Pulse</option>
+                        <option value="shake">Shake</option>
+                        <option value="float">Float</option>
+                      </select>
+                      <select value={newMsgParticles} onChange={e => setNewMsgParticles(e.target.value)} style={{ flex: 1, padding: '6px', fontSize: 11, borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                        <option value="none">-</option>
+                        <option value="stars">✨</option>
+                        <option value="teeth">🦷</option>
+                        <option value="fire">🔥</option>
+                        <option value="confetti">🎉</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => {
+                    if (!newMsgName || !newMsgText) return;
+                    if (customMessages.some(m => m.milestone === newMsgMilestone)) return;
+                    const newMsg = {
+                      id: Math.random().toString(36).substr(2, 9),
+                      who: newMsgName, text: newMsgText, milestone: newMsgMilestone,
+                      color: newMsgColor, position: newMsgPos, size: newMsgSize,
+                      animation: newMsgAnim, particles: newMsgParticles,
+                      createdAt: Date.now()
+                    };
+                    const updated = [...customMessages, newMsg];
+                    setCustomMessages(updated);
+                    saveMessagesToCloud(updated);
+                    setNewMsgName(''); setNewMsgText('');
+                    setSuccessNote(lang === 'es' ? '¡Mensaje creado!' : 'Message created!');
+                    setTimeout(() => setSuccessNote(''), 3000);
+                  }}
+                  style={{ ...btn, height: 40, width: '100%', background: '#1a8fff', color: '#fff', marginTop: 10, boxShadow: '0 4px 12px rgba(26,143,255,0.2)' }}
+                >
+                  <i className="fa-solid fa-plus"></i> {lang === 'es' ? 'Crear Mensaje' : 'Create Message'}
+                </button>
               </div>
             </div>
 
             {/* List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
-              {customMessages.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '20px 0', color: '#a0aec0', fontSize: 13 }}>
-                  {lang === 'es' ? 'No hay mensajes personalizados' : 'No custom messages'}
-                </div>
-              ) : (
-                customMessages.map(m => (
-                  <div key={m.id} style={{ padding: '12px', background: '#fff', borderRadius: 10, border: '1px solid #edf2f7', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {[...customMessages].sort((a, b) => a.milestone - b.milestone).map(m => (
+                <div key={m.id} style={{ padding: '12px', background: '#fff', borderRadius: 10, border: '1px solid #edf2f7', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: m.color || '#1a8fff' }}></div>
                       <span style={{ fontWeight: 700, fontSize: 13, color: '#2d3748' }}>{m.who}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#718096' }}>{m.milestone} min</span>
                       <select 
                         value={m.milestone}
                         onChange={e => {
@@ -1989,9 +2087,9 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                           setCustomMessages(updated);
                           saveMessagesToCloud(updated);
                         }}
-                        style={{ all: 'unset', fontSize: 11, color: '#1a8fff', background: '#f0f7ff', padding: '2px 8px', borderRadius: 6, cursor: 'pointer', border: '1px solid #cce4ff', fontWeight: 600 }}
+                        style={{ all: 'unset', fontSize: 10, color: '#1a8fff', background: '#f0f7ff', padding: '2px 8px', borderRadius: 6, cursor: 'pointer', border: '1px solid #cce4ff' }}
                       >
-                        {MILESTONE_OPTIONS.map(opt => {
+                        {Array.from({length: 120}, (_, i) => i + 1).map(opt => {
                           const isTaken = customMessages.some(x => x.milestone === opt && x.id !== m.id);
                           return <option key={opt} value={opt} disabled={isTaken}>
                             {opt}m {isTaken ? '(!)' : ''}
@@ -1999,28 +2097,33 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                         })}
                       </select>
                     </div>
-                    <div style={{ fontSize: 13, color: '#4a5568', lineHeight: 1.4, fontStyle: 'italic' }}>
-                      "{m.text}"
+                  </div>
+                  <div style={{ fontSize: 13, color: '#4a5568', lineHeight: 1.4, fontStyle: 'italic' }}>
+                    "{m.text}"
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {m.position && <span style={{ fontSize: 9, color: '#a0aec0', background: '#f7fafc', padding: '1px 5px', borderRadius: 4 }}>{m.position}</span>}
+                      {m.particles && m.particles !== 'none' && <span style={{ fontSize: 9, color: '#a0aec0', background: '#f7fafc', padding: '1px 5px', borderRadius: 4 }}>{m.particles}</span>}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-                      <button 
-                        onClick={() => {
+                    <button 
+                      onClick={() => {
+                        if (confirm(lang === 'es' ? '¿Eliminar?' : 'Delete?')) {
                           const updated = customMessages.filter(x => x.id !== m.id);
                           setCustomMessages(updated);
-                          window.cloudSaveCustomMessages(updated);
-                        }}
-                        style={{ ...btn, padding: '4px 8px', background: 'rgba(220,50,50,0.05)', color: '#e53e3e', fontSize: 11, border: '1px solid rgba(220,50,50,0.1)' }}
-                      >
-                        <i className="fa-solid fa-trash-can" style={{ marginRight: 4 }}></i>
-                        {lang === 'es' ? 'Eliminar' : 'Delete'}
-                      </button>
-                    </div>
+                          saveMessagesToCloud(updated);
+                        }
+                      }}
+                      style={{ all: 'unset', color: '#e53e3e', fontSize: 11, cursor: 'pointer' }}
+                    >
+                      <i className="fa-solid fa-trash"></i>
+                    </button>
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Danger zone */}
         <div style={{ background: 'rgba(255,240,240,0.92)', borderRadius: 16, padding: '20px', border: '1px solid rgba(220,50,50,0.2)', backdropFilter: 'blur(8px)' }}>

@@ -3,15 +3,15 @@
 // ==========================================================================
 
 // ── App Version (single source of truth) ──────────────────────────────────
-const APP_VERSION = 'v1.1.0';
+const APP_VERSION = 'v0.0.34-beta';
 const VERSION_DATE = '2026-05-10';
 
 const VERSION_HISTORY = [
   {
-    v: 'v1.1.0',
+    v: 'v0.0.34-beta',
     date: '2026-05-10',
-    es: 'Sistema de Mensajes: Gestión dinámica de diálogos por hitos de tiempo desde el Panel Admin con respaldo híbrido (Nube + Local).',
-    en: 'Messages System: Dynamic milestone-based dialogue management from Admin Panel with hybrid backup (Cloud + Local).',
+    es: 'Personalización Visual: Añadido sistema de efectos, colores, partículas y posiciones para mensajes personalizados.',
+    en: 'Visual Customization: Added effects, colors, particles, and positions for custom messages.',
     latest: true,
   },
   {

@@ -214,3 +214,74 @@ h3 { font: var(--fw-regular) 1.125rem/1.75rem var(--font-sans); margin: 0; }
 h4 { font: var(--fw-semibold) 1rem/1.5rem var(--font-sans);     margin: 0; }
 p  { font: var(--fw-regular) 0.875rem/1.375rem var(--font-sans); margin: 0; color: var(--fg-1); }
 small { font: var(--fw-regular) 0.75rem/1.125rem var(--font-sans); color: var(--fg-3); }
+
+/* ── Boss Marquee Animations ── */
+@keyframes anim-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+@keyframes anim-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+@keyframes anim-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.anim-pulse { animation: anim-pulse 2s ease-in-out infinite; }
+.anim-shake { animation: anim-shake 0.4s ease-in-out infinite; }
+.anim-float { animation: anim-float 3s ease-in-out infinite; }
+
+/* ── Particles ── */
+.particle-stars {
+  background: #FFD700;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  animation: p-stars 4s linear infinite;
+  box-shadow: 0 0 8px #FFD700;
+}
+@keyframes p-stars {
+  0% { transform: rotate(0) translateY(0) scale(1); opacity: 1; }
+  100% { transform: rotate(360deg) translateY(-120px) scale(0); opacity: 0; }
+}
+
+.particle-teeth {
+  background: #FFF;
+  border-radius: 2px 2px 4px 4px;
+  box-shadow: inset 0 -2px 0 #E2E8F0;
+  animation: p-teeth 3s ease-out infinite;
+}
+@keyframes p-teeth {
+  0% { transform: translateY(0) rotate(0); opacity: 1; }
+  50% { transform: translateY(-50px) rotate(180deg); }
+  100% { transform: translateY(40px) rotate(360deg); opacity: 0; }
+}
+
+.particle-fire {
+  background: linear-gradient(to top, #FF4500, #FF8C00, transparent);
+  border-radius: 50% 50% 20% 20%;
+  filter: blur(1px);
+  animation: p-fire 1.5s ease-in infinite;
+}
+@keyframes p-fire {
+  0% { transform: scale(1) translateY(0); opacity: 0.8; }
+  100% { transform: scale(2.5) translateY(-80px); opacity: 0; }
+}
+
+.particle-confetti {
+  background: #FF007A;
+  animation: p-confetti 4s ease-out infinite;
+}
+.particle-confetti:nth-child(3n) { background: #00D1FF; }
+.particle-confetti:nth-child(3n+1) { background: #FFD700; }
+@keyframes p-confetti {
+  0% { transform: translateY(0) rotate(0); opacity: 1; }
+  100% { transform: translateY(180px) rotate(720deg); opacity: 0; }
+}
+
+.hover-bg-danger:hover {
+  background: rgba(225,29,36,0.1) !important;
+  color: var(--negative-i100) !important;
+}
