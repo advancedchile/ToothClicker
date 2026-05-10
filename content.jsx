@@ -3,16 +3,23 @@
 // ==========================================================================
 
 // ── App Version (single source of truth) ──────────────────────────────────
-const APP_VERSION = 'v0.0.32-beta';
+const APP_VERSION = 'v0.0.33-beta';
 const VERSION_DATE = '2026-05-10';
 
 const VERSION_HISTORY = [
+  {
+    v: 'v0.0.33-beta',
+    date: '2026-05-10',
+    es: 'Historial Visual: Añadido modal dedicado para ver el log completo de versiones anteriores con sus descripciones detalladas.',
+    en: 'Visual History: Added dedicated modal to view the complete version log of previous updates with detailed descriptions.',
+    latest: true,
+  },
   {
     v: 'v0.0.32-beta',
     date: '2026-05-10',
     es: 'Sistema de Versiones: Implementación de revisiones escalables (v0.0.x). Añadido botón de "Borrar todo" en feedback y filtros de ranking.',
     en: 'Versioning System: Scalable revision tracking (v0.0.x). Added "Clear all" button in feedback and ranking filters.',
-    latest: true,
+    latest: false,
   },
   {
     v: 'v0.0.3-beta',

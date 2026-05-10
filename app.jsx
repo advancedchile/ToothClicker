@@ -2016,13 +2016,48 @@ function App() {
       onSoundToggle={handleSoundToggle} />);
 }
 
+function VersionLogModal({ onClose, lang }) {
+  const versions = VERSION_HISTORY.map((item) => ({
+    v: item.v,
+    date: item.date,
+    desc: lang === 'es' ? item.es : item.en
+  }));
+
+  return (
+    <Modal onClose={onClose} maxWidth={420}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <i className="fa-solid fa-clock-rotate-left" style={{ color: '#1a8fff', fontSize: 20 }}></i>
+        <div className="t-heading-m">{lang === 'es' ? 'Historial de Versiones' : 'Version History'}</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', maxHeight: 400, paddingRight: 6 }}>
+        {versions.map((v, i) => (
+          <div key={v.v + i} style={{ borderLeft: '2px solid #e1e8ef', paddingLeft: 16, paddingBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#1a8fff', background: 'rgba(26,143,255,0.1)', padding: '2px 8px', borderRadius: 6 }}>{v.v}</span>
+              {v.date && <span style={{ fontSize: 10, color: '#8aaacc', fontFamily: 'var(--font-sans)' }}>{v.date}</span>}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>{v.desc}</div>
+          </div>
+        ))}
+      </div>
+      <button onClick={onClose} style={{ ...primaryBtnStyle, marginTop: 20 }}>
+        {lang === 'es' ? 'Volver' : 'Back'}
+      </button>
+    </Modal>
+  );
+}
+
 function AboutModal({ onClose, lang }) {
+  const [showLog, setShowLog] = useState(false);
   const versions = VERSION_HISTORY.map((item) => ({
     v: item.v,
     date: item.date,
     desc: lang === 'es' ? item.es : item.en,
     latest: item.latest
   }));
+
+  if (showLog) return <VersionLogModal onClose={() => setShowLog(false)} lang={lang} />;
+
   return (
     <Modal onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 300, maxWidth: 360, minHeight: 0 }}>
@@ -2039,6 +2074,12 @@ function AboutModal({ onClose, lang }) {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: '#1a8fff', padding: '4px 14px', borderRadius: 999 }}>{latest.v}</span>
                 {latest.date && <span style={{ fontSize: 11, color: '#aac0d4', fontFamily: 'var(--font-sans)' }}>{latest.date}</span>}
+                <button 
+                  onClick={() => setShowLog(true)}
+                  style={{ all: 'unset', color: '#1a8fff', fontSize: 12, fontWeight: 600, marginTop: 10, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  {lang === 'es' ? 'Ver log de versiones' : 'View version log'}
+                </button>
               </div>);
 
           })()}
