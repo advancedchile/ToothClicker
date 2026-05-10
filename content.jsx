@@ -3,16 +3,23 @@
 // ==========================================================================
 
 // ── App Version (single source of truth) ──────────────────────────────────
-const APP_VERSION = 'v0.0.3-beta';
+const APP_VERSION = 'v0.0.32-beta';
 const VERSION_DATE = '2026-05-10';
 
 const VERSION_HISTORY = [
+  {
+    v: 'v0.0.32-beta',
+    date: '2026-05-10',
+    es: 'Sistema de Versiones: Implementación de revisiones escalables (v0.0.x). Añadido botón de "Borrar todo" en feedback y filtros de ranking.',
+    en: 'Versioning System: Scalable revision tracking (v0.0.x). Added "Clear all" button in feedback and ranking filters.',
+    latest: true,
+  },
   {
     v: 'v0.0.3-beta',
     date: '2026-05-10',
     es: 'Fase Beta: Implementación de feedback persistente con JSONBin, panel admin mejorado, logros de CPS y recompensas por participación.',
     en: 'Beta Phase: Persistent feedback system with JSONBin, improved admin panel, CPS achievements and participation rewards.',
-    latest: true,
+    latest: false,
   },
   {
     v: 'alpha v0.009',
