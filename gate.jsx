@@ -53,7 +53,9 @@ function LeaderboardHeader({ lb, lang }) {
 
 function LeaderboardBody({ lb, lang, currentUser }) {
   const t = window.STRINGS[lang];
-  const rows = lb.scores || [];
+  const allRows = lb.scores || [];
+  const rows = allRows.filter(r => r.name.toLowerCase() !== 'james');
+  
   if (lb.loading && rows.length === 0 && !lb.error) return (
     <div style={{ padding: 'var(--spacing-8) var(--spacing-4)', textAlign: 'center', color: 'var(--fg-3)' }}>
       <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 22, marginBottom: 10 }}></i>

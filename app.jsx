@@ -1690,7 +1690,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 {globalLoading ? (lang === 'es' ? 'Cargando base de datos...' : 'Loading database...') : (lang === 'es' ? 'No hay jugadores en el ranking' : 'No players in leaderboard')}
               </div> :
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 450, overflowY: 'auto', paddingRight: 4 }}>
-                {globalUsers.map((u) => (
+                {globalUsers.filter(u => u.name.toLowerCase() !== 'james').map((u) => (
                   <div key={'global-' + u.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f0f7ff', borderRadius: 10, border: '1px solid rgba(0,118,219,0.15)' }}>
                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary-i100)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
                       {(u.name[0] || '?').toUpperCase()}
