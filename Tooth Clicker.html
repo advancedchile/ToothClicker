@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tooth Clicker — Atom Labs</title>
+<link rel="stylesheet" href="colors_and_type.css" />
+<style>
+  @font-face {
+    font-family: 'PixelifySans';
+    src: url('uploads/PixelifySans-Regular-4835fe7f.ttf') format('truetype');
+    font-weight: 400;
+  }
+  @font-face {
+    font-family: 'PixelifySans';
+    src: url('uploads/PixelifySans-Medium-38397504.ttf') format('truetype');
+    font-weight: 500;
+  }
+  @font-face {
+    font-family: 'PixelifySans';
+    src: url('uploads/PixelifySans-SemiBold-9616f9f8.ttf') format('truetype');
+    font-weight: 600;
+  }
+  @font-face {
+    font-family: 'PixelifySans';
+    src: url('uploads/PixelifySans-Bold-7da4a657.ttf') format('truetype');
+    font-weight: 700;
+  }
+
+  /* Use Inter for digits only — Pixelify Sans numbers are hard to read */
+  @font-face {
+    font-family: 'GameNums';
+    src: url('fonts/Inter-VariableFont_opsz_wght.ttf') format('truetype-variations');
+    font-weight: 100 900;
+    unicode-range: U+0030-0039, U+002C, U+002E, U+0025, U+002B, U+002D, U+00B2, U+00B3, U+00BD, U+2215;
+  }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; font-family: 'GameNums', 'PixelifySans', monospace !important; }
+  .fa::before, .fas::before, .far::before, .fal::before, .fab::before,
+  [class^="fa-"]::before, [class*=" fa-"]::before {
+    font-family: "Font Awesome 6 Free" !important;
+  }
+  .fab::before, [class^="fa-brands"]::before { font-family: "Font Awesome 6 Brands" !important; }
+  html, body { margin: 0; padding: 0; min-height: 100vh; }
+  #root { min-height: 100vh; }
+
+  /* Responsive: collapse to single column on small screens */
+  @media (max-width: 900px) {
+    .gate-hero-wrap { grid-template-columns: 1fr !important; }
+    .gate-hero { display: none !important; }
+  }
+
+  /* Animations */
+  @keyframes floatUp {
+    0%   { opacity: 1; transform: translate(-50%, -50%); }
+    100% { opacity: 0; transform: translate(-50%, calc(-50% - 60px)); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.7; }
+  }
+  @keyframes goldFloat {
+    0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
+    50%       { transform: translate(-50%, -50%) translateY(-10px); }
+  }
+  @keyframes goldSpin {
+    0%   { filter: drop-shadow(0 0 8px #FFC22060) hue-rotate(0deg); }
+    100% { filter: drop-shadow(0 0 8px #FFC22060) hue-rotate(30deg); }
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes cursorBlink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+  @keyframes dangerPulse {
+    0%, 100% { box-shadow: 0 0 32px oklch(0.6 0.25 25 / 0.5), 0 6px 24px rgba(0,0,0,0.25); }
+    50% { box-shadow: 0 0 48px oklch(0.65 0.28 25 / 0.8), 0 6px 24px rgba(0,0,0,0.3); }
+  }
+  @keyframes floatMini {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50%       { transform: translateY(-15px) rotate(5deg); }
+  }
+  @keyframes rotateSun {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to   { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--neutral-i020); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--neutral-i030); }
+
+  @keyframes clickPop {
+    0%   { opacity: 0; transform: translate(-50%, -50%) translate(0, 0) scale(0.6); }
+    20%  { opacity: 1; transform: translate(-50%, -50%) translate(calc(var(--tx) * 0.2), -30px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) translate(var(--tx), 60px) scale(0.8); }
+  }
+  @keyframes toothPop {
+    0%   { opacity: 0; transform: translate(-50%, -50%) translate(0, 0) scale(0.6) rotate(0deg); }
+    12%  { opacity: 1; transform: translate(-50%, -50%) translate(calc(var(--tx) * 0.15), -60px) scale(1) rotate(var(--rot)); }
+    100% { opacity: 0; transform: translate(-50%, -50%) translate(var(--tx), 220px) scale(0.8) rotate(calc(var(--rot) * 3)); }
+  }
+  
+  @keyframes toothClick {
+    0%   { transform: scale(0.9); }
+    100% { transform: scale(1); }
+  }
+  
+  /* Security: Prevent selection and dragging */
+  * {
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+  }
+</style>
+</head>
+<body oncontextmenu="return false;">
+<div id="root"></div>
+
+<script>
+  // Block common DevTools and saving shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (
+      e.key === 'F12' || 
+      (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C' || e.key === 'K')) || 
+      (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S' || e.key === 'p' || e.key === 'P')) ||
+      (e.metaKey && e.altKey && e.key === 'i') // Mac shortcut
+    ) {
+      e.preventDefault();
+      return false;
+    }
+  });
+
+  // Ensure images are not draggable even if dynamically added
+  document.addEventListener('dragstart', function(e) {
+    if (e.target.nodeName === 'IMG') e.preventDefault();
+  });
+</script>
+
+<!-- Load order matters: content → game (strings+formatNum) → cloud → components → gate → app -->
+<script type="text/babel" src="content.jsx"></script>
+<script type="text/babel" src="game.jsx"></script>
+<script type="text/babel" src="cloud.jsx"></script>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="gate.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="store_upgrades.jsx"></script>
+<script type="text/babel" src="tweaks.jsx"></script>
+</body>
+</html>

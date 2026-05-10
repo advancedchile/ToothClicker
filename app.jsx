@@ -1,0 +1,2042 @@
+// Tooth Clicker — Main App + Game component
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+const SAVES_KEY        = 'tooth-clicker-saves-v2';
+const CURRENT_USER_KEY = 'tooth-clicker-current-user';
+const LANG_KEY         = 'tooth-clicker-lang';
+const SOUND_KEY        = 'tooth-clicker-sound';
+const NUMFMT_KEY       = 'tooth-clicker-numfmt';
+const USERS_KEY        = 'tooth-clicker-users';
+const DEVICE_USER_KEY  = 'tooth-clicker-device-user';
+const ADMIN_USERS_KEY  = 'tooth-clicker-admin-users';
+const LB_RESET_KEY     = 'tooth-clicker-lb-reset-v3';
+const LAST_RESET_KEY   = 'tooth-clicker-last-reset-v1';
+const ADMIN_AUTH_KEY   = 'tooth-clicker-admin-session-v1';
+const ADMIN_NAME       = 'James'; // reserved superuser name
+
+function loadAllSaves() {try {return JSON.parse(localStorage.getItem(SAVES_KEY) || '{}') || {};} catch (e) {return {};}}
+function saveAllSaves(o) {try {localStorage.setItem(SAVES_KEY, JSON.stringify(o));} catch (e) {}}
+function loadUserSave(u) {if (!u) return null;return loadAllSaves()[u] || null;}
+function persistUserSave(u, s) {if (!u) return;const all = loadAllSaves();all[u] = s;saveAllSaves(all);}
+function deleteUserSave(u) {const all = loadAllSaves();delete all[u];saveAllSaves(all);}
+
+function loadUsers() {try {return JSON.parse(localStorage.getItem(USERS_KEY) || '[]') || [];} catch (e) {return [];}}
+function saveUsers(a) {try {localStorage.setItem(USERS_KEY, JSON.stringify(a));} catch (e) {}}
+
+// Unified leaderboard reset logic
+function resetAllProgress() {
+  localStorage.removeItem(SAVES_KEY);
+  localStorage.removeItem(USERS_KEY);
+  localStorage.removeItem(DEVICE_USER_KEY);
+  window.cloudResetAll && window.cloudResetAll();
+}
+
+
+// Boss messages — sarcastic, time-played triggered.
+// Dani: Product/QA. Memo: Dev/Backend. José María: Sales/Cliente.
+const BOSS_MESSAGES = {
+  60: [ // 1 min
+    { who: 'Dani', es: 'qué bueno que ya estás "trabajando". el ticket de QA del flujo de pagos sigue sin tocar, eh.', en: 'glad you are "working". the QA ticket on the payment flow is still untouched, by the way.' },
+    { who: 'Memo', es: 'lindo el clicker. el endpoint /auth lleva 1 minuto rompiendo staging. pero tú dale.', en: 'cute clicker. the /auth endpoint has been breaking staging for 1 minute. carry on though.' },
+    { who: 'José María', es: 'el cliente acaba de entrar al call. yo le digo que estás "validando hipótesis", ¿sale?', en: 'the client just joined the call. I will say you are "validating hypotheses", cool?' },
+  ],
+  300: [ // 5 min
+    { who: 'Dani', es: '5 minutos clickeando. yo llevo 5 reportando el mismo bug del onboarding. coincidencia, seguro.', en: '5 minutes clicking. I have been reporting the same onboarding bug for 5 minutes. total coincidence.' },
+    { who: 'Memo', es: 'la build sigue rota. tu rama también. pero qué bonito clickeas.', en: 'the build is still broken. so is your branch. but what a beautiful clicker player you are.' },
+    { who: 'José María', es: 'el prospecto preguntó por features. inventé 3. te las paso después, suerte.', en: 'the prospect asked about features. I made up 3. I will forward them later, good luck.' },
+  ],
+  600: [ // 10 min
+    { who: 'Dani', es: '10 minutos. justo lo que tarda en aparecer el bug que dijiste "ya no se repite".', en: '10 minutes. exactly how long it takes for the bug you said "never reproduces" to show up.' },
+    { who: 'Memo', es: 'tu PR lleva 10 min en cola y tiene 2 conflictos. yo lo arreglo, tú sigue dando click.', en: 'your PR has been in the queue 10 min with 2 conflicts. I will fix it, you keep clicking.' },
+    { who: 'José María', es: 'le mandé al cliente un mockup tuyo de la semana pasada. dijo "interesante". sálvanos.', en: 'I sent the client a mockup of yours from last week. they said "interesting". help.' },
+  ],
+  1800: [ // 30 min
+    { who: 'Dani', es: 'media hora. el regression suite ya terminó dos veces. tu fix sigue pendiente.', en: 'half an hour. the regression suite has finished twice. your fix is still pending.' },
+    { who: 'Memo', es: '30 minutos. el deploy que prometiste "en 5" cumplió la mayoría de edad.', en: '30 minutes. the deploy you promised "in 5" is officially old enough to vote.' },
+    { who: 'José María', es: 'reagendé la demo. el cliente cree que tienes COVID. no me hagas mentir más.', en: 'I rescheduled the demo. the client thinks you have COVID. do not make me lie more.' },
+  ],
+  3600: [ // 1 h
+    { who: 'Dani', es: '1 hora. ya escribí el bug report de tu productividad. severity: blocker.', en: '1 hour. I already wrote the bug report on your productivity. severity: blocker.' },
+    { who: 'Memo', es: 'una hora completa. mi script de monitoreo te marca como "servicio no responde".', en: 'a full hour. my monitoring script flags you as "service not responding".' },
+    { who: 'José María', es: 'una hora. perdimos al lead. pero oye, qué bonito tu contador de dientes.', en: 'one hour. we lost the lead. but hey, lovely tooth counter you got there.' },
+  ],
+  10800: [ // 3 h — DANGER
+    { who: 'Dani', es: '3 HORAS. abrí un ticket: "empleado no responde, posible memory leak en sus prioridades". CIERRA. ESO.', en: '3 HOURS. I opened a ticket: "employee unresponsive, possible memory leak in their priorities". CLOSE. THAT.' },
+    { who: 'Memo', es: '3 HORAS. el postmortem se va a llamar como tú. sal del juego AHORA.', en: '3 HOURS. the postmortem is going to be named after you. leave the game NOW.' },
+    { who: 'José María', es: '3 HORAS. el cliente canceló, el board llamó, y yo necesito un trago. APAGA. ESO. YA.', en: '3 HOURS. client cancelled, board called, and I need a drink. TURN. THAT. OFF. NOW.' },
+  ],
+};
+
+// Color asignado por persona — rotación entre rojo, violeta y azul al azar por aparición
+const NAME_COLORS = ['oklch(0.6 0.22 25)', 'oklch(0.55 0.25 295)', 'oklch(0.6 0.2 250)'];
+const BOSS_MILESTONES = [60, 300, 600, 1800, 3600, 10800];
+
+function BossMarquee({ msg, lang, danger, onDismiss }) {
+  const [shown, setShown] = useState('');
+  const [containerReady, setContainerReady] = useState(false);
+  const messageBody = msg[lang] || msg.es;
+  const dismissRef = useRef(onDismiss);
+  dismissRef.current = onDismiss;
+
+  // Color aleatorio para el nombre — se elige una vez por mensaje
+  const nameColor = useMemo(() => NAME_COLORS[Math.floor(Math.random() * NAME_COLORS.length)], [msg]);
+
+  useEffect(() => {
+    // 1) Mostrar el contenedor primero
+    setShown('');
+    setContainerReady(false);
+    const showContainer = setTimeout(() => setContainerReady(true), 50);
+    // 2) Empezar el typewriter después de que el contenedor entre
+    let id;
+    const startType = setTimeout(() => {
+      let i = 0;
+      id = setInterval(() => {
+        i++;
+        setShown(messageBody.slice(0, i));
+        if (i >= messageBody.length) clearInterval(id);
+      }, 28);
+    }, 380);
+    const dismissTimer = setTimeout(() => dismissRef.current && dismissRef.current(), 22000 + messageBody.length * 40);
+    return () => { clearTimeout(showContainer); clearTimeout(startType); clearInterval(id); clearTimeout(dismissTimer); };
+  }, [messageBody]);
+
+  const bg = danger ? 'oklch(0.18 0.05 25)' : 'var(--bg-1)';
+  const border = danger ? 'oklch(0.6 0.25 25)' : 'var(--border-subtle)';
+  const textColor = danger ? '#FFE6E0' : 'var(--fg-1)';
+  const iconColor = danger ? 'oklch(0.85 0.2 25)' : 'var(--alternative-i100)';
+  const finalNameColor = danger ? 'oklch(0.85 0.2 25)' : nameColor;
+  const sayWord = lang === 'es' ? 'dice' : 'says';
+
+  return (
+    <div style={{ position: 'fixed', bottom: 20, left: 16, right: 16, zIndex: 1500, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+      <div style={{
+        background: bg,
+        border: `1.5px solid ${border}`,
+        borderRadius: 'var(--radius-m)',
+        padding: '10px 16px',
+        boxShadow: danger ? '0 0 32px oklch(0.6 0.25 25 / 0.5), 0 6px 24px rgba(0,0,0,0.25)' : 'var(--elevation-20)',
+        width: '100%',
+        maxWidth: 'min(1100px, calc(100vw - 32px))',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        animation: danger ? 'dangerPulse 1.2s ease-in-out infinite, modalIn 280ms ease' : 'modalIn 280ms ease',
+        pointerEvents: 'auto',
+      }}>
+        <i className={danger ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-info'} style={{ color: iconColor, fontSize: 18, flex: '0 0 auto' }}></i>
+        <div style={{ fontSize: 15, color: textColor, fontFamily: 'var(--font-sans)', lineHeight: 1.4, fontWeight: danger ? 600 : 500, textAlign: 'left', flex: 1, minWidth: 0 }}>
+          <span style={{ color: finalNameColor, fontWeight: 700 }}>{msg.who} {sayWord}:</span>{' '}
+          {containerReady && (<>
+            {shown}
+            {shown.length < messageBody.length && <span style={{ display: 'inline-block', width: 2, height: '1em', background: textColor, marginLeft: 1, verticalAlign: 'middle', animation: 'cursorBlink 0.8s steps(1) infinite' }}></span>}
+          </>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function defaultState() {
+  return { teeth: 0, totalEarned: 0, totalClicks: 0, goldenClicks: 0, generators: {}, clickUpgrades: {}, achievements: {}, newAchievementIds: {}, storeUpgrades: {}, prestige: 0, prestigeCount: 0, selectedTooth: 0, startedAt: Date.now(), timePlayed: 0, lastTick: Date.now(), feedbackSent: false, feedbackCount: 0 };
+}
+
+const topBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '8px 12px', fontSize: 13, fontWeight: 500, color: 'var(--fg-2)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', background: 'var(--bg-1)', fontFamily: 'var(--font-sans)' };
+const primaryBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '10px 18px', background: 'var(--primary-i100)', color: '#fff', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 14, cursor: 'pointer', flex: 1, textAlign: 'center', fontFamily: 'var(--font-sans)' };
+const secondaryBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '10px 18px', background: 'var(--bg-3)', color: 'var(--fg-1)', borderRadius: 'var(--radius-s)', fontWeight: 500, fontSize: 14, cursor: 'pointer', flex: 1, textAlign: 'center', fontFamily: 'var(--font-sans)' };
+const debugBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '4px 8px', fontSize: 10, fontWeight: 700, background: 'var(--bg-2)', border: '1px solid var(--border-subtle)', borderRadius: 4, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--fg-2)', transition: 'all 100ms' };
+
+function Modal({ children, onClose, maxWidth }) {
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, animation: 'fadeIn 150ms ease' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-1)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-m)', boxShadow: 'var(--elevation-30)', maxWidth: maxWidth || 420, width: '92%', animation: 'modalIn 200ms ease', maxHeight: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {children}
+      </div>
+    </div>);
+
+}
+
+function MenuItem({ icon, label, onClick, danger, trailing }) {
+  const [hover, setHover] = useState(false);
+  const color = danger ? 'var(--negative-i100)' : 'var(--fg-1)';
+  return (
+    <button role="menuitem" onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} style={{ all: 'unset', boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 6, cursor: 'pointer', background: hover ? danger ? 'var(--negative-i010)' : 'var(--bg-3)' : 'transparent', color, fontSize: 14, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>
+      <i className={`fa-solid ${icon}`} style={{ width: 16, textAlign: 'center', color }}></i>
+      <span style={{ flex: 1 }}>{label}</span>
+      {trailing}
+    </button>);
+
+}
+function MenuDivider() {return <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 2px' }} />;}
+
+function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange }) {
+  const bootRef = useRef(null);
+  if (bootRef.current === null) {
+    const OFFLINE_CAP_S = 2 * 60 * 60;
+    const snap = loadUserSave(username);
+    let info = null;
+    if (snap && snap.lastTick) {
+      const elapsed = Math.max(0, (Date.now() - snap.lastTick) / 1000);
+      if (elapsed >= 30) {
+        const capped = Math.min(elapsed, OFFLINE_CAP_S);
+        let passive = 0;
+        for (const g of window.GENERATORS) passive += (snap.generators?.[g.id] || 0) * g.baseProduction;
+        const pMult = 1 + 0.05 * (snap.prestige || 0);
+        const aMult = 1 + 0.01 * Object.values(snap.achievements || {}).filter(Boolean).length;
+        const earned = passive * pMult * aMult * capped;
+        if (earned > 0) info = { elapsedSeconds: elapsed, cappedSeconds: capped, wasCapped: elapsed > OFFLINE_CAP_S, earned };
+      }
+    }
+    bootRef.current = { saved: snap, offlineInfo: info };
+  }
+  const saved = bootRef.current.saved;
+  const offlineInfo = bootRef.current.offlineInfo;
+
+  const [state, setState] = useState(() => {
+    if (!saved) return defaultState();
+    const base = { ...defaultState(), ...saved };
+    if (offlineInfo) return { ...base, teeth: (base.teeth || 0) + offlineInfo.earned, totalEarned: (base.totalEarned || 0) + offlineInfo.earned, lastTick: Date.now() };
+    return { ...base, lastTick: Date.now() };
+  });
+  const [showWelcomeBack, setShowWelcomeBack] = useState(() => !!offlineInfo);
+  const [lang, setLangLocal] = useState(initialLang);
+  const [numFormat, setNumFormatLocal] = useState(initialNumFormat || 'short');
+  if (typeof window !== 'undefined') {window.__numFormat = numFormat;window.__lang = lang;}
+  const fmt = useCallback((n) => window.formatNumWithMode(n, numFormat, lang), [numFormat, lang]);
+  const [soundOn, setSoundOn] = useState(() => localStorage.getItem(SOUND_KEY) !== '0');
+  const [tab, setTab] = useState('generators');
+  const [floats, setFloats] = useState([]);
+  const [golden, setGolden] = useState(null);
+  const [goldenActiveUntil, setGoldenActiveUntil] = useState(0);
+  const [toast, setToast] = useState(null);
+  const [clickPulse, setClickPulse] = useState(0);
+  const [saveFlash, setSaveFlash] = useState(false);
+  const [showPrestigeConfirm, setShowPrestigeConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [newToothUnlock, setNewToothUnlock] = useState(null); // { stage, idx }
+  const [buyQty, setBuyQty] = useState(1);
+  const [visualTick, setVisualTick] = useState(0);
+  const [sunOpacity, setSunOpacity] = useState(0);
+  const [sunColor, setSunColor] = useState('transparent');
+  // Special bonus teeth — only one shown at a time
+  const [specialTooth, setSpecialTooth] = useState(null); // { type:'gold'|'diamond'|'crystal', x, y, id }
+  const specialToothRef = useRef(null);
+  const specialNextRef = useRef(Date.now() + 30000); // first spawn after 30s
+  const [crystalFrenzyUntil, setCrystalFrenzyUntil] = useState(0);
+  const [holdBonusUntil, setHoldBonusUntil] = useState(0);
+  const [isMainMouseDown, setIsMainMouseDown] = useState(false);
+  const [goldHoldProgress, setGoldHoldProgress] = useState(0); // 0–1
+  const goldHoldRef = useRef({ interval: null, clicks: 0 });
+  const mainToothRef = useRef(null);
+  const autoClickTimerRef = useRef(null);
+  // Bubbles on click
+  const [bubbles, setBubbles] = useState([]);
+  // Boss marquee
+  const [bossMsg, setBossMsg] = useState(null);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showCheaterModal, setShowCheaterModal] = useState(false);
+  const clickTimesRef = useRef([]);
+  const [shownMilestones, setShownMilestones] = useState(() => {
+    const saved = loadUserSave(username);
+    return new Set(saved?.shownMilestones || []);
+  });
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const check = () => {
+      const now = Date.now();
+      return golden || specialTooth || holdBonusUntil > now || goldenActiveUntil > now || crystalFrenzyUntil > now;
+    };
+    if (!check()) return;
+    const id = setInterval(() => setVisualTick((t) => t + 1), 100);
+    return () => clearInterval(id);
+  }, [golden, specialTooth, holdBonusUntil, goldenActiveUntil, crystalFrenzyUntil]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  const [globalTooltip, setGlobalTooltip] = useStateC(null);
+  const [toothParticles, setToothParticles] = useState([]);
+  const stateRef = useRef(state);stateRef.current = state;
+  const soundRef = useRef(soundOn);soundRef.current = soundOn;
+  const perClickRef = useRef(0);
+  const t = window.STRINGS[lang];
+
+  const storeMults = useMemo(() => {
+    const res = { click: 1, global: 1, gen: {} };
+    const boughtIds = Object.keys(state.storeUpgrades || {});
+    boughtIds.forEach(id => {
+      const up = (window.STORE_UPGRADES || []).find(u => u.id === id);
+      if (!up) return;
+      if (up.type === 'click') res.click *= up.multiplier;
+      if (up.type === 'global') res.global *= up.multiplier;
+      if (up.type === 'generator') res.gen[up.targetId] = (res.gen[up.targetId] || 1) * up.multiplier;
+    });
+    return res;
+  }, [state.storeUpgrades]);
+
+  const prestigeMult = 1 + 0.05 * (state.prestige || 0);
+  const achMult = 1 + 0.01 * Object.values(state.achievements || {}).filter(Boolean).length;
+  const perSecondRaw = useMemo(() => {
+    let v = 0;
+    for (const g of window.GENERATORS) {
+      let gProd = (state.generators[g.id] || 0) * g.baseProduction;
+      if (storeMults.gen[g.id]) gProd *= storeMults.gen[g.id];
+      v += gProd;
+    }
+    return v;
+  }, [state.generators, storeMults]);
+  const clickBase = useMemo(() => window.computeClickPower(state, perSecondRaw).total, [state.clickUpgrades, state.generators, state.achievements, state.timePlayed, perSecondRaw]);
+  const goldenMult = goldenActiveUntil > Date.now() ? 7 : 1;
+  const crystalMult = crystalFrenzyUntil > Date.now() ? 5 : 1;
+  const globalMult = prestigeMult * achMult * goldenMult * crystalMult * storeMults.global;
+  const perClick = clickBase * storeMults.click * globalMult;
+  perClickRef.current = perClick;
+  // Displayed tooth: player-selected if unlocked, else auto (highest unlocked)
+  const autoStage = window.getToothStage(state.prestigeCount || 0);
+  const selectedStage = (() => {
+    const s = window.TOOTH_STAGES[state.selectedTooth || 0];
+    if (s && (state.prestigeCount || 0) >= s.prestige) return s;
+    return autoStage;
+  })();
+  const perSecond = perSecondRaw * globalMult;
+  const genProductions = useMemo(() => {const out = {};for (const g of window.GENERATORS) out[g.id] = (state.generators[g.id] || 0) * g.baseProduction * globalMult;return out;}, [state.generators, globalMult]);
+  const achUnlockedCount = Object.values(state.achievements || {}).filter(Boolean).length;
+  // 50% harder prestige requirement: divisor raised from 1B to 1.5B
+  const prestigeGain = useMemo(() => {const base = Math.max(0, state.totalEarned - 1_500_000);if (base <= 0) return 0;return Math.floor(Math.pow(base / 1_500_000_000, 0.5) * 15);}, [state.totalEarned]);
+
+  // Game tick
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setState((s) => {
+        const now = Date.now();
+        const dt = (now - s.lastTick) / 1000;
+        let v = 0;for (const g of window.GENERATORS) v += (s.generators[g.id] || 0) * g.baseProduction;
+        const pMult = 1 + 0.05 * (s.prestige || 0);
+        const aMult = 1 + 0.01 * Object.values(s.achievements || {}).filter(Boolean).length;
+        const gMult = goldenActiveUntil > now ? 7 : 1;
+        const earned = v * pMult * aMult * gMult * dt;
+        return { ...s, teeth: s.teeth + earned, totalEarned: s.totalEarned + earned, timePlayed: s.timePlayed + dt, lastTick: now };
+      });
+    }, 100);
+    return () => clearInterval(interval);
+  }, [goldenActiveUntil]);
+
+  // Autosave
+  const doManualSave = useCallback(() => {
+    try {persistUserSave(username, stateRef.current);setSaveFlash(true);setTimeout(() => setSaveFlash(false), 1500);const s = stateRef.current;if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0 });} catch (e) {}
+  }, [username]);
+
+  useEffect(() => {
+    const saveId = setInterval(() => {try {persistUserSave(username, stateRef.current);setSaveFlash(true);setTimeout(() => setSaveFlash(false), 1500);} catch (e) {}}, 60000);
+    const onUnload = () => {try {persistUserSave(username, stateRef.current);} catch (e) {}};
+    window.addEventListener('beforeunload', onUnload);
+    return () => {clearInterval(saveId);window.removeEventListener('beforeunload', onUnload);onUnload();};
+  }, [username]);
+
+  useEffect(() => {
+    const pushScore = () => {const s = stateRef.current;if (!s) return;window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0 });};
+    const first = setTimeout(pushScore, 10000);
+    const id = setInterval(pushScore, 30000);
+    window.addEventListener('beforeunload', pushScore);
+    return () => {clearTimeout(first);clearInterval(id);window.removeEventListener('beforeunload', pushScore);pushScore();};
+  }, [username]);
+
+  // Achievement checker
+  useEffect(() => {
+    const newUnlocks = [];
+    for (const a of window.ACHIEVEMENTS) {if (!state.achievements[a.id] && a.check(state)) newUnlocks.push(a);}
+    if (newUnlocks.length > 0) {
+      setState((s) => {
+        const next = { ...s, achievements: { ...s.achievements }, newAchievementIds: { ...(s.newAchievementIds || {}) } };
+        for (const a of newUnlocks) {
+          next.achievements[a.id] = true;
+          next.newAchievementIds[a.id] = true;
+        }
+        return next;
+      });
+      const a = newUnlocks[0];setToast(a);setTimeout(() => setToast(null), 3500);
+      if (soundRef.current) {window.playTone(660, 0.12, 'triangle', 0.06);setTimeout(() => window.playTone(880, 0.12, 'triangle', 0.06), 100);}
+    }
+  }, [state.totalClicks, state.totalEarned, state.generators, state.prestige, state.goldenClicks, state.clickUpgrades, state.timePlayed, state.feedbackSent]);
+
+  // Boss messages by playtime — show the highest pending milestone first
+  useEffect(() => {
+    if (bossMsg) return;
+    const elapsed = state.timePlayed || 0;
+    // Iterate from highest to lowest so we don't get stuck replaying old ones
+    for (let i = BOSS_MILESTONES.length - 1; i >= 0; i--) {
+      const ms = BOSS_MILESTONES[i];
+      if (elapsed >= ms && !shownMilestones.has(ms)) {
+        const variants = BOSS_MESSAGES[ms];
+        const pick = variants[Math.floor(Math.random() * variants.length)];
+        setBossMsg({ ...pick, milestone: ms, danger: ms === 10800 });
+        setShownMilestones((s) => { const n = new Set(s); n.add(ms); return n; });
+        // Mark ALL lower milestones as shown too — user blew past them
+        setState((s) => {
+          const allPassed = BOSS_MILESTONES.filter((m) => elapsed >= m);
+          return { ...s, shownMilestones: Array.from(new Set([...(s.shownMilestones || []), ...allPassed])) };
+        });
+        break;
+      }
+    }
+  }, [state.timePlayed, bossMsg, shownMilestones]);
+
+  // Golden tooth spawner — only when no other bonus is active
+  useEffect(() => {
+    let timeoutId;
+    function spawnGolden() {
+      const now = Date.now();
+      // Skip if any bonus is active, another tooth is on screen, or on cooldown
+      if (specialToothRef.current || golden || now < specialNextRef.current) return;
+      if (goldenActiveUntil > now || crystalFrenzyUntil > now || holdBonusUntil > now) return;
+      
+      const w = window.innerWidth;const h = window.innerHeight;
+      const x = 80 + Math.random() * (w - 160);const y = 120 + Math.random() * (h - 240);
+      const id = Math.random().toString(36);
+      setGolden({ x, y, id, spawnedAt: now });
+      setTimeout(() => setGolden((g) => g && g.id === id ? null : g), 7000); // 7s duration
+    }
+    function scheduleNext() {timeoutId = setTimeout(() => {spawnGolden();scheduleNext();}, 60000 + Math.random() * 120000);}
+    timeoutId = setTimeout(() => {spawnGolden();scheduleNext();}, 45000 + Math.random() * 30000);
+    return () => clearTimeout(timeoutId);
+  }, [goldenActiveUntil, crystalFrenzyUntil, holdBonusUntil, golden]);
+
+  // Unified special tooth spawner — one at a time, 5-min cooldown after each
+  useEffect(() => {
+    const DURATIONS = { gold: 10000, diamond: 18000, crystal: 16000 };
+    const check = setInterval(() => {
+      if (specialToothRef.current) return;
+      const now = Date.now();
+      // Block if any other bonus active
+      if (goldenActiveUntil > now || crystalFrenzyUntil > now || holdBonusUntil > now) return;
+      // Block if golden classic tooth is on screen or cooldown active
+      if (golden || now < specialNextRef.current) return;
+      const types = ['gold', 'diamond', 'crystal'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      const w = window.innerWidth, h = window.innerHeight;
+      const id = Math.random().toString(36);
+      const tooth = { type, x: 80 + Math.random() * (w - 160), y: 120 + Math.random() * (h - 240), id, spawnedAt: now };
+      specialToothRef.current = tooth;
+      setSpecialTooth(tooth);
+      setTimeout(() => {
+        if (specialToothRef.current?.id === id) {
+          specialToothRef.current = null;
+          setSpecialTooth(null);
+          specialNextRef.current = Date.now() + 300000; // 5-min cooldown on timeout
+        }
+      }, 7000); // 7s duration
+    }, 3000);
+    return () => clearInterval(check);
+  }, []);
+
+  const performClick = useCallback((x, y) => {
+    const gain = perClickRef.current;
+    setState((s) => {
+      const now = Date.now();
+      clickTimesRef.current = [...clickTimesRef.current.filter(t => now - t < 1000), now];
+      const cps = clickTimesRef.current.length;
+      if (cps >= 20 && !showCheaterModal) setShowCheaterModal(true);
+      return { ...s, teeth: s.teeth + gain, totalEarned: s.totalEarned + gain, totalClicks: s.totalClicks + 1, maxCPS: Math.max(s.maxCPS || 0, cps) };
+    });
+    setFloats([{ id: Math.random(), x, y, gain, born: Date.now(), tx: (Math.random() - 0.5) * 80 }]);
+    setToothParticles([{ id: Math.random(), x, y, born: Date.now(), tx: (Math.random() - 0.5) * 320, rot: (Math.random() - 0.5) * 180 }]);
+    // Bubble particles — subtle (2-3)
+    const newBubbles = Array.from({ length: 2 + Math.floor(Math.random() * 2) }, () => ({
+      id: Math.random(), born: Date.now(),
+      x: x + (Math.random() - 0.5) * 50,
+      y: y + (Math.random() - 0.5) * 40,
+      size: 4 + Math.random() * 5,
+      dx: (Math.random() - 0.5) * 20,
+      dy: -(15 + Math.random() * 25),
+      hue: 200 + Math.random() * 40,
+    }));
+    setBubbles((b) => [...b, ...newBubbles]);
+    setClickPulse((p) => p + 1);
+    if (soundRef.current) window.playTone(520 + Math.random() * 40, 0.06, 'sine', 0.03);
+  }, []);
+
+  const handleClick = useCallback((e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;const y = e.clientY - rect.top;
+    performClick(x, y);
+  }, [performClick]);
+
+  useEffect(() => {
+    if (floats.length === 0) return;
+    const id = setTimeout(() => setFloats((f) => f.filter((x) => Date.now() - x.born < 800)), 800);
+    return () => clearTimeout(id);
+  }, [floats]);
+
+  useEffect(() => {
+    if (toothParticles.length === 0) return;
+    const id = setTimeout(() => setToothParticles((p) => p.filter((x) => Date.now() - x.born < 2000)), 2000);
+    return () => clearTimeout(id);
+  }, [toothParticles]);
+
+  useEffect(() => {
+    if (bubbles.length === 0) return;
+    const id = setTimeout(() => setBubbles((b) => b.filter((x) => Date.now() - x.born < 900)), 1000);
+    return () => clearTimeout(id);
+  }, [bubbles]);
+
+  const handleGoldenClick = useCallback(() => {
+    setGolden(null);
+    const now = Date.now();
+    setCrystalFrenzyUntil(0);
+    setHoldBonusUntil(0);
+    setGoldenActiveUntil(now + 13000);
+    specialNextRef.current = now + 300000; // 5-min cooldown
+    setState((s) => ({ ...s, goldenClicks: s.goldenClicks + 1 }));
+    if (soundRef.current) {window.playTone(880, 0.1, 'triangle', 0.08);setTimeout(() => window.playTone(1320, 0.15, 'triangle', 0.08), 80);}
+  }, []);
+
+  // Dismiss special tooth + start 5-min cooldown
+  const dismissSpecialTooth = useCallback((id) => {
+    if (specialToothRef.current?.id === id) {
+      specialToothRef.current = null;
+      setSpecialTooth(null);
+      specialNextRef.current = Date.now() + 300000; // 5-min cooldown
+    }
+  }, []);
+
+  useEffect(() => {
+    const now = Date.now();
+    const bType = holdBonusUntil > now ? 'hold' : goldenActiveUntil > now ? 'gold' : crystalFrenzyUntil > now ? 'crystal' : null;
+    if (bType) {
+      const col = bType === 'hold' ? 'rgba(230, 80, 200, 0.35)' : bType === 'gold' ? 'rgba(255, 194, 32, 0.35)' : 'rgba(80, 180, 230, 0.35)';
+      setSunColor(col);
+      setSunOpacity(1);
+    } else {
+      setSunOpacity(0);
+    }
+  }, [holdBonusUntil, goldenActiveUntil, crystalFrenzyUntil, visualTick]);
+
+  const handleGoldBonusClick = useCallback(() => {
+    const id = specialToothRef.current?.id;
+    if (id) dismissSpecialTooth(id);
+    setGoldenActiveUntil(0);
+    setCrystalFrenzyUntil(0);
+    setHoldBonusUntil(Date.now() + 20000);
+    setToast({ id: '__gold_hold', es: '¡Bonus de click mantenido activo (20s)!', en: 'Hold-to-click bonus active (20s)!' });
+    setTimeout(() => setToast(null), 3000);
+    if (soundRef.current) [660, 880, 1320].forEach((f, i) => setTimeout(() => window.playTone(f, 0.1, 'triangle', 0.08), i * 100));
+  }, [dismissSpecialTooth]);
+
+  const buyStoreUpgrade = useCallback((up) => {
+    if (state.teeth >= up.cost && !state.storeUpgrades[up.id]) {
+      setState(s => ({
+        ...s,
+        teeth: s.teeth - up.cost,
+        storeUpgrades: { ...s.storeUpgrades, [up.id]: true }
+      }));
+      setToast({ 
+        id: `buy_up_${up.id}`, 
+        es: `¡Mejora comprada: ${up.es}!`, 
+        en: `Upgrade bought: ${up.en}!` 
+      });
+      setTimeout(() => setToast(null), 3000);
+      if (soundRef.current) window.playTone(880, 0.15, 'sine', 0.1);
+    }
+  }, [state.teeth, state.storeUpgrades]);
+
+  // Auto-clicker logic
+  useEffect(() => {
+    if (isMainMouseDown && holdBonusUntil > Date.now()) {
+      if (autoClickTimerRef.current) return;
+      autoClickTimerRef.current = setInterval(() => {
+        if (holdBonusUntil <= Date.now()) {
+          clearInterval(autoClickTimerRef.current);
+          autoClickTimerRef.current = null;
+          return;
+        }
+        // Fire click at center of tooth or random offset
+        const x = 130 + (Math.random() - 0.5) * 100;
+        const y = 130 + (Math.random() - 0.5) * 100;
+        performClick(x, y);
+      }, 100);
+    } else {
+      if (autoClickTimerRef.current) {
+        clearInterval(autoClickTimerRef.current);
+        autoClickTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (autoClickTimerRef.current) {
+        clearInterval(autoClickTimerRef.current);
+        autoClickTimerRef.current = null;
+      }
+    };
+  }, [isMainMouseDown, holdBonusUntil, performClick]);
+
+  const startGoldHold = () => {}; // No longer used but kept to avoid breakage if referenced elsewhere
+  const stopGoldHold = () => {};
+
+  // Diamond tooth — instant 2h of passive production
+  const handleDiamondClick = useCallback(() => {
+    const id = specialToothRef.current?.id;
+    if (id) dismissSpecialTooth(id);
+    const s = stateRef.current;
+    let passive = 0; for (const g of window.GENERATORS) passive += (s.generators[g.id] || 0) * g.baseProduction;
+    const pMult = 1 + 0.05 * (s.prestige || 0);
+    const aMult = 1 + 0.01 * Object.values(s.achievements || {}).filter(Boolean).length;
+    const bonus = passive * pMult * aMult * 7200; // 2 h
+    setState((st) => ({ ...st, teeth: st.teeth + bonus, totalEarned: st.totalEarned + bonus }));
+    setToast({ id: '__diamond', es: `+${fmt(Math.floor(bonus))} dientes (2h de producción)`, en: `+${fmt(Math.floor(bonus))} teeth (2h production)` });
+    setTimeout(() => setToast(null), 4500);
+    if (soundRef.current) [1047, 1319, 1568, 2093].forEach((f, i) => setTimeout(() => window.playTone(f, 0.14, 'triangle', 0.07), i * 65));
+  }, [fmt, dismissSpecialTooth]);
+
+  // Crystal tooth — x5 click multiplier for 45s
+  const handleCrystalClick = useCallback(() => {
+    const id = specialToothRef.current?.id;
+    if (id) dismissSpecialTooth(id);
+    setGoldenActiveUntil(0);
+    setHoldBonusUntil(0);
+    setCrystalFrenzyUntil(Date.now() + 45000);
+    setToast({ id: '__crystal', es: '¡Frenesí de cristal! x5 clicks durante 45 s', en: 'Crystal frenzy! x5 clicks for 45 s' });
+    setTimeout(() => setToast(null), 4000);
+    if (soundRef.current) [440, 554, 659, 880, 1100].forEach((f, i) => setTimeout(() => window.playTone(f, 0.12, 'triangle', 0.06), i * 75));
+  }, [dismissSpecialTooth]);
+
+  const genBulkCost = useCallback((base, owned, qty) => {
+    // sum of geometric series: base * 1.15^owned * (1.15^qty - 1) / 0.15
+    const SCALE = 1.15;
+    return base * Math.pow(SCALE, owned) * (Math.pow(SCALE, qty) - 1) / (SCALE - 1);
+  }, []);
+
+  const buyGenerator = useCallback((genId, qty) => {
+    const amount = qty || 1;
+    setState((s) => {
+      const gen = window.GENERATORS.find((x) => x.id === genId);
+      const owned = s.generators[genId] || 0;
+      let cost, actualBuy;
+      if (amount === 1) {
+        cost = window.genCost(gen.baseCost, owned);
+        actualBuy = 1;
+      } else {
+        // Buy as many as we can afford up to `amount`
+        let total = 0;actualBuy = 0;
+        for (let i = 0; i < amount; i++) {
+          const c = window.genCost(gen.baseCost, owned + i);
+          if (total + c > s.teeth) break;
+          total += c;actualBuy++;
+        }
+        cost = total;
+      }
+      if (actualBuy === 0 || s.teeth < cost) return s;
+      if (soundRef.current) window.playTone(700, 0.08, 'square', 0.04);
+      return { ...s, teeth: s.teeth - cost, generators: { ...s.generators, [genId]: owned + actualBuy } };
+    });
+  }, []);
+
+  const buyClickUpgrade = useCallback((upId) => {
+    setState((s) => {
+      if (s.clickUpgrades[upId]) return s;
+      const up = window.CLICK_UPGRADES.find((x) => x.id === upId);
+      if (s.teeth < up.cost) return s;
+      if (soundRef.current) {window.playTone(800, 0.08, 'triangle', 0.05);setTimeout(() => window.playTone(1000, 0.08, 'triangle', 0.05), 60);}
+      return { ...s, teeth: s.teeth - up.cost, clickUpgrades: { ...s.clickUpgrades, [upId]: true } };
+    });
+  }, []);
+
+  const doPrestige = useCallback(() => {
+    setShowPrestigeConfirm(false);
+    if (prestigeGain <= 0) return;
+    const oldPrestige = stateRef.current?.prestige || 0;
+    const newPrestige = oldPrestige + prestigeGain;
+    const oldCount = stateRef.current?.prestigeCount || 0;
+    const newCount = oldCount + 1;
+    // Find newly unlocked stages based on prestige COUNT
+    const newlyUnlocked = window.TOOTH_STAGES.filter((s) => s.prestige > 0 && s.prestige > oldCount && s.prestige <= newCount);
+    setState((s) => ({ ...defaultState(), prestige: newPrestige, prestigeCount: newCount, selectedTooth: s.selectedTooth || 0, achievements: s.achievements, startedAt: s.startedAt, timePlayed: s.timePlayed, totalClicks: s.totalClicks, goldenClicks: s.goldenClicks, lastTick: Date.now() }));
+    if (soundRef.current) [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => window.playTone(f, 0.15, 'triangle', 0.06), i * 80));
+    if (newlyUnlocked.length > 0) {
+      const latestUnlocked = newlyUnlocked[newlyUnlocked.length - 1];
+      const idx = window.TOOTH_STAGES.indexOf(latestUnlocked);
+      setTimeout(() => setNewToothUnlock({ stage: latestUnlocked, idx }), 600);
+    }
+  }, [prestigeGain]);
+
+  const doReset = useCallback(() => {
+    setShowResetConfirm(false);deleteUserSave(username);
+    try {window.cloudDeleteScore(username);} catch (e) {}
+    setState(defaultState());onDeleteUser && onDeleteUser();
+  }, [username, onDeleteUser]);
+
+  const markAchievementSeen = useCallback((id) => {
+    if (!state.newAchievementIds?.[id]) return;
+    setState(s => {
+      const next = { ...s.newAchievementIds };
+      delete next[id];
+      return { ...s, newAchievementIds: next };
+    });
+  }, [state.newAchievementIds]);
+
+  const toggleLang = useCallback(() => {
+    setLangLocal((l) => {const n = l === 'es' ? 'en' : 'es';localStorage.setItem(LANG_KEY, n);onLangChange && onLangChange(n);return n;});
+  }, [onLangChange]);
+
+  const toggleSound = useCallback(() => {setSoundOn((s) => {localStorage.setItem(SOUND_KEY, s ? '0' : '1');return !s;});}, []);
+
+  const cycleNumFormat = useCallback(() => {
+    const order = ['short', 'long', 'engineering', 'scientific'];
+    setNumFormatLocal((m) => {const next = order[(order.indexOf(m) + 1) % order.length];try {localStorage.setItem(NUMFMT_KEY, next);} catch (e) {}onNumFormatChange && onNumFormatChange(next);return next;});
+  }, [onNumFormatChange]);
+
+  const genStatus = window.GENERATORS.map((g) => {
+    const owned = state.generators[g.id] || 0;
+    let cost, canAfford, actualQty;
+    if (buyQty === 1) {
+      cost = window.genCost(g.baseCost, owned);
+      canAfford = state.teeth >= cost;
+      actualQty = 1;
+    } else {
+      // Calculate how many we can actually afford (up to buyQty)
+      let total = 0;actualQty = 0;
+      for (let i = 0; i < buyQty; i++) {
+        const c = window.genCost(g.baseCost, owned + i);
+        if (total + c > state.teeth) break;
+        total += c;actualQty++;
+      }
+      cost = genBulkCost(g.baseCost, owned, buyQty);
+      canAfford = actualQty >= buyQty; // can afford the full requested qty
+    }
+    const unlocked = state.totalEarned >= g.unlockAt || owned > 0;
+    const revealed = state.totalEarned >= g.unlockAt * 0.5 || owned > 0 || window.GENERATORS.indexOf(g) === 0;
+    return { gen: g, owned, cost, unlocked, revealed, canAfford, actualQty, production: genProductions[g.id] };
+  });
+
+  const [clickFilter, setClickFilter] = React.useState('all');
+  const clickStatus = window.CLICK_UPGRADES.map((u) => ({ up: u, purchased: !!state.clickUpgrades[u.id], unlocked: state.totalEarned >= u.unlockAt, canAfford: state.teeth >= u.cost }));
+  const filteredClickStatus = clickStatus.filter((c) => {
+    if (clickFilter === 'unlocked') return c.unlocked;
+    if (clickFilter === 'locked') return !c.unlocked;
+    return true;
+  });
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', fontFamily: 'var(--font-sans)', color: 'var(--fg-1)' }}>
+      {/* Top bar */}
+      <header style={{ height: 64, background: 'var(--bg-1)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', padding: '0 var(--spacing-6)', gap: 'var(--spacing-4)', position: 'sticky', top: 0, zIndex: 10 }}>
+        <img src="uploads/logo-horizontal-4d4fb63d.png" style={{ height: 44, width: 'auto', objectFit: 'contain', flexShrink: 0 }} alt="Tooth Clicker" />
+        <div style={{ flex: 1 }} />
+        {/* Inline stats — single line */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <i className="fa-solid fa-tooth" style={{ fontSize: 13, color: 'var(--primary-i100)' }}></i>
+            <div>
+              <span className="t-mini-caps" style={{ color: 'var(--fg-3)', marginRight: 6 }}>{t.currentTeeth}</span>
+              <span className="t-heading-s" style={{ color: 'var(--primary-i100)', fontVariantNumeric: 'tabular-nums' }}>{fmt(state.teeth)}</span>
+              <span className="t-body-s" style={{ color: 'var(--fg-3)', marginLeft: 4 }}>{fmt(perSecond)}/s</span>
+            </div>
+          </div>
+          <div style={{ width: 1, height: 28, background: 'var(--border-subtle)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <i className="fa-solid fa-hand-pointer" style={{ fontSize: 13, color: 'var(--alternative-i100)' }}></i>
+            <div>
+              <span className="t-mini-caps" style={{ color: 'var(--fg-3)', marginRight: 6 }}>{t.perClick}</span>
+              <span className="t-heading-s" style={{ color: 'var(--alternative-i100)', fontVariantNumeric: 'tabular-nums' }}>{fmt(perClick)}</span>
+              {globalMult > 1 && <span className="t-body-s" style={{ color: 'var(--fg-3)', marginLeft: 4 }}>x{globalMult.toFixed(1)}</span>}
+            </div>
+          </div>
+        </div>
+        {goldenActiveUntil > Date.now() &&
+        <div style={{ padding: '6px 12px', background: 'var(--warning-i010)', border: '1px solid var(--warning-i050)', borderRadius: 'var(--radius-pill)', color: 'var(--warning-i130)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, animation: 'pulse 1s ease-in-out infinite' }}>
+            <i className="fa-solid fa-bolt"></i>{t.goldenActive} — {Math.max(0, Math.ceil((goldenActiveUntil - Date.now()) / 1000))}s
+          </div>
+        }
+        {crystalFrenzyUntil > Date.now() &&
+        <div style={{ padding: '6px 12px', background: 'oklch(0.93 0.06 220 / 0.3)', border: '1px solid oklch(0.7 0.12 220)', borderRadius: 'var(--radius-pill)', color: 'oklch(0.35 0.18 220)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, animation: 'pulse 1s ease-in-out infinite' }}>
+            <i className="fa-solid fa-snowflake"></i>{lang === 'es' ? 'Frenesí x5' : 'Frenzy x5'} — {Math.max(0, Math.ceil((crystalFrenzyUntil - Date.now()) / 1000))}s
+          </div>
+        }
+        {holdBonusUntil > Date.now() &&
+        <div style={{ padding: '6px 12px', background: 'oklch(0.9 0.15 80 / 0.3)', border: '1px solid oklch(0.7 0.2 80)', borderRadius: 'var(--radius-pill)', color: 'oklch(0.4 0.2 80)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, animation: 'pulse 1s ease-in-out infinite' }}>
+            <i className="fa-solid fa-hand-pointer"></i>{lang === 'es' ? 'Auto-click' : 'Auto-click'} — {Math.max(0, Math.ceil((holdBonusUntil - Date.now()) / 1000))}s
+          </div>
+        }
+        <button onClick={doManualSave} style={topBtnStyle} title={t.saveNow}>
+          <i className={saveFlash ? 'fa-solid fa-check' : 'fa-solid fa-floppy-disk'} style={{ marginRight: 6, color: saveFlash ? 'var(--positive-i100)' : 'inherit' }}></i>
+          {saveFlash ? t.savedJustNow : t.saveNow}
+        </button>
+        <div ref={menuRef} style={{ position: 'relative' }}>
+          <button 
+            onClick={() => setMenuOpen((o) => !o)} 
+            style={{ 
+              all: 'unset', boxSizing: 'border-box', 
+              padding: '6px 12px 6px 8px', background: 'var(--primary-i010)', borderRadius: 'var(--radius-pill)', 
+              display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+              border: menuOpen ? '1.5px solid var(--primary-i050)' : '1.5px solid transparent',
+              transition: 'all 200ms'
+            }}
+          >
+            <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--primary-i100)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 11 }}>{(username[0] || '?').toUpperCase()}</div>
+            <div className="t-body-s" style={{ color: 'var(--primary-i130)', fontWeight: 500 }}>{username}</div>
+            <i className="fa-solid fa-angle-down" style={{ fontSize: 10, color: 'var(--primary-i100)', marginLeft: 2, transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}></i>
+          </button>
+          {menuOpen &&
+          <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, minWidth: 260, background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', boxShadow: 'var(--elevation-20)', padding: 6, zIndex: 20, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <window.MenuItem icon={soundOn ? 'fa-volume-high' : 'fa-volume-xmark'} label={soundOn ? t.soundOn : t.soundOff} onClick={toggleSound} />
+              <window.MenuItem icon="fa-language" label={lang === 'es' ? 'Español' : 'English'} trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'EN →' : 'ES →'}</span>} onClick={toggleLang} />
+              <window.MenuItem icon="fa-hashtag" label={lang === 'es' ? 'Formato numérico' : 'Number format'} trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{{ short: '1.2M', long: lang === 'es' ? 'millón' : 'million', engineering: '1.2e6', scientific: '10^6' }[numFormat]} →</span>} onClick={cycleNumFormat} />
+              <window.MenuItem icon="fa-circle-info" label={lang === 'es' ? 'Acerca de' : 'About'} onClick={() => {setMenuOpen(false);setShowAbout(true);}} />
+              <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => {setMenuOpen(false);setShowFeedbackModal(true);}} />
+              <window.MenuDivider />
+              <window.MenuItem icon="fa-right-from-bracket" label={t.logout} onClick={() => {setMenuOpen(false);try {persistUserSave(username, stateRef.current);} catch (e) {}try {const s = stateRef.current;if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0 });} catch (e) {}onLogout && onLogout();}} />
+              <window.MenuItem icon="fa-trash" label={t.reset} danger onClick={() => {setMenuOpen(false);setShowResetConfirm(true);}} />
+            </div>
+          }
+        </div>
+      </header>
+
+      <main style={{ display: 'grid', gridTemplateColumns: 'minmax(380px,1fr) minmax(560px,1.4fr)', gap: 'var(--spacing-6)', padding: 'var(--spacing-6)', maxWidth: 1440, margin: '0 auto', alignItems: 'start', height: 'calc(100vh - 64px)', boxSizing: 'border-box' }}>
+        {/* LEFT */}
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)', alignSelf: 'start', position: 'sticky', top: 'var(--spacing-6)' }}>
+          <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-m)', padding: 'var(--spacing-8) var(--spacing-6)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-5)', boxShadow: 'var(--elevation-10)', overflow: 'hidden', position: 'relative' }}>
+            {username === 'James' && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 4 }}>
+                <button onClick={() => { 
+                  const now = Date.now(); const id = Math.random().toString(36);
+                  setGolden({ x: 80 + Math.random() * (window.innerWidth - 160), y: 120 + Math.random() * (window.innerHeight - 240), id, spawnedAt: now });
+                  setSpecialTooth(null); specialToothRef.current = null;
+                  setTimeout(() => setGolden((g) => g && g.id === id ? null : g), 7000);
+                }} style={debugBtnStyle}>Spawn Gold x7</button>
+                <button onClick={() => {
+                  const now = Date.now(); const id = Math.random().toString(36);
+                  const tooth = { type: 'gold', x: 80 + Math.random() * (window.innerWidth - 160), y: 120 + Math.random() * (window.innerHeight - 240), id, spawnedAt: now };
+                  setSpecialTooth(tooth); specialToothRef.current = tooth;
+                  setGolden(null);
+                  setTimeout(() => { if (specialToothRef.current?.id === id) { specialToothRef.current = null; setSpecialTooth(null); } }, 7000);
+                }} style={debugBtnStyle}>Spawn Hold</button>
+                <button onClick={() => {
+                  const now = Date.now(); const id = Math.random().toString(36);
+                  const tooth = { type: 'diamond', x: 80 + Math.random() * (window.innerWidth - 160), y: 120 + Math.random() * (window.innerHeight - 240), id, spawnedAt: now };
+                  setSpecialTooth(tooth); specialToothRef.current = tooth;
+                  setGolden(null);
+                  setTimeout(() => { if (specialToothRef.current?.id === id) { specialToothRef.current = null; setSpecialTooth(null); } }, 7000);
+                }} style={debugBtnStyle}>Spawn Diamond</button>
+                <button onClick={() => {
+                  const now = Date.now(); const id = Math.random().toString(36);
+                  const tooth = { type: 'crystal', x: 80 + Math.random() * (window.innerWidth - 160), y: 120 + Math.random() * (window.innerHeight - 240), id, spawnedAt: now };
+                  setSpecialTooth(tooth); specialToothRef.current = tooth;
+                  setGolden(null);
+                  setTimeout(() => { if (specialToothRef.current?.id === id) { specialToothRef.current = null; setSpecialTooth(null); } }, 7000);
+                }} style={debugBtnStyle}>Spawn Crystal</button>
+              </div>
+            )}
+            <div style={{ position: 'relative', width: '100%', height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{
+                position: 'absolute', top: '50%', left: '50%', width: 1200, height: 1200,
+                pointerEvents: 'none', zIndex: 0,
+                background: `repeating-conic-gradient(${sunColor} 0 15deg, transparent 15deg 30deg)`,
+                borderRadius: '50%',
+                opacity: sunOpacity,
+                transition: 'opacity 1.2s ease-out',
+                animation: 'rotateSun 40s linear infinite'
+              }} />
+              <div 
+                onMouseDown={(e) => { handleClick(e); setIsMainMouseDown(true); }}
+                onMouseUp={() => setIsMainMouseDown(false)}
+                onMouseLeave={() => setIsMainMouseDown(false)}
+                onTouchStart={(e) => { handleClick(e); setIsMainMouseDown(true); }}
+                onTouchEnd={() => setIsMainMouseDown(false)}
+                style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', zIndex: 1 }} key={clickPulse}>
+                <img src={holdBonusUntil > Date.now() ? "uploads/gold-tooth-1.png" : crystalFrenzyUntil > Date.now() ? "uploads/crystal-tooth-1.png" : selectedStage.img} alt="tooth" style={{ width: 260, height: 260, objectFit: 'contain', filter: holdBonusUntil > Date.now() ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : goldenMult > 1 ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : crystalMult > 1 ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))', animation: 'toothClick 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' }} />
+                {floats.map((f) =>
+                <div key={f.id} style={{ position: 'absolute', left: f.x, top: f.y, pointerEvents: 'none', color: '#000000', fontWeight: 900, fontSize: 18, textShadow: '-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 2px 4px rgba(0,0,0,0.2)', animation: 'clickPop 600ms ease-out forwards', fontVariantNumeric: 'tabular-nums', '--tx': `${f.tx}px`, zIndex: 100 }}>+{fmt(f.gain)}</div>
+                )}
+                {toothParticles.map((p) => (
+                  <img key={p.id} src={holdBonusUntil > Date.now() ? "uploads/gold-tooth-1.png" : crystalFrenzyUntil > Date.now() ? "uploads/crystal-tooth-1.png" : selectedStage.img} alt="" style={{ position: 'absolute', left: p.x, top: p.y, width: 34, height: 34, objectFit: 'contain', pointerEvents: 'none', animation: 'toothPop 2000ms ease-out forwards', '--tx': `${p.tx}px`, '--rot': `${p.rot}deg`, zIndex: 90, opacity: 0.9 }} />
+                ))}
+                {bubbles.map((b) => {
+                  const age = (Date.now() - b.born) / 900;
+                  return (
+                    <div key={b.id} style={{ position: 'absolute', left: b.x + b.dx * age, top: b.y + b.dy * age, pointerEvents: 'none', width: b.size, height: b.size, borderRadius: '50%', background: `oklch(0.88 0.12 ${b.hue} / ${1 - age})`, border: `1px solid oklch(0.75 0.15 ${b.hue} / ${0.6 - age * 0.6})`, transform: 'translate(-50%,-50%)', transition: 'none' }} />
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div className="t-heading-m">{t.clickMe}</div>
+              <div className="t-body-m" style={{ color: 'var(--fg-3)', marginTop: 4 }}>+{fmt(perClick)} {t.teeth} / click</div>
+            </div>
+          </div>
+          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, width: '100%' }}>
+              {(window.STORE_UPGRADES || []).filter(up => !state.storeUpgrades[up.id] && state.totalEarned >= up.requirement).map(up => {
+                const canAfford = state.teeth >= up.cost;
+                return <window.StoreUpgradeIcon key={up.id} up={up} canAfford={canAfford} onBuy={buyStoreUpgrade} lang={lang} fmt={fmt} onHover={(up, pos) => setGlobalTooltip({ type: 'shop', data: up, pos })} onLeave={() => setGlobalTooltip(null)} />;
+              })}
+              {(window.STORE_UPGRADES || []).filter(up => !state.storeUpgrades[up.id] && state.totalEarned >= up.requirement).length === 0 && (
+                <div style={{ fontSize: 12, color: 'var(--fg-3)', fontStyle: 'italic', padding: '10px 0' }}>
+                  {lang === 'es' ? 'No hay mejoras disponibles' : 'No upgrades available'}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+      {/* RIGHT */}
+      <section style={{ background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-m)', padding: 'var(--spacing-5) var(--spacing-6) var(--spacing-6)', height: 'calc(100vh - 120px)', maxHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+          <window.TabBar active={tab} onChange={setTab} tabs={[
+          { id: 'generators', label: t.tabGen, icon: 'fa-solid fa-industry' },
+          { id: 'click', label: t.tabClick, icon: 'fa-solid fa-hand-pointer' },
+          { id: 'achievements', label: t.tabAch, icon: 'fa-solid fa-trophy', dot: Object.keys(state.newAchievementIds || {}).length > 0 },
+          { id: 'prestige', label: t.tabPrestige, icon: 'fa-solid fa-crown' },
+          { id: 'leaderboard', label: t.tabLeaderboard, icon: 'fa-solid fa-ranking-star' },
+          { id: 'stats', label: t.tabStats, icon: 'fa-solid fa-chart-line' }]
+          } />
+
+          <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4 }}>
+            {tab === 'generators' &&
+            <div>
+              <div style={{ marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'var(--spacing-4)', flexWrap: 'wrap' }}>
+                <div>
+                  <div className="t-heading-m">{t.generatorsTitle}</div>
+                  <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{t.generatorsSub}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 3, background: 'var(--bg-3)', padding: 3, borderRadius: 'var(--radius-s)', flexShrink: 0 }}>
+                  {[1, 10, 25, 50, 100, 1000].map((q) =>
+                <button key={q} onClick={() => setBuyQty(q)} style={{
+                  all: 'unset', boxSizing: 'border-box', padding: '5px 9px', borderRadius: 6,
+                  fontSize: 12, fontWeight: buyQty === q ? 700 : 500, cursor: 'pointer',
+                  background: buyQty === q ? 'var(--primary-i100)' : 'transparent',
+                  color: buyQty === q ? '#fff' : 'var(--fg-2)',
+                  transition: 'all 120ms ease', fontFamily: 'var(--font-sans)'
+                }}>x{q}</button>
+                )}
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {genStatus.map((g) => <window.GeneratorRow key={g.gen.id} gen={g.gen} owned={g.owned} cost={g.cost} canAfford={g.canAfford} unlocked={g.unlocked} revealed={g.revealed} production={g.production} lang={lang} totalTeeth={state.totalEarned} buyQty={buyQty} actualQty={g.actualQty} onBuy={() => buyGenerator(g.gen.id, buyQty)} />)}
+              </div>
+            </div>
+          }
+
+          {tab === 'click' &&
+          <div>
+              <div style={{ marginBottom: 'var(--spacing-4)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', flexWrap: 'wrap' }}>
+                  <div>
+                    <div className="t-heading-m">{t.clickPowerTitle}</div>
+                    <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{t.clickPowerSub}</div>
+                  </div>
+                  <select
+                    value={clickFilter}
+                    onChange={(e) => setClickFilter(e.target.value)}
+                    style={{
+                      fontFamily: 'inherit',
+                      fontSize: 'var(--t-body-s-size, 13px)',
+                      background: 'var(--neutral-i005)',
+                      color: 'var(--fg-1)',
+                      border: '1px solid var(--neutral-i020)',
+                      borderRadius: 6,
+                      padding: '4px 10px',
+                      cursor: 'pointer',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="all">{t.upgradeFilterAll}</option>
+                    <option value="unlocked">{t.upgradeFilterUnlocked}</option>
+                    <option value="locked">{t.upgradeFilterLocked}</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
+                {filteredClickStatus.map((c) => <window.ClickUpgradeRow key={c.up.id} up={c.up} purchased={c.purchased} unlocked={c.unlocked} canAfford={c.canAfford} lang={lang} totalTeeth={state.totalEarned} onBuy={() => buyClickUpgrade(c.up.id)} />)}
+              </div>
+            </div>
+          }
+
+          {tab === 'achievements' &&
+          <div>
+              <div style={{ marginBottom: 'var(--spacing-4)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', flexWrap: 'wrap' }}>
+                  <div>
+                    <div className="t-heading-m">{t.achTitle}</div>
+                    <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{t.achSub}</div>
+                  </div>
+                  <select
+                    value={clickFilter}
+                    onChange={(e) => setClickFilter(e.target.value)}
+                    style={{
+                      fontFamily: 'inherit',
+                      fontSize: 'var(--t-body-s-size, 13px)',
+                      background: 'var(--neutral-i005)',
+                      color: 'var(--fg-1)',
+                      border: '1px solid var(--neutral-i020)',
+                      borderRadius: 6,
+                      padding: '4px 10px',
+                      cursor: 'pointer',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="all">{t.upgradeFilterAll}</option>
+                    <option value="unlocked">{t.upgradeFilterUnlocked}</option>
+                    <option value="locked">{t.upgradeFilterLocked}</option>
+                    <option value="new">{lang === 'es' ? 'Nuevos' : 'New'}</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: 'var(--spacing-2)' }}>
+                {window.ACHIEVEMENTS.filter(a => {
+                  if (clickFilter === 'new') return !!state.newAchievementIds?.[a.id];
+                  if (clickFilter === 'unlocked') return !!state.achievements[a.id];
+                  if (clickFilter === 'locked') return !state.achievements[a.id];
+                  return true;
+                }).map((a) => (
+                  <window.AchievementCard 
+                    key={a.id} 
+                    ach={{ ...a, isNew: !!state.newAchievementIds?.[a.id] }} 
+                    unlocked={!!state.achievements[a.id]} 
+                    lang={lang} 
+                    onHover={(ach, pos, unlocked) => {
+                      setGlobalTooltip({ type: 'ach', data: ach, pos, unlocked });
+                      if (state.newAchievementIds?.[ach.id]) markAchievementSeen(ach.id);
+                    }} 
+                    onLeave={() => setGlobalTooltip(null)} 
+                  />
+                ))}
+              </div>
+            </div>
+          }
+
+          {tab === 'prestige' &&
+          <div>
+              <div style={{ marginBottom: 'var(--spacing-5)' }}>
+                <div className="t-heading-m" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <i className="fa-solid fa-crown" style={{ color: 'var(--warning-i100)' }}></i>{t.prestigeTitle}
+                </div>
+                <div className="t-body-m" style={{ color: 'var(--fg-3)', marginTop: 4, maxWidth: 540 }}>{t.prestigeDesc}</div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-5)' }}>
+                <window.StatTile label={t.prestigeHave} value={fmt(state.prestige)} icon="fa-solid fa-crown" accent="var(--warning-i130)" />
+                <window.StatTile label={lang === 'es' ? 'Veces prestigiado' : 'Times prestiged'} value={fmt(state.prestigeCount || 0)} icon="fa-solid fa-rotate" accent="var(--warning-i100)" />
+                <window.StatTile label={t.prestigeEarn} value={`+${fmt(prestigeGain)}`} icon="fa-solid fa-plus" accent="var(--positive-i100)" />
+                <window.StatTile label={t.prestigeBonus} value={`+${((prestigeMult - 1) * 100).toFixed(0)}%`} icon="fa-solid fa-chart-line" accent="var(--alternative-i100)" />
+              </div>
+              <button onClick={() => setShowPrestigeConfirm(true)} disabled={prestigeGain <= 0} style={{ all: 'unset', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 'var(--spacing-4) var(--spacing-6)', background: prestigeGain > 0 ? 'var(--warning-i100)' : 'var(--bg-3)', color: prestigeGain > 0 ? 'var(--warning-i150)' : 'var(--fg-4)', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 15, cursor: prestigeGain > 0 ? 'pointer' : 'not-allowed', width: '100%', transition: 'background 150ms' }}
+            onMouseEnter={(e) => {if (prestigeGain > 0) e.currentTarget.style.background = 'var(--warning-i070)';}}
+            onMouseLeave={(e) => {if (prestigeGain > 0) e.currentTarget.style.background = 'var(--warning-i100)';}}>
+                <i className="fa-solid fa-crown"></i>
+                {prestigeGain > 0 ? t.prestigeBtn : t.prestigeLock}
+              </button>
+
+              {/* Tooth progression gallery */}
+              <div style={{ marginTop: 'var(--spacing-6)' }}>
+                <div className="t-heading-xs" style={{ color: 'var(--fg-2)', marginBottom: 'var(--spacing-3)' }}>
+                  {lang === 'es' ? 'Evolución del diente' : 'Tooth evolution'}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 'var(--spacing-2)' }}>
+                  {window.TOOTH_STAGES.map((s, i) => {
+                  const unlocked = (state.prestigeCount || 0) >= s.prestige;
+                  const isCurrent = (state.selectedTooth || 0) === i && unlocked;
+                  return (
+                    <div key={i} 
+                      onClick={() => {if (unlocked) setState((prev) => ({ ...prev, selectedTooth: i }));}} 
+                      onMouseEnter={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setGlobalTooltip({ type: 'stage', data: s, pos: { x: rect.left + rect.width / 2, y: rect.top }, unlocked });
+                      }}
+                      onMouseLeave={() => setGlobalTooltip(null)}
+                      style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 'var(--spacing-2)', borderRadius: 'var(--radius-m)', cursor: unlocked ? 'pointer' : 'default', background: isCurrent ? 'var(--primary-i010)' : unlocked ? 'var(--bg-2)' : 'var(--bg-3)', border: `1px solid ${isCurrent ? 'var(--primary-i100)' : unlocked ? 'var(--border-subtle)' : 'var(--border-subtle)'}`, transition: 'all 150ms', transform: 'scale(1)' }}>
+                        <div style={{ position: 'relative', width: 48, height: 48 }}>
+                          <img src={s.img} alt="" style={{ width: 48, height: 48, objectFit: 'contain', opacity: unlocked ? 1 : 0.2, filter: unlocked ? 'none' : 'grayscale(1)' }} />
+                          {!unlocked &&
+                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <i className="fa-solid fa-lock" style={{ fontSize: 14, color: 'var(--fg-4)' }}></i>
+                            </div>
+                          }
+                          {isCurrent &&
+                            <div style={{ position: 'absolute', top: -4, right: -4, width: 12, height: 12, borderRadius: '50%', background: 'var(--primary-i100)', border: '2px solid white' }} />
+                          }
+                        </div>
+                        <div className="t-body-xs" style={{ color: unlocked ? 'var(--fg-2)' : 'var(--fg-4)', textAlign: 'center', lineHeight: 1.2, fontSize: 9, fontWeight: isCurrent ? 600 : 400 }}>
+                          {unlocked ? (s[lang] || s.es).split(' ').slice(1).join(' ') || s[lang] || s.es : `x${s.prestige}`}
+                        </div>
+                      </div>);
+
+                })}
+                </div>
+              </div>
+            </div>
+          }
+
+          {tab === 'leaderboard' && <window.LeaderboardPanel username={username} lang={lang} />}
+
+          {tab === 'stats' &&
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)' }}>
+              <div>
+                <div className="t-heading-m">{t.statsTitle}</div>
+                <div className="t-body-s" style={{ color: 'var(--fg-3)', marginTop: 2 }}>{lang === 'es' ? 'Todo lo que pasó en tu consulta.' : 'Everything that happened in your practice.'}</div>
+              </div>
+              <window.StatsGroup title={lang === 'es' ? 'Producción' : 'Production'} icon="fa-solid fa-gauge-high" accent="var(--primary-i100)" rows={[
+            { label: t.currentTeeth, value: fmt(state.teeth), strong: true },
+            { label: t.perSecond, value: fmt(perSecond), color: 'var(--positive-i100)' },
+            { label: t.perClick, value: fmt(perClick), color: 'var(--alternative-i100)' },
+            { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: `x${globalMult.toFixed(2)}`, color: 'var(--warning-i130)' }]
+            } />
+              <window.StatsGroup title={lang === 'es' ? 'Progreso' : 'Progress'} icon="fa-solid fa-chart-line" accent="var(--positive-i100)" rows={[
+            { label: t.totalTeeth, value: fmt(state.totalEarned), strong: true },
+            { label: t.totalClicks, value: fmt(state.totalClicks) },
+            { label: lang === 'es' ? 'Generadores totales' : 'Total generators', value: fmt(Object.values(state.generators || {}).reduce((a, b) => a + (b || 0), 0)) },
+            { label: lang === 'es' ? 'Mejoras compradas' : 'Upgrades bought', value: `${Object.values(state.clickUpgrades || {}).filter(Boolean).length}/${window.CLICK_UPGRADES.length}` },
+            { label: lang === 'es' ? 'Logros' : 'Achievements', value: `${Object.keys(state.achievements || {}).length}/${window.ACHIEVEMENTS.length}` }]
+            } />
+              <window.StatsGroup title={t.prestige || 'Prestigio'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
+            { label: t.prestigeHave, value: fmt(state.prestige), strong: true },
+            { label: lang === 'es' ? 'Veces prestigiado' : 'Times prestiged', value: fmt(state.prestigeCount || 0), color: 'var(--warning-i100)' },
+            { label: lang === 'es' ? 'Próxima ganancia' : 'Next gain', value: `+${fmt(prestigeGain)}` },
+            { label: lang === 'es' ? 'Dientes dorados' : 'Golden teeth', value: fmt(state.goldenClicks), color: 'var(--warning-i100)' }]
+            } />
+              <window.StatsGroup title={lang === 'es' ? 'Tiempo' : 'Time'} icon="fa-solid fa-clock" accent="var(--fg-2)" rows={[
+            { label: t.timePlayed, value: window.formatTime(state.timePlayed), strong: true },
+            { label: lang === 'es' ? 'Empezaste' : 'Started', value: new Date(state.startedAt || Date.now()).toLocaleDateString(lang === 'es' ? 'es' : 'en') },
+            { label: lang === 'es' ? 'Sesión actual' : 'Current session', value: window.formatTime(Math.max(0, (state.timePlayed || 0) - (bootRef.current?.saved?.timePlayed || 0))) }]
+            } />
+            </div>
+          }
+          </div>
+        </section>
+      </main>
+
+      {/* Golden tooth */}
+      {golden &&
+      <div style={{ position: 'fixed', left: golden.x, top: golden.y, transform: 'translate(-50%,-50%)', zIndex: 500, animation: 'goldFloat 2.2s ease-in-out infinite', width: 72, height: 72 }}>
+          <svg width="72" height="72" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+            <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(255,194,32,0.2)" strokeWidth="3" />
+            <circle cx="36" cy="36" r="32" fill="none" stroke="#FFC220" strokeWidth="3"
+              strokeDasharray={`${Math.max(0, 1 - (Date.now() - golden.spawnedAt) / 7000) * 201.1} 201.1`}
+              strokeLinecap="round"
+              transform="rotate(-90 36 36)"
+              style={{ transition: 'stroke-dasharray 100ms linear' }} />
+          </svg>
+          <button onClick={handleGoldenClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 72, height: 72 }}>
+            <img src={window.getToothStage(state.prestigeCount || 0).img} alt="golden" style={{ width: 50, height: 50, objectFit: 'contain', filter: 'drop-shadow(0 0 16px #FFC220) sepia(0.6) saturate(2.5) hue-rotate(10deg)' }} />
+          </button>
+        </div>
+      }
+
+      {/* Gold tooth — click to activate auto-click bonus */}
+      {specialTooth?.type === 'gold' &&
+      <div style={{ position: 'fixed', left: specialTooth.x, top: specialTooth.y, transform: 'translate(-50%,-50%)', zIndex: 500, animation: 'goldFloat 1.8s ease-in-out infinite', userSelect: 'none', width: 72, height: 72 }}>
+          <svg width="72" height="72" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+            <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(255,194,32,0.2)" strokeWidth="3" />
+            <circle cx="36" cy="36" r="32" fill="none" stroke="#FFC220" strokeWidth="3"
+              strokeDasharray={`${Math.max(0, 1 - (Date.now() - specialTooth.spawnedAt) / 7000) * 201.1} 201.1`}
+              strokeLinecap="round"
+              transform="rotate(-90 36 36)"
+              style={{ transition: 'stroke-dasharray 100ms linear' }} />
+          </svg>
+          <button
+            onClick={handleGoldBonusClick}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 72, height: 72 }}>
+            <img src="uploads/gold-tooth-1.png" alt="gold tooth" style={{ width: 42, height: 42, objectFit: 'contain', filter: 'drop-shadow(0 0 18px #FFC22099)' }} />
+            <div style={{ position: 'absolute', bottom: -12, background: 'rgba(0,0,0,0.65)', color: '#FFC220', fontSize: 9, fontWeight: 700, padding: '2px 10px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+              {lang === 'es' ? '¡Auto-click!' : 'Auto-click!'}
+            </div>
+          </button>
+        </div>
+      }
+
+      {/* Diamond tooth — click for 2h instant production */}
+      {specialTooth?.type === 'diamond' &&
+      <div style={{ position: 'fixed', left: specialTooth.x, top: specialTooth.y, transform: 'translate(-50%,-50%)', zIndex: 500, animation: 'goldFloat 2.5s ease-in-out infinite', userSelect: 'none', width: 72, height: 72 }}>
+          <svg width="72" height="72" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+            <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="3" />
+            <circle cx="36" cy="36" r="32" fill="none" stroke="oklch(0.85 0.12 220)" strokeWidth="3"
+              strokeDasharray={`${Math.max(0, 1 - (Date.now() - specialTooth.spawnedAt) / 7000) * 201.1} 201.1`}
+              strokeLinecap="round"
+              transform="rotate(-90 36 36)"
+              style={{ transition: 'stroke-dasharray 100ms linear' }} />
+          </svg>
+          <button onClick={handleDiamondClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 72, height: 72 }}>
+            <img src="uploads/diamond-tooth-1.png" alt="diamond tooth" style={{ width: 42, height: 42, objectFit: 'contain', filter: 'drop-shadow(0 0 20px oklch(0.8 0.15 220 / 0.9))' }} />
+            <div style={{ position: 'absolute', bottom: -12, background: 'rgba(0,0,0,0.65)', color: 'oklch(0.85 0.12 220)', fontSize: 9, fontWeight: 700, padding: '2px 10px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+              {lang === 'es' ? '2h de producción' : '2h production'}
+            </div>
+          </button>
+        </div>
+      }
+
+      {/* Crystal tooth — click for x5 frenzy 45s */}
+      {specialTooth?.type === 'crystal' &&
+      <div style={{ position: 'fixed', left: specialTooth.x, top: specialTooth.y, transform: 'translate(-50%,-50%)', zIndex: 500, animation: 'goldFloat 2s ease-in-out infinite', userSelect: 'none', width: 72, height: 72 }}>
+          <svg width="72" height="72" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+            <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="3" />
+            <circle cx="36" cy="36" r="32" fill="none" stroke="oklch(0.8 0.15 200)" strokeWidth="3"
+              strokeDasharray={`${Math.max(0, 1 - (Date.now() - specialTooth.spawnedAt) / 7000) * 201.1} 201.1`}
+              strokeLinecap="round"
+              transform="rotate(-90 36 36)"
+              style={{ transition: 'stroke-dasharray 100ms linear' }} />
+          </svg>
+          <button onClick={handleCrystalClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 72, height: 72 }}>
+            <img src="uploads/crystal-tooth-1.png" alt="crystal tooth" style={{ width: 42, height: 42, objectFit: 'contain', filter: 'drop-shadow(0 0 20px oklch(0.75 0.18 200 / 0.85))' }} />
+            <div style={{ position: 'absolute', bottom: -12, background: 'rgba(0,0,0,0.65)', color: 'oklch(0.8 0.15 200)', fontSize: 9, fontWeight: 700, padding: '2px 10px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+              {lang === 'es' ? 'Frenesí x5 — 45s' : 'x5 Frenzy — 45s'}
+            </div>
+          </button>
+        </div>
+      }
+
+      <window.Toast toast={toast} lang={lang} />
+
+      {showWelcomeBack && offlineInfo &&
+      <Modal onClose={() => setShowWelcomeBack(false)}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-3)' }}>
+            <img src={selectedStage.img} alt="" style={{ width: 80, height: 80, objectFit: 'contain', filter: 'drop-shadow(0 4px 12px rgba(80,140,220,0.25))' }} />
+          </div>
+          <div className="t-heading-m">{t.welcomeBackTitle}, {username}</div>
+          <div className="t-body-m" style={{ color: 'var(--fg-2)', marginTop: 10, lineHeight: 1.55 }}>
+            {t.welcomeBackMsg} <strong style={{ color: 'var(--primary-i130)' }}>{fmt(Math.floor(offlineInfo.earned))}</strong> {t.welcomeBackPatients}.
+          </div>
+          <div className="t-body-s" style={{ color: offlineInfo.wasCapped ? 'var(--warning-i130)' : 'var(--fg-3)', marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, padding: offlineInfo.wasCapped ? '8px 10px' : 0, background: offlineInfo.wasCapped ? 'var(--warning-i010)' : 'transparent', border: offlineInfo.wasCapped ? '1px solid var(--warning-i030)' : 'none', borderRadius: 6 }}>
+            <i className="fa-solid fa-clock"></i> {t.welcomeBackCap}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 'var(--spacing-5)' }}>
+            <button onClick={() => setShowWelcomeBack(false)} style={primaryBtnStyle}><i className="fa-solid fa-arrow-right" style={{ marginRight: 6 }}></i>{t.welcomeBackContinue}</button>
+          </div>
+        </Modal>
+      }
+
+      {showPrestigeConfirm &&
+      <Modal onClose={() => setShowPrestigeConfirm(false)}>
+          <div style={{ width: 54, height: 54, borderRadius: 'var(--radius-s)', background: 'var(--warning-i010)', color: 'var(--warning-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--spacing-3)' }}>
+            <i className="fa-solid fa-crown" style={{ fontSize: 22 }}></i>
+          </div>
+          <div className="t-heading-m">{t.prestigeBtn}</div>
+          <div className="t-body-m" style={{ color: 'var(--fg-2)', marginTop: 6 }}>{t.confirmPrestige}</div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 'var(--spacing-5)' }}>
+            <button onClick={() => setShowPrestigeConfirm(false)} style={secondaryBtnStyle}>{lang === 'es' ? 'Cancelar' : 'Cancel'}</button>
+            <button onClick={doPrestige} style={{ ...primaryBtnStyle, background: 'var(--warning-i100)', color: 'var(--warning-i150)' }}><i className="fa-solid fa-crown" style={{ marginRight: 6 }}></i>{t.prestigeBtn}</button>
+          </div>
+        </Modal>
+      }
+
+      {showResetConfirm &&
+      <Modal onClose={() => setShowResetConfirm(false)}>
+          <div style={{ width: 54, height: 54, borderRadius: 'var(--radius-s)', background: 'var(--negative-i010)', color: 'var(--negative-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--spacing-3)' }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 22 }}></i>
+          </div>
+          <div className="t-heading-m">{t.reset}</div>
+          <div className="t-body-m" style={{ color: 'var(--fg-2)', marginTop: 6 }}>{t.confirmReset}</div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 'var(--spacing-5)' }}>
+            <button onClick={() => setShowResetConfirm(false)} style={secondaryBtnStyle}>{lang === 'es' ? 'Cancelar' : 'Cancel'}</button>
+            <button onClick={doReset} style={{ ...primaryBtnStyle, background: 'var(--negative-i100)' }}>{t.reset}</button>
+          </div>
+        </Modal>
+      }
+      {/* New tooth unlock notification */}
+      {newToothUnlock &&
+      <div onClick={() => setNewToothUnlock(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, animation: 'fadeIn 200ms ease' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-1)', borderRadius: 'var(--radius-m)', padding: 'var(--spacing-6)', maxWidth: 340, width: '90%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, animation: 'modalIn 250ms ease', boxShadow: 'var(--elevation-30)', border: '2px solid var(--warning-i100)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--warning-i100)', background: 'var(--warning-i010)', padding: '4px 12px', borderRadius: 999 }}>
+              {lang === 'es' ? '¡Nuevo diente desbloqueado!' : 'New tooth unlocked!'}
+            </div>
+            <img src={newToothUnlock.stage.img} alt={newToothUnlock.stage[lang] || newToothUnlock.stage.es} style={{ width: 110, height: 110, objectFit: 'contain', filter: 'drop-shadow(0 4px 16px rgba(255,194,32,0.4))' }} />
+            <div className="t-heading-m" style={{ color: 'var(--fg-1)', textAlign: 'center' }}>{newToothUnlock.stage[lang] || newToothUnlock.stage.es}</div>
+            <div className="t-body-s" style={{ color: 'var(--fg-3)', textAlign: 'center' }}>
+              {lang === 'es' ? `Tras ${newToothUnlock.stage.prestige} prestigio${newToothUnlock.stage.prestige === 1 ? '' : 's'} realizados` : `After ${newToothUnlock.stage.prestige} prestige${newToothUnlock.stage.prestige === 1 ? '' : 's'}`}
+            </div>
+            <div style={{ display: 'flex', gap: 10, width: '100%', marginTop: 4 }}>
+              <button onClick={() => setNewToothUnlock(null)} style={{ ...secondaryBtnStyle, flex: 1 }}>
+                {lang === 'es' ? 'Más tarde' : 'Later'}
+              </button>
+              <button onClick={() => {setState((prev) => ({ ...prev, selectedTooth: newToothUnlock.idx }));setNewToothUnlock(null);}} style={{ ...primaryBtnStyle, flex: 1 }}>
+                {lang === 'es' ? '¡Equipar!' : 'Equip!'}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+      {showAbout && <AboutModal onClose={() => setShowAbout(false)} lang={lang} />}
+      {showFeedbackModal && (
+        <FeedbackModal 
+          onClose={() => setShowFeedbackModal(false)} 
+          lang={lang} 
+          username={username} 
+          state={state}
+          setState={setState}
+          onSuccess={() => {
+            setShowFeedbackModal(false);
+            setToast({ id: 'feedback_success', es: '¡Gracias por tu feedback!', en: 'Thanks for your feedback!' });
+            setTimeout(() => setToast(null), 3000);
+          }}
+        />
+      )}
+      {showCheaterModal && (
+        <window.Modal onClose={() => setShowCheaterModal(false)}>
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🤨</div>
+            <h2 className="t-heading-m" style={{ marginBottom: 12 }}>
+              {lang === 'es' ? '¿20 clicks por segundo?' : '20 clicks per second?'}
+            </h2>
+            <p className="t-body-m" style={{ color: 'var(--fg-2)', lineHeight: 1.5, marginBottom: 20 }}>
+              {lang === 'es' 
+                ? 'Vaya, parece que tienes un dedo biónico o un software muy amigable ayudándote. No juzgamos... solo estamos impresionados de que tu mouse siga vivo.' 
+                : 'Wow, looks like you have a bionic finger or some very friendly software helping you out. We don\'t judge... we\'re just impressed your mouse is still alive.'}
+            </p>
+            <button 
+              onClick={() => setShowCheaterModal(false)}
+              className="t-heading-xs"
+              style={{ all: 'unset', background: 'var(--primary-i100)', color: '#fff', padding: '12px 24px', borderRadius: 8, cursor: 'pointer', transition: 'transform 100ms' }}
+              onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'}
+              onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              {lang === 'es' ? 'Lo admito, soy una máquina' : 'I admit it, I am a machine'}
+            </button>
+          </div>
+        </window.Modal>
+      )}
+      {bossMsg && <BossMarquee msg={bossMsg} lang={lang} danger={bossMsg.danger} onDismiss={() => setBossMsg(null)} />}
+      
+      {globalTooltip && (
+        <div style={{
+          position: 'fixed', left: globalTooltip.pos.x, top: globalTooltip.pos.y - 8,
+          transform: 'translateX(-50%) translateY(-100%)',
+          background: 'var(--fg-1)', color: 'var(--bg-1)',
+          padding: '8px 14px', borderRadius: 10,
+          fontSize: 12, lineHeight: 1.4,
+          zIndex: 10000, pointerEvents: 'none',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
+          width: 200, whiteSpace: 'normal', textAlign: 'center',
+          animation: 'fadeIn 150ms ease-out',
+          border: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          {globalTooltip.type === 'shop' ? (
+            <>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.data[lang] || globalTooltip.data.es}</div>
+              <div style={{ fontSize: 11, color: '#FFC220', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                <i className="fa-solid fa-tooth"></i> {fmt(globalTooltip.data.cost)}
+              </div>
+              <div style={{ opacity: 0.8, fontSize: 11 }}>{globalTooltip.data[`desc_${lang}`] || globalTooltip.data.desc_es}</div>
+            </>
+          ) : globalTooltip.type === 'stage' ? (
+            <>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.unlocked ? (globalTooltip.data[lang] || globalTooltip.data.es) : '???'}</div>
+              <div style={{ opacity: 0.8, fontSize: 11 }}>
+                {globalTooltip.unlocked 
+                  ? (lang === 'es' ? 'Evolución desbloqueada' : 'Evolution unlocked')
+                  : (lang === 'es' ? `Se desbloquea tras ${globalTooltip.data.prestige} prestigio${globalTooltip.data.prestige === 1 ? '' : 's'}` : `Unlocks after ${globalTooltip.data.prestige} prestige${globalTooltip.data.prestige === 1 ? '' : 's'}`)
+                }
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.unlocked ? (globalTooltip.data[lang] || globalTooltip.data.es) : '???'}</div>
+              <div style={{ opacity: 0.8, fontSize: 11 }}>{globalTooltip.data[`desc_${lang}`] || globalTooltip.data.desc_es}</div>
+            </>
+          )}
+        </div>
+      )}
+    </div>);
+}
+
+function FeedbackModal({ onClose, lang, username, onSuccess, state, setState }) {
+  const [text, setText] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const PROFANITY = ['puto', 'puta', 'mierda', 'carajo', 'fuck', 'shit', 'idiot', 'estupido', 'estupida', 'idiota', 'bitch', 'asshole', 'pendejo', 'pendeja', 'culiao', 'culia', 'maricon', 'zorra', 'bastard', 'crap', 'damn', 'faggot'];
+
+  const count = state.feedbackCount || 0;
+  const isLimit = count >= 2;
+
+  const handleSend = () => {
+    if (!text.trim()) {
+      setError(lang === 'es' ? 'El mensaje es requerido' : 'Message is required');
+      return;
+    }
+    const lower = text.toLowerCase();
+    const found = PROFANITY.find(w => lower.includes(w));
+    if (found) {
+      setError(lang === 'es' ? 'Tu mensaje debe ser corregido ya que contiene lenguaje inapropiado.' : 'Your message must be corrected as it contains inappropriate language.');
+      return;
+    }
+    setLoading(true);
+    
+    // Direct sending via JSONBin (window.cloudSubmitFeedback)
+    window.cloudSubmitFeedback({
+      username: username,
+      message: text,
+      lang: lang
+    })
+    .then(res => {
+      if (res.ok) {
+        console.log('Feedback saved to JSONBin');
+        // Achievement & Teeth Reward
+        setState((prev) => {
+          const isFirst = !prev.feedbackSent;
+          return { 
+            ...prev, 
+            feedbackSent: true, 
+            feedbackCount: (prev.feedbackCount || 0) + 1,
+            teeth: isFirst ? (prev.teeth || 0) + 100 : (prev.teeth || 0), 
+            totalEarned: isFirst ? (prev.totalEarned || 0) + 100 : (prev.totalEarned || 0) 
+          };
+        });
+        setLoading(false);
+        onSuccess();
+      } else {
+        throw new Error(res.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error saving feedback:', error);
+      // Fallback: show success to user anyway to avoid frustration, but log it
+      setLoading(false);
+      onSuccess();
+    });
+  };
+
+  return (
+    <window.Modal onClose={onClose} maxWidth={460}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {isLimit ? (
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--positive-i010)', color: 'var(--positive-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28 }}>
+              <i className="fa-solid fa-heart"></i>
+            </div>
+            <div className="t-heading-m" style={{ marginBottom: 12 }}>
+              {lang === 'es' ? '¡Tu opinión es invaluable!' : 'Your feedback is invaluable!'}
+            </div>
+            <div className="t-body-m" style={{ color: 'var(--fg-2)', lineHeight: 1.6, marginBottom: 20 }}>
+              {lang === 'es' 
+                ? '¡Muchas gracias! Ya hemos recibido tus dos comentarios y son sumamente valiosos para nosotros. Por ahora no es necesario que envíes más, ¡pero apreciamos enormemente tu compromiso con la consulta!'
+                : 'Thank you so much! We have already received your two messages and they are extremely valuable to us. For now, it is not necessary for you to send more, but we truly appreciate your commitment to our practice!'}
+            </div>
+            <button onClick={onClose} className="t-heading-xs" style={{ ...primaryBtnStyle, width: '100%' }}>
+              {lang === 'es' ? 'Entendido, ¡gracias!' : 'Got it, thanks!'}
+            </button>
+          </div>
+        ) : (
+          <>
+            <div>
+              <div className="t-heading-m">{lang === 'es' ? 'Enviar Feedback' : 'Send Feedback'}</div>
+              <div className="t-body-s" style={{ color: 'var(--fg-3)', marginTop: 4 }}>
+                {lang === 'es' ? 'Tu opinión nos ayuda a mejorar la consulta.' : 'Your feedback helps us improve the practice.'}
+              </div>
+            </div>
+
+            <div style={{ position: 'relative' }}>
+              <textarea
+                value={text}
+                onChange={(e) => {
+                  if (e.target.value.length <= 200) {
+                    setText(e.target.value);
+                    setError('');
+                  }
+                }}
+                placeholder={lang === 'es' ? 'Escribe aquí tu feedback...' : 'Type your feedback here...'}
+                style={{
+                  width: '100%', height: 120, padding: 12, borderRadius: 8,
+                  border: `1.5px solid ${error ? 'var(--negative-i100)' : 'var(--border-subtle)'}`,
+                  background: 'var(--bg-2)', color: 'var(--fg-1)',
+                  fontFamily: 'inherit', fontSize: 14, resize: 'none', outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <div style={{ position: 'absolute', bottom: 8, right: 12, fontSize: 11, color: text.length >= 190 ? 'var(--negative-i100)' : 'var(--fg-4)' }}>
+                {text.length}/200
+              </div>
+            </div>
+
+            {error && (
+              <div style={{ color: 'var(--negative-i100)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
+                <i className="fa-solid fa-circle-exclamation"></i> {error}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={onClose} className="t-heading-xs" style={{ ...secondaryBtnStyle, flex: 1 }}>
+                {lang === 'es' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button 
+                onClick={handleSend} 
+                disabled={loading}
+                className="t-heading-xs" 
+                style={{ ...primaryBtnStyle, flex: 2, opacity: loading ? 0.7 : 1, position: 'relative' }}
+              >
+                {loading ? (
+                  <i className="fa-solid fa-circle-notch fa-spin"></i>
+                ) : (
+                  lang === 'es' ? 'Enviar Mensaje' : 'Send Message'
+                )}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </window.Modal>
+  );
+}
+
+// ── Admin Panel ───────────────────────────────────────────────────────────────
+function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+  const [adminUsers, setAdminUsers] = useState([ADMIN_NAME]);
+  const [adminLoading, setAdminLoading] = useState(true);
+  const [publicUsers, setPublicUsers] = useState(() => loadUsers());
+  const [globalUsers, setGlobalUsers] = useState([]);
+  const [globalLoading, setGlobalLoading] = useState(true);
+  const [newAdminName, setNewAdminName] = useState('');
+  const [nameErr, setNameErr] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
+  const [newPublicName, setNewPublicName] = useState('');
+  const [publicNameErr, setPublicNameErr] = useState('');
+  const [feedback, setFeedback] = useState([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(true);
+  const [adminTab, setAdminTab] = useState('accounts'); // 'accounts', 'leaderboard', 'feedback'
+
+  // Load everything on mount
+  useEffect(() => {
+    // 1. Admin accounts
+    window.cloudLoadAdminAccounts().then(res => {
+      if (res.ok) setAdminUsers(res.accounts);
+      setAdminLoading(false);
+    });
+    // 2. Global leaderboard users
+    window.cloudFetchLeaderboard().then(res => {
+      if (res.ok) setGlobalUsers(res.scores || []);
+      setGlobalLoading(false);
+    });
+    // 3. Feedback
+    window.cloudFetchFeedback().then(res => {
+      if (res.ok) setFeedback(res.feedback || []);
+      setFeedbackLoading(false);
+    });
+  }, []);
+
+  const btn = { all: 'unset', boxSizing: 'border-box', cursor: 'pointer', fontFamily: "'PixelifySans', var(--font-sans)", borderRadius: 10, fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 140ms' };
+  const card = { background: 'rgba(255,255,255,0.88)', borderRadius: 16, padding: '20px', border: '1px solid rgba(100,160,230,0.25)', boxShadow: '0 2px 16px rgba(80,140,220,0.08)', backdropFilter: 'blur(8px)', marginBottom: 16 };
+
+  const allNames = [...adminUsers, ...publicUsers];
+
+  const handleAddAdmin = (e) => {
+    e && e.preventDefault();
+    const cleaned = (newAdminName || '').trim().slice(0, 24);
+    if (!cleaned) return;
+    if (allNames.some((u) => u.toLowerCase() === cleaned.toLowerCase())) {
+      setNameErr(lang === 'es' ? 'Ya existe ese nombre' : 'Name already exists');return;
+    }
+    const updated = [...adminUsers, cleaned];
+    setAdminUsers(updated);
+    window.cloudSaveAdminAccounts && window.cloudSaveAdminAccounts(updated);
+    setNewAdminName('');
+    setNameErr('');
+  };
+
+  const handleDelete = ({ name, type }) => {
+    // 1. Local cleanup
+    deleteUserSave(name);
+    
+    // 2. Cloud cleanup (Leaderboard)
+    window.cloudDeleteScore && window.cloudDeleteScore(name);
+    
+    // 3. UI State cleanup
+    if (type === 'admin') {
+      const updated = adminUsers.filter((u) => u !== name);
+      setAdminUsers(updated);
+      window.cloudSaveAdminAccounts && window.cloudSaveAdminAccounts(updated);
+    } else if (type === 'public') {
+      const updated = publicUsers.filter((u) => u !== name);
+      saveUsers(updated);
+      setPublicUsers(updated);
+      if (localStorage.getItem(DEVICE_USER_KEY) === name) localStorage.removeItem(DEVICE_USER_KEY);
+    } else if (type === 'global') {
+      setGlobalUsers(prev => prev.filter(u => u.name !== name));
+    }
+    
+    setDeleteTarget(null);
+  };
+
+  const handleAddPublic = (e) => {
+    e && e.preventDefault();
+    const cleaned = (newPublicName || '').trim().slice(0, 24);
+    if (!cleaned) return;
+    const reserved = (ADMIN_NAME || 'James').toLowerCase();
+    if (cleaned.toLowerCase() === reserved) {
+      setPublicNameErr(lang === 'es' ? 'Ese nombre está reservado' : 'That name is reserved'); return;
+    }
+    if ([...adminUsers, ...publicUsers].some(u => u.toLowerCase() === cleaned.toLowerCase())) {
+      setPublicNameErr(lang === 'es' ? 'Ya existe ese nombre' : 'Name already exists'); return;
+    }
+    const updated = [...publicUsers, cleaned];
+    saveUsers(updated);
+    setPublicUsers(updated);
+    setNewPublicName('');
+    setPublicNameErr('');
+  };
+
+  const handleResetAll = async () => {
+    setResetLoading(true);
+    resetAllProgress();
+    // Clear local UI state immediately
+    setGlobalUsers([]);
+    setPublicUsers([]);
+    
+    await new Promise((r) => setTimeout(r, 900));
+    setResetLoading(false); setResetDone(true);
+    setTimeout(() => setResetDone(false), 3000);
+    setShowResetConfirm(false);
+  };
+
+  const UserRow = ({ name, type }) =>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f4f8fc', borderRadius: 10, border: '1px solid rgba(100,160,230,0.2)' }}>
+      <div style={{ width: 32, height: 32, borderRadius: '50%', background: type === 'admin' ? 'rgba(26,143,255,0.15)' : 'rgba(100,160,230,0.15)', color: type === 'admin' ? '#1a8fff' : '#5a8aaa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+        {(name[0] || '?').toUpperCase()}
+      </div>
+      <span style={{ flex: 1, fontSize: 15, color: '#1a3a5a', fontWeight: 600 }}>{name}</span>
+      <button onClick={() => onEnterGame(name)} style={{ ...btn, padding: '6px 12px', background: 'rgba(26,143,255,0.1)', color: '#1a8fff', fontSize: 12, border: '1px solid rgba(26,143,255,0.2)', borderRadius: 8 }}>
+        <i className="fa-solid fa-play"></i>
+        {lang === 'es' ? 'Jugar' : 'Play'}
+      </button>
+      <button onClick={() => setDeleteTarget({ name, type })} style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.08)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.2)', borderRadius: 8 }}>
+        <i className="fa-solid fa-trash"></i>
+      </button>
+    </div>;
+
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#e8f2fb', fontFamily: "'PixelifySans', var(--font-sans)", position: 'relative', overflow: 'hidden' }}>
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(uploads/background-e5bd6167.png)', backgroundSize: 'cover', backgroundPosition: 'center', pointerEvents: 'none', opacity: 0.45 }} />
+
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 520, margin: '0 auto', padding: '32px 20px 56px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+          <button onClick={onBack} style={{ ...btn, padding: '8px 12px', background: 'rgba(255,255,255,0.8)', color: '#4a6a8a', fontSize: 13, border: '1px solid rgba(100,160,230,0.35)' }}>
+            <i className="fa-solid fa-arrow-left"></i>
+          </button>
+          <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#1a8fff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+            <i className="fa-solid fa-shield-halved"></i>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#1a3a5a', lineHeight: 1 }}>Panel Admin</div>
+
+          </div>
+          <button onClick={onLangChange} style={{ ...btn, padding: '8px 12px', background: 'rgba(255,255,255,0.8)', color: '#4a6a8a', fontSize: 13, border: '1px solid rgba(100,160,230,0.35)' }}>
+            {lang === 'es' ? '🇬🇧' : '🇪🇸'}
+          </button>
+        </div>
+
+        {/* Sub Tabs */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 20, background: 'rgba(255,255,255,0.5)', padding: 4, borderRadius: 12, border: '1px solid rgba(100,160,230,0.2)' }}>
+          {[
+            { id: 'accounts', label: lang === 'es' ? 'Cuentas' : 'Accounts', icon: 'fa-users' },
+            { id: 'leaderboard', label: 'Ranking', icon: 'fa-trophy' },
+            { id: 'feedback', label: 'Feedback', icon: 'fa-comments' },
+          ].map(t => (
+            <button key={t.id} onClick={() => setAdminTab(t.id)} style={{
+              ...btn, flex: 1, padding: '8px 4px', fontSize: 11, borderRadius: 10,
+              background: adminTab === t.id ? '#1a8fff' : 'transparent',
+              color: adminTab === t.id ? '#fff' : '#4a6a8a',
+              border: 'none', boxShadow: adminTab === t.id ? '0 4px 12px rgba(26,143,255,0.25)' : 'none'
+            }}>
+              <i className={`fa-solid ${t.icon}`} style={{ fontSize: 10 }}></i>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {adminTab === 'accounts' && (
+          <>
+            {/* Admin's own accounts */}
+        <div style={card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <i className="fa-solid fa-user-shield" style={{ color: '#1a8fff', fontSize: 15 }}></i>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
+              {lang === 'es' ? 'Mis cuentas' : 'My accounts'}
+              <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({adminUsers.length})</span>
+            </span>
+          </div>
+
+          {adminUsers.length > 0 &&
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {adminUsers.map((u) => <UserRow key={u} name={u} type="admin" />)}
+            </div>
+          }
+          {adminUsers.length === 0 &&
+          <div style={{ textAlign: 'center', padding: '10px 0 4px', color: '#8aaacc', fontFamily: 'var(--font-sans)', fontSize: 13 }}>
+              {lang === 'es' ? 'Sin cuentas aún' : 'No accounts yet'}
+            </div>
+          }
+        </div>
+
+          </>
+        )}
+
+        {adminTab === 'leaderboard' && (
+          <div style={card}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <i className="fa-solid fa-cloud" style={{ color: 'var(--primary-i100)', fontSize: 15 }}></i>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
+                {lang === 'es' ? 'Ranking Global (DB)' : 'Global Leaderboard (DB)'}
+                <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({globalUsers.length})</span>
+              </span>
+              {globalLoading && <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 12, color: 'var(--primary-i050)', marginLeft: 'auto' }}></i>}
+            </div>
+            
+            {globalUsers.length === 0 ?
+              <div style={{ textAlign: 'center', padding: '12px 0', color: '#8aaacc', fontFamily: 'var(--font-sans)', fontSize: 13 }}>
+                {globalLoading ? (lang === 'es' ? 'Cargando base de datos...' : 'Loading database...') : (lang === 'es' ? 'No hay jugadores en el ranking' : 'No players in leaderboard')}
+              </div> :
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 450, overflowY: 'auto', paddingRight: 4 }}>
+                {globalUsers.map((u) => (
+                  <div key={'global-' + u.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f0f7ff', borderRadius: 10, border: '1px solid rgba(0,118,219,0.15)' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary-i100)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+                      {(u.name[0] || '?').toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, color: '#1a3a5a', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
+                      <div style={{ fontSize: 10, color: '#5a8aaa', fontWeight: 600 }}>{window.formatNum(u.totalEarned)} dientes · Prestigio {u.prestige || 0}</div>
+                    </div>
+                    <button onClick={() => setDeleteTarget({ name: u.name, type: 'global' })} style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.25)', borderRadius: 8 }}>
+                      <i className="fa-solid fa-user-slash"></i>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            }
+          </div>
+        )}
+
+        {adminTab === 'feedback' && (
+          <div style={card}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <i className="fa-solid fa-comments" style={{ color: 'var(--alternative-i100)', fontSize: 15 }}></i>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
+                {lang === 'es' ? 'Mensajes de Jugadores' : 'Player Feedback'}
+                <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({feedback.length})</span>
+              </span>
+              {feedbackLoading && <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 12, color: 'var(--alternative-i050)', marginLeft: 'auto' }}></i>}
+            </div>
+            
+            {feedback.length === 0 ?
+              <div style={{ textAlign: 'center', padding: '12px 0', color: '#8aaacc', fontFamily: 'var(--font-sans)', fontSize: 13 }}>
+                {feedbackLoading ? (lang === 'es' ? 'Cargando mensajes...' : 'Loading messages...') : (lang === 'es' ? 'No hay mensajes aún' : 'No messages yet')}
+              </div> :
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 500, overflowY: 'auto', paddingRight: 4 }}>
+                {feedback.map((f, idx) => (
+                  <div key={'fb-' + idx} style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: 12, border: '1px solid rgba(100,160,230,0.15)', position: 'relative' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary-i100)' }}>
+                        <i className="fa-solid fa-user" style={{ marginRight: 6, fontSize: 11 }}></i>
+                        {f.username}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-sans)' }}>
+                        {new Date(f.createdAt).toLocaleString(lang === 'es' ? 'es-AR' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.4, fontFamily: 'var(--font-sans)', whiteSpace: 'pre-wrap' }}>
+                      {f.message}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                      <button 
+                        onClick={() => {
+                          if (confirm(lang === 'es' ? '¿Eliminar este mensaje?' : 'Delete this message?')) {
+                            window.cloudDeleteFeedback(f.createdAt).then(res => {
+                              if (res.ok) setFeedback(prev => prev.filter(fb => fb.createdAt !== f.createdAt));
+                            });
+                          }
+                        }}
+                        style={{ ...btn, padding: '4px 8px', background: 'rgba(220,50,50,0.08)', color: '#c33', fontSize: 11, border: '1px solid rgba(220,50,50,0.15)', borderRadius: 6 }}
+                      >
+                        <i className="fa-solid fa-trash" style={{ marginRight: 4 }}></i>
+                        {lang === 'es' ? 'Borrar' : 'Delete'}
+                      </button>
+                    </div>
+                    {f.lang && (
+                      <div style={{ position: 'absolute', top: 12, right: 12, opacity: 0.15, fontSize: 14 }}>
+                        {f.lang === 'es' ? '🇦🇷' : '🇺🇸'}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            }
+          </div>
+        )}
+
+        {/* Danger zone */}
+        <div style={{ background: 'rgba(255,240,240,0.92)', borderRadius: 16, padding: '20px', border: '1px solid rgba(220,50,50,0.2)', backdropFilter: 'blur(8px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ color: '#c33', fontSize: 14 }}></i>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#7a1a1a' }}>{lang === 'es' ? 'Zona peligrosa' : 'Danger zone'}</span>
+          </div>
+          <div style={{ fontSize: 13, color: '#a06060', fontFamily: 'var(--font-sans)', marginBottom: 14, lineHeight: 1.5 }}>
+            {lang === 'es' ? 'Borra el progreso de TODOS los jugadores y el leaderboard global. Los usuarios no se eliminan.' : 'Wipes ALL players progress and the global leaderboard. Users are not deleted.'}
+          </div>
+          <button onClick={() => setShowResetConfirm(true)} style={{ ...btn, width: '100%', padding: '12px 0', background: '#c33', color: '#fff', fontSize: 14, borderRadius: 10 }}>
+            <i className="fa-solid fa-rotate-left"></i>
+            {lang === 'es' ? 'Resetear todo el progreso' : 'Reset all progress'}
+          </button>
+          {resetDone && <div style={{ marginTop: 10, textAlign: 'center', fontSize: 13, color: '#1a7a3a', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <i className="fa-solid fa-check-circle"></i>{lang === 'es' ? '¡Reseteado!' : 'Reset done!'}
+          </div>}
+        </div>
+      </div>
+
+      {deleteTarget &&
+      <Modal onClose={() => setDeleteTarget(null)}>
+          <div style={{ width: 50, height: 50, borderRadius: 'var(--radius-s)', background: 'var(--negative-i010)', color: 'var(--negative-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+            <i className="fa-solid fa-trash" style={{ fontSize: 18 }}></i>
+          </div>
+          <div className="t-heading-m">{lang === 'es' ? `Eliminar "${deleteTarget.name}"` : `Delete "${deleteTarget.name}"`}</div>
+          <div className="t-body-m" style={{ color: 'var(--fg-2)', marginTop: 6 }}>
+            {lang === 'es' ? 'Se borrarán todos sus datos y progreso del juego.' : 'All their data and game progress will be deleted.'}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+            <button onClick={() => setDeleteTarget(null)} style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'var(--bg-3)', color: 'var(--fg-1)', borderRadius: 'var(--radius-s)', fontWeight: 500, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
+              {lang === 'es' ? 'Cancelar' : 'Cancel'}
+            </button>
+            <button onClick={() => handleDelete(deleteTarget)} style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'var(--negative-i100)', color: '#fff', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
+              {lang === 'es' ? 'Eliminar' : 'Delete'}
+            </button>
+          </div>
+        </Modal>
+      }
+
+      {showResetConfirm &&
+      <Modal onClose={() => setShowResetConfirm(false)}>
+          <div style={{ width: 50, height: 50, borderRadius: 'var(--radius-s)', background: 'var(--negative-i010)', color: 'var(--negative-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 18 }}></i>
+          </div>
+          <div className="t-heading-m">{lang === 'es' ? '¿Resetear todo?' : 'Reset everything?'}</div>
+          <div className="t-body-m" style={{ color: 'var(--fg-2)', marginTop: 6 }}>
+            {lang === 'es' ? 'Se borrará el progreso en juego de todos los jugadores y el ranking global. Las cuentas no se eliminan.' : 'All in-game progress and the global ranking will be wiped. Accounts are not deleted.'}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+            <button onClick={() => setShowResetConfirm(false)} style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'var(--bg-3)', color: 'var(--fg-1)', borderRadius: 'var(--radius-s)', fontWeight: 500, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
+              {lang === 'es' ? 'Cancelar' : 'Cancel'}
+            </button>
+            <button onClick={handleResetAll} disabled={resetLoading} style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'var(--negative-i100)', color: '#fff', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 14, cursor: resetLoading ? 'wait' : 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)', opacity: resetLoading ? 0.7 : 1 }}>
+              {resetLoading ? <i className="fa-solid fa-circle-notch fa-spin"></i> : lang === 'es' ? '¡Resetear todo!' : 'Reset everything!'}
+            </button>
+          </div>
+        </Modal>
+      }
+    </div>);
+
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+function App() {
+  const [screen, setScreen] = useState(() => {
+    // Persistent Admin Session Check
+    try {
+      const session = JSON.parse(localStorage.getItem(ADMIN_AUTH_KEY));
+      if (session && session.expiresAt > Date.now()) {
+        return 'admin';
+      }
+    } catch (e) {}
+    return 'gate';
+  });
+  const [username, setUsername] = useState(null);
+  const [users, setUsers] = useState(() => loadUsers());
+  const [deviceUser, setDeviceUser] = useState(() => localStorage.getItem(DEVICE_USER_KEY) || null);
+  const [lang, setLang] = useState(() => localStorage.getItem(LANG_KEY) || 'es');
+  const [soundOn, setSoundOn] = useState(() => localStorage.getItem(SOUND_KEY) !== '0');
+  const [numFormat, setNumFormat] = useState(() => localStorage.getItem(NUMFMT_KEY) || 'short');
+
+  // Global reset check
+  useEffect(() => {
+    const checkReset = async () => {
+      try {
+        const res = await window.cloudFetchLeaderboard();
+        if (res.ok && res.lastResetAt) {
+          const localReset = parseInt(localStorage.getItem(LAST_RESET_KEY) || '0');
+          if (res.lastResetAt > localReset) {
+            console.log("Global reset detected. Wiping local progress...", res.lastResetAt);
+            
+            // 1. Mark this reset as handled LOCALLY first to prevent reload loops
+            localStorage.setItem(LAST_RESET_KEY, res.lastResetAt.toString());
+            
+            // 2. Clear sensitive game data but keep non-game settings if possible 
+            // (or just clear all for maximum safety as per plan)
+            const keysToClear = [SAVES_KEY, USERS_KEY, DEVICE_USER_KEY, CURRENT_USER_KEY, ADMIN_AUTH_KEY];
+            keysToClear.forEach(k => localStorage.removeItem(k));
+            
+            // 3. Force state update and reload
+            if (username) {
+              setUsername(null);
+              setScreen('gate');
+            }
+            
+            // Short delay to ensure localStorage is written before reload
+            setTimeout(() => window.location.reload(), 100);
+          }
+        }
+      } catch (e) {
+        console.error("Reset check failed", e);
+      }
+    };
+    
+    // Initial check
+    checkReset();
+    
+    // Periodic check every 45s (slightly faster than 60s)
+    const id = setInterval(checkReset, 45000);
+    return () => clearInterval(id);
+  }, [username]);
+
+  // Keep window.__lang in sync (used by UserPill)
+  useEffect(() => {window.__lang = lang;}, [lang]);
+
+  const refreshUsers = useCallback(() => setUsers(loadUsers()), []);
+
+  const handleCreateUser = useCallback((name) => {
+    const cleaned = name.trim().slice(0, 24);
+    if (!cleaned) return;
+    const updated = [...loadUsers(), cleaned];
+    saveUsers(updated);
+    localStorage.setItem(DEVICE_USER_KEY, cleaned);
+    setUsers(updated);
+    setDeviceUser(cleaned);
+    setUsername(cleaned);
+    setScreen('game');
+  }, []);
+
+  const handleSelectUser = useCallback((name) => {
+    setUsername(name);
+    setScreen('game');
+  }, []);
+
+  const handleAdminAccess = useCallback(() => {
+    const session = { expiresAt: Date.now() + 30 * 60 * 1000 };
+    localStorage.setItem(ADMIN_AUTH_KEY, JSON.stringify(session));
+    setScreen('admin');
+  }, []);
+
+  const handleAdminBack = useCallback(() => {
+    localStorage.removeItem(ADMIN_AUTH_KEY);
+    setScreen('gate');
+  }, []);
+
+  const handleAdminEnterGame = useCallback((name) => {
+    setUsername(name);
+    setScreen('game');
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setUsername(null);
+    refreshUsers();
+    setScreen('gate');
+  }, [refreshUsers]);
+
+  const handleDeleteUser = useCallback(() => {
+    // Remove from users list
+    try {
+      const users = loadUsers();
+      const filtered = users.filter((u) => (typeof u === 'string' ? u : u.name) !== username);
+      saveUsers(filtered);
+    } catch (e) {}
+    // Also clean admin accounts list if present
+    try {
+      const admins = JSON.parse(localStorage.getItem(ADMIN_USERS_KEY) || '[]');
+      const filtered = admins.filter((u) => (typeof u === 'string' ? u : u.name) !== username);
+      localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(filtered));
+    } catch (e) {}
+    // If device owner deleted themselves, clear that flag
+    if (username === deviceUser) {
+      localStorage.removeItem(DEVICE_USER_KEY);
+      setDeviceUser(null);
+    }
+    setUsername(null);
+    refreshUsers();
+    setScreen('gate');
+  }, [username, deviceUser, refreshUsers]);
+
+  const handleLangChange = useCallback((l) => {
+    const next = typeof l === 'string' && l.length === 2 ? l : lang === 'es' ? 'en' : 'es';
+    localStorage.setItem(LANG_KEY, next);
+    setLang(next);
+  }, [lang]);
+
+  const handleSoundToggle = useCallback(() => {
+    setSoundOn((s) => {const n = !s;localStorage.setItem(SOUND_KEY, n ? '1' : '0');return n;});
+  }, []);
+
+  const handleNumFormatChange = useCallback((m) => {
+    setNumFormat(m);try {localStorage.setItem(NUMFMT_KEY, m);} catch (e) {}
+  }, []);
+
+  if (screen === 'admin') {
+    return (
+      <AdminPanel
+        lang={lang}
+        onLangChange={() => handleLangChange()}
+        onEnterGame={handleAdminEnterGame}
+        onBack={handleAdminBack} />);
+
+
+  }
+
+  if (screen === 'game') {
+    return (
+      <Game key={username} username={username} lang={lang} onLangChange={handleLangChange}
+      onLogout={handleLogout} onDeleteUser={handleDeleteUser}
+      numFormat={numFormat} onNumFormatChange={handleNumFormatChange} />);
+
+  }
+
+  return (
+    <window.Gate
+      lang={lang}
+      onLangChange={handleLangChange}
+      onSelectUser={handleSelectUser}
+      onCreateUser={handleCreateUser}
+      onAdminAccess={handleAdminAccess}
+      users={users}
+      deviceUser={deviceUser}
+      soundOn={soundOn}
+      onSoundToggle={handleSoundToggle} />);
+}
+
+function AboutModal({ onClose, lang }) {
+  const versions = VERSION_HISTORY.map((item) => ({
+    v: item.v,
+    date: item.date,
+    desc: lang === 'es' ? item.es : item.en,
+    latest: item.latest
+  }));
+  return (
+    <Modal onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 300, maxWidth: 360, minHeight: 0 }}>
+        <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 180, objectFit: 'contain', marginBottom: 8, flexShrink: 0 }} />
+        <div style={{ fontSize: 15, fontWeight: 600, color: '#333', fontFamily: 'var(--font-sans)', marginBottom: 16, flexShrink: 0, padding: "20px 0px" }}>
+          {lang === 'es' ? 'Creado por Jaime Arias' : 'Created by Jaime Arias'}
+        </div>
+        <div style={{ width: '100%', borderTop: '1.5px dashed #d0dce8', marginBottom: 16, flexShrink: 0 }} />
+        <div style={{ width: '100%' }}>
+          {(() => {
+            const latest = versions.find((v) => v.latest);
+            if (!latest) return null;
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: '#1a8fff', padding: '4px 14px', borderRadius: 999 }}>{latest.v}</span>
+                {latest.date && <span style={{ fontSize: 11, color: '#aac0d4', fontFamily: 'var(--font-sans)' }}>{latest.date}</span>}
+              </div>);
+
+          })()}
+        </div>
+        <button onClick={onClose} style={{ all: 'unset', boxSizing: 'border-box', marginTop: 24, width: '100%', textAlign: 'center', padding: '13px 0', borderRadius: 999, background: '#1a8fff', color: '#fff', fontSize: 16, fontWeight: 600, fontFamily: "'PixelifySans', var(--font-sans)", cursor: 'pointer', flexShrink: 0 }}>
+          {lang === 'es' ? 'Cerrar' : 'Close'}
+        </button>
+      </div>
+    </Modal>);
+
+}
+
+Object.assign(window, { AboutModal, Modal, primaryBtnStyle, secondaryBtnStyle, deleteUserSave, ADMIN_NAME });
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App));

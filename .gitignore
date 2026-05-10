@@ -1,0 +1,20 @@
+# System files
+.DS_Store
+Thumbs.db
+
+# Project folders
+node_modules/
+dist/
+build/
+.cache/
+
+# Local configuration
+.env
+.env.local
+
+# Antigravity/AI tools
+.antigravity/
+.gemini/
+.claude/
+.trae/
+.rowboat/
