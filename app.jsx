@@ -2122,8 +2122,8 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Danger zone */}
         <div style={{ background: 'rgba(255,240,240,0.92)', borderRadius: 16, padding: '20px', border: '1px solid rgba(220,50,50,0.2)', backdropFilter: 'blur(8px)' }}>

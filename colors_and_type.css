@@ -285,3 +285,13 @@ small { font: var(--fw-regular) 0.75rem/1.125rem var(--font-sans); color: var(--
   background: rgba(225,29,36,0.1) !important;
   color: var(--negative-i100) !important;
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
