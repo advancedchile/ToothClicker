@@ -3,15 +3,15 @@
 // ==========================================================================
 
 // ── App Version (single source of truth) ──────────────────────────────────
-const APP_VERSION = 'v1.0.0';
+const APP_VERSION = 'v0.0.3-beta';
 const VERSION_DATE = '2026-05-10';
 
 const VERSION_HISTORY = [
   {
-    v: 'v1.0.0',
+    v: 'v0.0.3-beta',
     date: '2026-05-10',
-    es: 'Lanzamiento oficial: Sistema de feedback persistente con JSONBin, panel de administración con pestañas, logros de velocidad, control de mensajes por jugador y recompensas.',
-    en: 'Official release: Persistent feedback system with JSONBin, tabbed admin panel, speed achievements, per-player message control and rewards.',
+    es: 'Fase Beta: Implementación de feedback persistente con JSONBin, panel admin mejorado, logros de CPS y recompensas por participación.',
+    en: 'Beta Phase: Persistent feedback system with JSONBin, improved admin panel, CPS achievements and participation rewards.',
     latest: true,
   },
   {
