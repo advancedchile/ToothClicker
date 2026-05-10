@@ -3,16 +3,23 @@
 // ==========================================================================
 
 // ── App Version (single source of truth) ──────────────────────────────────
-const APP_VERSION = 'v0.0.33-beta';
+const APP_VERSION = 'v1.1.0';
 const VERSION_DATE = '2026-05-10';
 
 const VERSION_HISTORY = [
   {
+    v: 'v1.1.0',
+    date: '2026-05-10',
+    es: 'Sistema de Mensajes: Gestión dinámica de diálogos por hitos de tiempo desde el Panel Admin con respaldo híbrido (Nube + Local).',
+    en: 'Messages System: Dynamic milestone-based dialogue management from Admin Panel with hybrid backup (Cloud + Local).',
+    latest: true,
+  },
+  {
     v: 'v0.0.33-beta',
     date: '2026-05-10',
-    es: 'Historial Visual: Añadido modal dedicado para ver el log completo de versiones anteriores con sus descripciones detalladas.',
-    en: 'Visual History: Added dedicated modal to view the complete version log of previous updates with detailed descriptions.',
-    latest: true,
+    es: 'Historial Visual: Añadido modal dedicado para ver el log completo de versiones anteriores.',
+    en: 'Visual History: Added dedicated modal to view the complete version log.',
+    latest: false,
   },
   {
     v: 'v0.0.32-beta',

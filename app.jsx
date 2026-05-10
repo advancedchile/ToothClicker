@@ -32,44 +32,10 @@ function resetAllProgress() {
 }
 
 
-// Boss messages — sarcastic, time-played triggered.
-// Dani: Product/QA. Memo: Dev/Backend. José María: Sales/Cliente.
-const BOSS_MESSAGES = {
-  60: [ // 1 min
-    { who: 'Dani', es: 'qué bueno que ya estás "trabajando". el ticket de QA del flujo de pagos sigue sin tocar, eh.', en: 'glad you are "working". the QA ticket on the payment flow is still untouched, by the way.' },
-    { who: 'Memo', es: 'lindo el clicker. el endpoint /auth lleva 1 minuto rompiendo staging. pero tú dale.', en: 'cute clicker. the /auth endpoint has been breaking staging for 1 minute. carry on though.' },
-    { who: 'José María', es: 'el cliente acaba de entrar al call. yo le digo que estás "validando hipótesis", ¿sale?', en: 'the client just joined the call. I will say you are "validating hypotheses", cool?' },
-  ],
-  300: [ // 5 min
-    { who: 'Dani', es: '5 minutos clickeando. yo llevo 5 reportando el mismo bug del onboarding. coincidencia, seguro.', en: '5 minutes clicking. I have been reporting the same onboarding bug for 5 minutes. total coincidence.' },
-    { who: 'Memo', es: 'la build sigue rota. tu rama también. pero qué bonito clickeas.', en: 'the build is still broken. so is your branch. but what a beautiful clicker player you are.' },
-    { who: 'José María', es: 'el prospecto preguntó por features. inventé 3. te las paso después, suerte.', en: 'the prospect asked about features. I made up 3. I will forward them later, good luck.' },
-  ],
-  600: [ // 10 min
-    { who: 'Dani', es: '10 minutos. justo lo que tarda en aparecer el bug que dijiste "ya no se repite".', en: '10 minutes. exactly how long it takes for the bug you said "never reproduces" to show up.' },
-    { who: 'Memo', es: 'tu PR lleva 10 min en cola y tiene 2 conflictos. yo lo arreglo, tú sigue dando click.', en: 'your PR has been in the queue 10 min with 2 conflicts. I will fix it, you keep clicking.' },
-    { who: 'José María', es: 'le mandé al cliente un mockup tuyo de la semana pasada. dijo "interesante". sálvanos.', en: 'I sent the client a mockup of yours from last week. they said "interesting". help.' },
-  ],
-  1800: [ // 30 min
-    { who: 'Dani', es: 'media hora. el regression suite ya terminó dos veces. tu fix sigue pendiente.', en: 'half an hour. the regression suite has finished twice. your fix is still pending.' },
-    { who: 'Memo', es: '30 minutos. el deploy que prometiste "en 5" cumplió la mayoría de edad.', en: '30 minutes. the deploy you promised "in 5" is officially old enough to vote.' },
-    { who: 'José María', es: 'reagendé la demo. el cliente cree que tienes COVID. no me hagas mentir más.', en: 'I rescheduled the demo. the client thinks you have COVID. do not make me lie more.' },
-  ],
-  3600: [ // 1 h
-    { who: 'Dani', es: '1 hora. ya escribí el bug report de tu productividad. severity: blocker.', en: '1 hour. I already wrote the bug report on your productivity. severity: blocker.' },
-    { who: 'Memo', es: 'una hora completa. mi script de monitoreo te marca como "servicio no responde".', en: 'a full hour. my monitoring script flags you as "service not responding".' },
-    { who: 'José María', es: 'una hora. perdimos al lead. pero oye, qué bonito tu contador de dientes.', en: 'one hour. we lost the lead. but hey, lovely tooth counter you got there.' },
-  ],
-  10800: [ // 3 h — DANGER
-    { who: 'Dani', es: '3 HORAS. abrí un ticket: "empleado no responde, posible memory leak en sus prioridades". CIERRA. ESO.', en: '3 HOURS. I opened a ticket: "employee unresponsive, possible memory leak in their priorities". CLOSE. THAT.' },
-    { who: 'Memo', es: '3 HORAS. el postmortem se va a llamar como tú. sal del juego AHORA.', en: '3 HOURS. the postmortem is going to be named after you. leave the game NOW.' },
-    { who: 'José María', es: '3 HORAS. el cliente canceló, el board llamó, y yo necesito un trago. APAGA. ESO. YA.', en: '3 HOURS. client cancelled, board called, and I need a drink. TURN. THAT. OFF. NOW.' },
-  ],
-};
+// Boss messages are now managed via the Admin Panel.
 
 // Color asignado por persona — rotación entre rojo, violeta y azul al azar por aparición
 const NAME_COLORS = ['oklch(0.6 0.22 25)', 'oklch(0.55 0.25 295)', 'oklch(0.6 0.2 250)'];
-const BOSS_MILESTONES = [60, 300, 600, 1800, 3600, 10800];
 
 function BossMarquee({ msg, lang, danger, onDismiss }) {
   const [shown, setShown] = useState('');
@@ -213,6 +179,8 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const [showPrestigeConfirm, setShowPrestigeConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null); // { x, y }
+  const [showCuriosityModal, setShowCuriosityModal] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [newToothUnlock, setNewToothUnlock] = useState(null); // { stage, idx }
   const [buyQty, setBuyQty] = useState(1);
@@ -241,6 +209,8 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     const saved = loadUserSave(username);
     return new Set(saved?.shownMilestones || []);
   });
+  const [customMessages, setCustomMessages] = useState([]);
+  const customLastShownRef = useRef({}); // { msgId: timestamp }
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -262,7 +232,21 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     return () => document.removeEventListener('mousedown', handler);
   }, [menuOpen]);
 
-  const [globalTooltip, setGlobalTooltip] = useStateC(null);
+  useEffect(() => {
+    const handleContextMenu = (e) => {
+      e.preventDefault();
+      setContextMenu({ x: e.clientX, y: e.clientY });
+    };
+    const handleClickOutside = () => setContextMenu(null);
+    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('click', handleClickOutside);
+    return () => {
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
+  const [globalTooltip, setGlobalTooltip] = useState(null);
   const [toothParticles, setToothParticles] = useState([]);
   const stateRef = useRef(state);stateRef.current = state;
   const soundRef = useRef(soundOn);soundRef.current = soundOn;
@@ -367,27 +351,59 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     }
   }, [state.totalClicks, state.totalEarned, state.generators, state.prestige, state.goldenClicks, state.clickUpgrades, state.timePlayed, state.feedbackSent]);
 
-  // Boss messages by playtime — show the highest pending milestone first
+  // Handle Custom Milestone Messages
   useEffect(() => {
-    if (bossMsg) return;
-    const elapsed = state.timePlayed || 0;
-    // Iterate from highest to lowest so we don't get stuck replaying old ones
-    for (let i = BOSS_MILESTONES.length - 1; i >= 0; i--) {
-      const ms = BOSS_MILESTONES[i];
-      if (elapsed >= ms && !shownMilestones.has(ms)) {
-        const variants = BOSS_MESSAGES[ms];
-        const pick = variants[Math.floor(Math.random() * variants.length)];
-        setBossMsg({ ...pick, milestone: ms, danger: ms === 10800 });
-        setShownMilestones((s) => { const n = new Set(s); n.add(ms); return n; });
-        // Mark ALL lower milestones as shown too — user blew past them
-        setState((s) => {
-          const allPassed = BOSS_MILESTONES.filter((m) => elapsed >= m);
-          return { ...s, shownMilestones: Array.from(new Set([...(s.shownMilestones || []), ...allPassed])) };
-        });
-        break;
-      }
+    if (bossMsg || customMessages.length === 0) return;
+    const elapsedMinutes = (state.timePlayed || 0) / 60;
+    
+    // Find messages whose milestone has been reached but haven't been shown
+    const pending = customMessages.filter(m => {
+      return elapsedMinutes >= m.milestone && !shownMilestones.has('custom-' + m.id);
+    });
+
+    if (pending.length > 0) {
+      // Pick the highest milestone reached that is still pending
+      const pick = pending.sort((a, b) => b.milestone - a.milestone)[0];
+      
+      setBossMsg({ 
+        who: pick.who, 
+        es: pick.text, 
+        en: pick.text, 
+        isCustom: true,
+        milestone: pick.milestone
+      });
+
+      // Mark as shown both in local state and persistent state
+      setShownMilestones(prev => {
+        const next = new Set(prev);
+        next.add('custom-' + pick.id);
+        return next;
+      });
+      setState(s => ({
+        ...s,
+        shownMilestones: Array.from(new Set([...(s.shownMilestones || []), 'custom-' + pick.id]))
+      }));
     }
-  }, [state.timePlayed, bossMsg, shownMilestones]);
+  }, [state.timePlayed, bossMsg, customMessages, shownMilestones]);
+
+  // Load custom messages on mount
+  useEffect(() => {
+    window.cloudLoadCustomMessages().then(res => {
+      let msgs = res.ok ? res.messages : [];
+      if (msgs.length === 0) {
+        msgs = [
+          { id: 'm1', who: 'Dani', text: 'qué bueno que ya estás "trabajando". el ticket de QA del flujo de pagos sigue sin tocar, eh.', milestone: 1, createdAt: Date.now() },
+          { id: 'm2', who: 'Memo', text: 'lindo el clicker. el endpoint /auth lleva 1 minuto rompiendo staging. pero tú dale.', milestone: 2, createdAt: Date.now() + 1 },
+          { id: 'm3', who: 'José María', text: 'el cliente acaba de entrar al call. yo le digo que estás "validando hipótesis", ¿sale?', milestone: 3, createdAt: Date.now() + 2 },
+          { id: 'm4', who: 'Dani', text: '5 minutos clickeando. yo llevo 5 reportando el mismo bug del onboarding. coincidencia, seguro.', milestone: 5, createdAt: Date.now() + 3 },
+          { id: 'm5', who: 'Memo', text: 'la build sigue rota. tu rama también. pero qué bonito clickeas.', milestone: 10, createdAt: Date.now() + 4 },
+          { id: 'm6', who: 'José María', text: 'el prospecto preguntó por features. inventé 3. te las paso después, suerte.', milestone: 15, createdAt: Date.now() + 5 },
+          { id: 'm7', who: 'Dani', text: '1 hora. ya escribí el bug report de tu productividad. severity: blocker.', milestone: 60, createdAt: Date.now() + 6 }
+        ];
+      }
+      setCustomMessages(msgs);
+    });
+  }, []);
 
   // Golden tooth spawner — only when no other bonus is active
   useEffect(() => {
@@ -830,6 +846,30 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                   setGolden(null);
                   setTimeout(() => { if (specialToothRef.current?.id === id) { specialToothRef.current = null; setSpecialTooth(null); } }, 7000);
                 }} style={debugBtnStyle}>Spawn Crystal</button>
+                <button onClick={() => {
+                  if (customMessages.length > 0) {
+                    const pick = customMessages[Math.floor(Math.random() * customMessages.length)];
+                    setBossMsg({ 
+                      who: pick.who, 
+                      es: pick.text, 
+                      en: pick.text, 
+                      isCustom: true,
+                      danger: false 
+                    });
+                    console.log(`Debug: Triggered msg from pool of ${customMessages.length}`);
+                  } else {
+                    window.cloudLoadCustomMessages().then(res => {
+                      const msgs = res.ok ? res.messages : [];
+                      if (msgs.length > 0) {
+                        setCustomMessages(msgs);
+                        const pick = msgs[Math.floor(Math.random() * msgs.length)];
+                        setBossMsg({ who: pick.who, es: pick.text, en: pick.text, isCustom: true });
+                      } else {
+                        setBossMsg({ who: 'System', es: `No hay mensajes (Pool: ${customMessages.length}). Revisa el Admin Panel.`, en: `No messages (Pool: ${customMessages.length}). Check Admin Panel.` });
+                      }
+                    });
+                  }
+                }} style={{ ...debugBtnStyle, background: 'var(--primary-i010)', color: 'var(--primary-i100)', borderColor: 'var(--primary-i030)' }}>Trigger Msg ({customMessages.length})</button>
               </div>
             )}
             <div style={{ position: 'relative', width: '100%', height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1337,6 +1377,38 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           )}
         </div>
       )}
+
+      {contextMenu && (
+        <div style={{ position: 'fixed', left: contextMenu.x, top: contextMenu.y, minWidth: 260, background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', boxShadow: 'var(--elevation-20)', padding: 6, zIndex: 10000, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <window.MenuItem icon={soundOn ? 'fa-volume-high' : 'fa-volume-xmark'} label={soundOn ? t.soundOn : t.soundOff} onClick={toggleSound} />
+          <window.MenuItem icon="fa-language" label={lang === 'es' ? 'Español' : 'English'} trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'EN →' : 'ES →'}</span>} onClick={toggleLang} />
+          <window.MenuItem icon="fa-hashtag" label={lang === 'es' ? 'Formato numérico' : 'Number format'} trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{{ short: '1.2M', long: lang === 'es' ? 'millón' : 'million', engineering: '1.2e6', scientific: '10^6' }[numFormat]} →</span>} onClick={cycleNumFormat} />
+          <window.MenuItem icon="fa-circle-info" label={lang === 'es' ? 'Acerca de' : 'About'} onClick={() => setShowAbout(true)} />
+          <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => setShowFeedbackModal(true)} />
+          <window.MenuDivider />
+          <window.MenuItem icon="fa-question" label="¡Te sientes curioso?" onClick={() => setShowCuriosityModal(true)} />
+          <window.MenuDivider />
+          <window.MenuItem icon="fa-right-from-bracket" label={t.logout} onClick={() => {try {persistUserSave(username, stateRef.current);} catch (e) {}try {const s = stateRef.current;if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0 });} catch (e) {}onLogout && onLogout();}} />
+          <window.MenuItem icon="fa-trash" label={t.reset} danger onClick={() => setShowResetConfirm(true)} />
+        </div>
+      )}
+
+      {showCuriosityModal && (
+        <window.Modal onClose={() => setShowCuriosityModal(false)}>
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🤔</div>
+            <p className="t-body-m" style={{ color: 'var(--fg-2)', lineHeight: 1.5, marginBottom: 20 }}>
+              Lamento desepcionarte pero aquí no hay nada
+            </p>
+            <button 
+              onClick={() => setShowCuriosityModal(false)}
+              style={primaryBtnStyle}
+            >
+              {lang === 'es' ? 'Entendido' : 'Understood'}
+            </button>
+          </div>
+        </window.Modal>
+      )}
     </div>);
 }
 
@@ -1495,7 +1567,16 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [publicNameErr, setPublicNameErr] = useState('');
   const [feedback, setFeedback] = useState([]);
   const [feedbackLoading, setFeedbackLoading] = useState(true);
-  const [adminTab, setAdminTab] = useState('accounts'); // 'accounts', 'leaderboard', 'feedback'
+  const [customMessages, setCustomMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [isSavingMessages, setIsSavingMessages] = useState(false);
+  const [adminTab, setAdminTab] = useState('accounts'); // 'accounts', 'leaderboard', 'feedback', 'messages'
+
+  const [newMsgName, setNewMsgName] = useState('');
+  const [newMsgText, setNewMsgText] = useState('');
+  const [newMsgMilestone, setNewMsgMilestone] = useState(1);
+
+  const MILESTONE_OPTIONS = [1, 2, 3, 4, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 360];
 
   // Load everything on mount
   useEffect(() => {
@@ -1514,7 +1595,35 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
       if (res.ok) setFeedback(res.feedback || []);
       setFeedbackLoading(false);
     });
+    // 4. Custom Messages
+    window.cloudLoadCustomMessages().then(res => {
+      let msgs = res.ok ? res.messages : [];
+      // Initial default messages if empty
+      if (msgs.length === 0) {
+        msgs = [
+          { id: 'm1', who: 'Dani', text: 'qué bueno que ya estás "trabajando". el ticket de QA del flujo de pagos sigue sin tocar, eh.', milestone: 1, createdAt: Date.now() },
+          { id: 'm2', who: 'Memo', text: 'lindo el clicker. el endpoint /auth lleva 1 minuto rompiendo staging. pero tú dale.', milestone: 2, createdAt: Date.now() + 1 },
+          { id: 'm3', who: 'José María', text: 'el cliente acaba de entrar al call. yo le digo que estás "validando hipótesis", ¿sale?', milestone: 3, createdAt: Date.now() + 2 },
+          { id: 'm4', who: 'Dani', text: '5 minutos clickeando. yo llevo 5 reportando el mismo bug del onboarding. coincidencia, seguro.', milestone: 5, createdAt: Date.now() + 3 },
+          { id: 'm5', who: 'Memo', text: 'la build sigue rota. tu rama también. pero qué bonito clickeas.', milestone: 10, createdAt: Date.now() + 4 },
+          { id: 'm6', who: 'José María', text: 'el prospecto preguntó por features. inventé 3. te las paso después, suerte.', milestone: 15, createdAt: Date.now() + 5 },
+          { id: 'm7', who: 'Dani', text: '1 hora. ya escribí el bug report de tu productividad. severity: blocker.', milestone: 60, createdAt: Date.now() + 6 }
+        ];
+        // Save defaults if we seeded
+        window.cloudSaveCustomMessages(msgs);
+      }
+      setCustomMessages(msgs);
+      setMessagesLoading(false);
+    });
   }, []);
+
+  const saveMessagesToCloud = (updatedList) => {
+    setIsSavingMessages(true);
+    window.cloudSaveCustomMessages(updatedList).then(res => {
+      setIsSavingMessages(false);
+      if (!res.ok) alert('Error guardando mensajes en la nube: ' + res.error);
+    });
+  };
 
   const btn = { all: 'unset', boxSizing: 'border-box', cursor: 'pointer', fontFamily: "'PixelifySans', var(--font-sans)", borderRadius: 10, fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 140ms' };
   const card = { background: 'rgba(255,255,255,0.88)', borderRadius: 16, padding: '20px', border: '1px solid rgba(100,160,230,0.25)', boxShadow: '0 2px 16px rgba(80,140,220,0.08)', backdropFilter: 'blur(8px)', marginBottom: 16 };
@@ -1634,6 +1743,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
             { id: 'accounts', label: lang === 'es' ? 'Cuentas' : 'Accounts', icon: 'fa-users' },
             { id: 'leaderboard', label: 'Ranking', icon: 'fa-trophy' },
             { id: 'feedback', label: 'Feedback', icon: 'fa-comments' },
+            { id: 'messages', label: 'Mensajes', icon: 'fa-bullhorn' },
           ].map(t => (
             <button key={t.id} onClick={() => setAdminTab(t.id)} style={{
               ...btn, flex: 1, padding: '8px 4px', fontSize: 11, borderRadius: 10,
@@ -1778,6 +1888,137 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 ))}
               </div>
             }
+          </div>
+        )}
+
+        {adminTab === 'messages' && (
+          <div style={card}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <i className="fa-solid fa-bullhorn" style={{ color: '#ff9800', fontSize: 15 }}></i>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
+                {lang === 'es' ? 'Mensajes por Tiempo de Juego' : 'Playtime Milestone Messages'}
+                <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({customMessages.length})</span>
+              </span>
+              {(messagesLoading || isSavingMessages) && <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 12, color: '#ff9800', marginLeft: 'auto' }}></i>}
+              {isSavingMessages && <span style={{ fontSize: 10, color: '#ff9800', marginLeft: 8 }}>{lang === 'es' ? 'Guardando...' : 'Saving...'}</span>}
+            </div>
+
+            {/* Create form */}
+            <div style={{ background: '#f0f4f8', padding: 14, borderRadius: 12, marginBottom: 16, border: '1px dashed #cbd5e0' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#4a5568', marginBottom: 8 }}>
+                {lang === 'es' ? 'Crear nuevo mensaje' : 'Create new message'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <input 
+                  type="text" 
+                  placeholder={lang === 'es' ? 'ej. Cris' : 'e.g. Cris'}
+                  value={newMsgName}
+                  onChange={e => setNewMsgName(e.target.value)}
+                  style={{ all: 'unset', boxSizing: 'border-box', width: '100%', padding: '8px 12px', background: '#fff', borderRadius: 8, fontSize: 13, border: '1px solid #e2e8f0' }}
+                />
+                <div style={{ position: 'relative' }}>
+                  <textarea 
+                    placeholder={lang === 'es' ? 'Mensaje sarcástico...' : 'Sarcastic message...'}
+                    maxLength={100}
+                    value={newMsgText}
+                    onChange={e => setNewMsgText(e.target.value)}
+                    style={{ all: 'unset', boxSizing: 'border-box', width: '100%', padding: '8px 12px', background: '#fff', borderRadius: 8, fontSize: 13, border: '1px solid #e2e8f0', minHeight: 60, fontFamily: 'var(--font-sans)' }}
+                  />
+                  <div style={{ position: 'absolute', bottom: 4, right: 8, fontSize: 10, color: newMsgText.length >= 100 ? '#e53e3e' : '#a0aec0' }}>
+                    {newMsgText.length}/100
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 10, color: '#718096', marginBottom: 2, marginLeft: 2 }}>
+                      {lang === 'es' ? 'Se muestra al minuto:' : 'Shows at minute:'}
+                    </div>
+                    <select 
+                      value={newMsgMilestone}
+                      onChange={e => setNewMsgMilestone(parseInt(e.target.value))}
+                      style={{ all: 'unset', boxSizing: 'border-box', width: '100%', padding: '8px 12px', background: '#fff', borderRadius: 8, fontSize: 13, border: '1px solid #e2e8f0', cursor: 'pointer' }}
+                    >
+                      {MILESTONE_OPTIONS.map(opt => {
+                        const isTaken = customMessages.some(m => m.milestone === opt);
+                        return <option key={opt} value={opt} disabled={isTaken}>
+                          {opt} {opt === 1 ? 'min' : 'mins'} {isTaken ? (lang === 'es' ? '(Ocupado)' : '(Taken)') : ''}
+                        </option>;
+                      })}
+                    </select>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      if (!newMsgName || !newMsgText) return;
+                      if (customMessages.some(m => m.milestone === newMsgMilestone)) return;
+                      const newMsg = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        who: newMsgName,
+                        text: newMsgText,
+                        milestone: newMsgMilestone,
+                        createdAt: Date.now()
+                      };
+                      const updated = [...customMessages, newMsg];
+                      setCustomMessages(updated);
+                      saveMessagesToCloud(updated);
+                      setNewMsgName(''); setNewMsgText('');
+                    }}
+                    style={{ ...btn, height: 36, padding: '0 16px', background: '#2d3748', color: '#fff', marginTop: 14 }}
+                  >
+                    {lang === 'es' ? 'Agregar' : 'Add'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
+              {customMessages.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: '#a0aec0', fontSize: 13 }}>
+                  {lang === 'es' ? 'No hay mensajes personalizados' : 'No custom messages'}
+                </div>
+              ) : (
+                customMessages.map(m => (
+                  <div key={m.id} style={{ padding: '12px', background: '#fff', borderRadius: 10, border: '1px solid #edf2f7', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: '#2d3748' }}>{m.who}</span>
+                      <select 
+                        value={m.milestone}
+                        onChange={e => {
+                          const newVal = parseInt(e.target.value);
+                          const updated = customMessages.map(x => x.id === m.id ? { ...x, milestone: newVal } : x);
+                          setCustomMessages(updated);
+                          saveMessagesToCloud(updated);
+                        }}
+                        style={{ all: 'unset', fontSize: 11, color: '#1a8fff', background: '#f0f7ff', padding: '2px 8px', borderRadius: 6, cursor: 'pointer', border: '1px solid #cce4ff', fontWeight: 600 }}
+                      >
+                        {MILESTONE_OPTIONS.map(opt => {
+                          const isTaken = customMessages.some(x => x.milestone === opt && x.id !== m.id);
+                          return <option key={opt} value={opt} disabled={isTaken}>
+                            {opt}m {isTaken ? '(!)' : ''}
+                          </option>;
+                        })}
+                      </select>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#4a5568', lineHeight: 1.4, fontStyle: 'italic' }}>
+                      "{m.text}"
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+                      <button 
+                        onClick={() => {
+                          const updated = customMessages.filter(x => x.id !== m.id);
+                          setCustomMessages(updated);
+                          window.cloudSaveCustomMessages(updated);
+                        }}
+                        style={{ ...btn, padding: '4px 8px', background: 'rgba(220,50,50,0.05)', color: '#e53e3e', fontSize: 11, border: '1px solid rgba(220,50,50,0.1)' }}
+                      >
+                        <i className="fa-solid fa-trash-can" style={{ marginRight: 4 }}></i>
+                        {lang === 'es' ? 'Eliminar' : 'Delete'}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
 
@@ -2092,7 +2333,7 @@ function AboutModal({ onClose, lang }) {
 
 }
 
-Object.assign(window, { AboutModal, Modal, primaryBtnStyle, secondaryBtnStyle, deleteUserSave, ADMIN_NAME });
+Object.assign(window, { AboutModal, Modal, MenuItem, MenuDivider, primaryBtnStyle, secondaryBtnStyle, deleteUserSave, ADMIN_NAME });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(App));
