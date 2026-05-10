@@ -3,16 +3,23 @@
 // ==========================================================================
 
 // ── App Version (single source of truth) ──────────────────────────────────
-const APP_VERSION = 'v0.0.34-beta';
+const APP_VERSION = 'v0.0.35-beta';
 const VERSION_DATE = '2026-05-10';
 
 const VERSION_HISTORY = [
+  {
+    v: 'v0.0.35-beta',
+    date: '2026-05-10',
+    es: 'Panel Admin Premium: Mensajes con efectos acelerados, partículas dinámicas desde bordes, previsualización real y UI mejorada.',
+    en: 'Premium Admin Panel: Messages with faster effects, dynamic edge particles, real-time preview, and improved UI.',
+    latest: true,
+  },
   {
     v: 'v0.0.34-beta',
     date: '2026-05-10',
     es: 'Personalización Visual: Añadido sistema de efectos, colores, partículas y posiciones para mensajes personalizados.',
     en: 'Visual Customization: Added effects, colors, particles, and positions for custom messages.',
-    latest: true,
+    latest: false,
   },
   {
     v: 'v0.0.33-beta',
@@ -600,4 +607,4 @@ function computeClickPower(state, perSecond) {
   return { flat, mult, total: flat * mult };
 }
 
-Object.assign(window, { GENERATORS, CLICK_UPGRADES, ACHIEVEMENTS, genCost, formatNumWithMode, formatTime, playTone, computeClickPower, SHORT_SUFFIXES });
+Object.assign(window, { APP_VERSION, VERSION_HISTORY, GENERATORS, CLICK_UPGRADES, ACHIEVEMENTS, genCost, formatNumWithMode, formatTime, playTone, computeClickPower, SHORT_SUFFIXES });

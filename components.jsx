@@ -1,6 +1,9 @@
 // UI Components for Tooth Clicker
 const { useState: useStateC } = React;
 
+const primaryBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '10px 18px', background: 'var(--primary-i100)', color: '#fff', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 14, cursor: 'pointer', flex: 1, textAlign: 'center', fontFamily: 'var(--font-sans)' };
+const secondaryBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '10px 18px', background: 'var(--bg-3)', color: 'var(--fg-1)', borderRadius: 'var(--radius-s)', fontWeight: 500, fontSize: 14, cursor: 'pointer', flex: 1, textAlign: 'center', fontFamily: 'var(--font-sans)' };
+
 function ToothIcon({ size = 220, golden = false }) {
   const fill1 = golden ? '#FFD463' : '#FFFFFF';
   const fill2 = golden ? '#FFC220' : '#EBF4FC';
@@ -114,15 +117,13 @@ function GeneratorRow({ gen, owned, cost, canAfford, unlocked, revealed, onBuy, 
       </div>);
   }
   return (
-    <button onClick={onBuy} disabled={!canAfford} style={{
+    <button onClick={onBuy} disabled={!canAfford} className="app-btn" style={{
       all: 'unset', display: 'grid', gridTemplateColumns: '32px 1fr auto auto', gap: '8px',
       alignItems: 'center', padding: '5px 8px',
       background: 'var(--bg-1)', border: `1px solid ${canAfford ? 'var(--primary-i020)' : 'var(--border-subtle)'}`,
       borderRadius: 'var(--radius-s)', cursor: canAfford ? 'pointer' : 'not-allowed',
       opacity: canAfford ? 1 : 0.75, transition: 'all 150ms ease', boxSizing: 'border-box'
-    }}
-    onMouseEnter={(e) => {if (canAfford) {e.currentTarget.style.background = 'var(--primary-i005)';e.currentTarget.style.borderColor = 'var(--primary-i100)';}}}
-    onMouseLeave={(e) => {e.currentTarget.style.background = 'var(--bg-1)';e.currentTarget.style.borderColor = canAfford ? 'var(--primary-i020)' : 'var(--border-subtle)';}}>
+    }}>
       
       <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--primary-i010)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-i100)', flexShrink: 0 }}>
         <i className={gen.icon} style={{ fontSize: 14 }}></i>
@@ -193,14 +194,12 @@ function ClickUpgradeRow({ up, purchased, canAfford, unlocked, onBuy, lang, tota
   }
 
   return (
-    <button onClick={onBuy} disabled={!canAfford} style={{
+    <button onClick={onBuy} disabled={!canAfford} className="app-btn" style={{
       all: 'unset', ...sharedGrid,
       background: 'var(--bg-1)', border: `1px solid ${canAfford ? 'var(--primary-i020)' : 'var(--border-subtle)'}`,
       cursor: canAfford ? 'pointer' : 'not-allowed',
       opacity: canAfford ? 1 : 0.75, transition: 'all 150ms ease',
-    }}
-    onMouseEnter={(e) => { if (canAfford) { e.currentTarget.style.background = 'var(--primary-i005)'; e.currentTarget.style.borderColor = 'var(--primary-i100)'; } }}
-    onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-1)'; e.currentTarget.style.borderColor = canAfford ? 'var(--primary-i020)' : 'var(--border-subtle)'; }}>
+    }}>
       <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--alternative-i010)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--alternative-i100)', flexShrink: 0 }}>
         <i className="fa-solid fa-arrow-up-right-dots" style={{ fontSize: 13 }}></i>
       </div>
@@ -377,45 +376,78 @@ function StoreUpgradeIcon({ up, canAfford, onBuy, lang, fmt, onHover, onLeave })
   );
 }
 
-Object.assign(window, { ToothIcon, StatTile, StatsGroup, TabBar, GeneratorRow, ClickUpgradeRow, AchievementCard, Toast, StoreUpgradeIcon });
+Object.assign(window, { ToothIcon, StatTile, StatsGroup, TabBar, GeneratorRow, ClickUpgradeRow, AchievementCard, Toast, StoreUpgradeIcon });function VersionLogModal({ onClose, lang }) {
+  const versions = (window.VERSION_HISTORY || []).map((item) => ({
+    v: item.v,
+    date: item.date,
+    desc: lang === 'es' ? item.es : item.en
+  }));
+
+  return (
+    <window.Modal onClose={onClose} maxWidth={420}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <i className="fa-solid fa-clock-rotate-left" style={{ color: '#1a8fff', fontSize: 20 }}></i>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--fg-1)', fontFamily: 'var(--font-sans)' }}>{lang === 'es' ? 'Historial de Versiones' : 'Version History'}</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', maxHeight: 400, paddingRight: 6 }}>
+        {versions.map((v, i) => (
+          <div key={v.v + i} style={{ borderLeft: '2px solid #e1e8ef', paddingLeft: 16, paddingBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#1a8fff', background: 'rgba(26,143,255,0.1)', padding: '2px 8px', borderRadius: 6, fontFamily: 'var(--font-sans)' }}>{v.v}</span>
+              {v.date && <span style={{ fontSize: 10, color: '#8aaacc', fontFamily: 'var(--font-sans)' }}>{v.date}</span>}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>{v.desc}</div>
+          </div>
+        ))}
+      </div>
+      <button onClick={onClose} style={{ ...primaryBtnStyle, marginTop: 20 }}>
+        {lang === 'es' ? 'Volver' : 'Back'}
+      </button>
+    </window.Modal>
+  );
+}
 
 function AboutModal({ onClose, lang }) {
-  const versions = VERSION_HISTORY.map((item) => ({
+  const [showLog, setShowLog] = React.useState(false);
+  const versions = (window.VERSION_HISTORY || []).map((item) => ({
     v: item.v,
     date: item.date,
     desc: lang === 'es' ? item.es : item.en,
     latest: item.latest
   }));
+
+  if (showLog) return <VersionLogModal onClose={() => setShowLog(false)} lang={lang} />;
+
   return (
     <window.Modal onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 300, maxWidth: 360 }}>
-        <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 180, objectFit: 'contain', marginBottom: 8 }} />
-        <div style={{ fontSize: 15, fontWeight: 600, color: '#333', fontFamily: 'var(--font-sans)', marginBottom: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 300, maxWidth: 360, minHeight: 0 }}>
+        <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 180, objectFit: 'contain', marginBottom: 8, flexShrink: 0 }} />
+        <div style={{ fontSize: 15, fontWeight: 600, color: '#333', fontFamily: 'var(--font-sans)', marginBottom: 16, flexShrink: 0, padding: "20px 0px" }}>
           {lang === 'es' ? 'Creado por Jaime Arias' : 'Created by Jaime Arias'}
         </div>
-        <div style={{ width: '100%', borderTop: '1.5px dashed #d0dce8', marginBottom: 16 }} />
+        <div style={{ width: '100%', borderTop: '1.5px dashed #d0dce8', marginBottom: 16, flexShrink: 0 }} />
         <div style={{ width: '100%' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#5a7a9a', fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
-            {lang === 'es' ? 'Historial de versiones' : 'Version history'}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {versions.map((item, i) =>
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flexShrink: 0, marginTop: 1 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-sans)', color: item.latest ? '#fff' : '#8fa8be', background: item.latest ? '#1a8fff' : '#c8d8e8', padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap' }}>{item.v}</span>
-                  {item.date && <span style={{ fontSize: 10, color: '#aac0d4', fontFamily: 'var(--font-sans)' }}>{item.date}</span>}
-                </div>
-                <span style={{ fontSize: 13, color: '#4a6a88', fontFamily: 'var(--font-sans)', lineHeight: 1.5 }}>{item.desc}</span>
-              </div>
-            )}
-          </div>
+          {(() => {
+            const latest = versions.find((v) => v.latest);
+            if (!latest) return null;
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: '#1a8fff', padding: '4px 14px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>{latest.v}</span>
+                {latest.date && <span style={{ fontSize: 11, color: '#aac0d4', fontFamily: 'var(--font-sans)' }}>{latest.date}</span>}
+                <button 
+                  onClick={() => setShowLog(true)}
+                  style={{ all: 'unset', color: '#1a8fff', fontSize: 12, fontWeight: 600, marginTop: 10, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'var(--font-sans)' }}
+                >
+                  {lang === 'es' ? 'Ver log de versiones' : 'View version log'}
+                </button>
+              </div>);
+          })()}
         </div>
-        <button onClick={onClose} style={{ all: 'unset', boxSizing: 'border-box', marginTop: 24, width: '100%', textAlign: 'center', padding: '13px 0', borderRadius: 999, background: '#1a8fff', color: '#fff', fontSize: 16, fontWeight: 600, fontFamily: "'PixelifySans', var(--font-sans)", cursor: 'pointer' }}>
+        <button onClick={onClose} style={{ all: 'unset', boxSizing: 'border-box', marginTop: 24, width: '100%', textAlign: 'center', padding: '13px 0', borderRadius: 999, background: '#1a8fff', color: '#fff', fontSize: 16, fontWeight: 600, fontFamily: "'PixelifySans', var(--font-sans)", cursor: 'pointer', flexShrink: 0 }}>
           {lang === 'es' ? 'Cerrar' : 'Close'}
         </button>
       </div>
     </window.Modal>);
-
 }
 
-Object.assign(window, { AboutModal });
+Object.assign(window, { AboutModal, VersionLogModal, primaryBtnStyle, secondaryBtnStyle });

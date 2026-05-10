@@ -66,26 +66,36 @@ function BossMarquee({ msg, lang, danger, onDismiss }) {
     return () => { clearTimeout(showContainer); clearTimeout(startType); clearInterval(id); clearTimeout(dismissTimer); };
   }, [messageBody]);
 
-  const bg = danger ? 'oklch(0.18 0.05 25)' : 'var(--bg-1)';
-  const border = danger ? 'oklch(0.6 0.25 25)' : 'var(--border-subtle)';
-  const textColor = danger ? '#FFE6E0' : 'var(--fg-1)';
-  const iconColor = danger ? 'oklch(0.85 0.2 25)' : 'var(--alternative-i100)';
-  const finalNameColor = danger ? 'oklch(0.85 0.2 25)' : msg.color || nameColor;
+  const bg = '#000';
+  const accentColor = msg.color || '#1a8fff';
+  const textColor = '#fff';
+  const iconColor = danger ? 'oklch(0.85 0.2 25)' : accentColor;
+  const finalNameColor = danger ? 'oklch(0.85 0.2 25)' : accentColor;
   const sayWord = lang === 'es' ? 'dice' : 'says';
 
   // Particle System
   const [particles, setParticles] = useState([]);
   useEffect(() => {
     if (!msg.particles || msg.particles === 'none') return;
-    const count = msg.particles === 'confetti' ? 40 : 15;
-    const p = Array.from({ length: count }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      s: 4 + Math.random() * 8,
-      d: Math.random() * 360,
-      v: 1 + Math.random() * 2
-    }));
+    const count = msg.particles === 'confetti' ? 40 : 25;
+    const p = Array.from({ length: count }, (_, i) => {
+      const side = Math.floor(Math.random() * 4); 
+      let x, y, vx, vy;
+      if (side === 0) { x = Math.random() * 100; y = -5; vx = (Math.random()-0.5)*60; vy = -40 - Math.random()*60; }
+      else if (side === 1) { x = 105; y = Math.random() * 100; vx = 40 + Math.random()*60; vy = (Math.random()-0.5)*60; }
+      else if (side === 2) { x = Math.random() * 100; y = 105; vx = (Math.random()-0.5)*60; vy = 40 + Math.random()*60; }
+      else { x = -5; y = Math.random() * 100; vx = -40 - Math.random()*60; vy = (Math.random()-0.5)*60; }
+
+      return {
+        id: i,
+        x, y,
+        vx, vy,
+        s: 3 + Math.random() * 5,
+        rot: Math.random() * 360,
+        delay: Math.random() * 2,
+        dur: 0.8 + Math.random() * 1.2
+      };
+    });
     setParticles(p);
   }, [msg]);
 
@@ -107,36 +117,47 @@ function BossMarquee({ msg, lang, danger, onDismiss }) {
       {particles.map(pt => (
         <div key={pt.id} className={`particle-${msg.particles}`} style={{
           position: 'absolute', left: `${pt.x}%`, top: `${pt.y}%`, width: pt.s, height: pt.s,
-          pointerEvents: 'none', zIndex: -1, opacity: 0.6
+          pointerEvents: 'none', zIndex: 1, opacity: 0,
+          '--vx': `${pt.vx}px`, '--vy': `${pt.vy}px`, '--rot': `${pt.rot}deg`,
+          animation: `p-physics ${pt.dur}s ease-out ${pt.delay}s infinite`,
+          filter: 'drop-shadow(0 0 3px currentColor)'
         }} />
       ))}
       
       <div className={animClass} style={{
         background: bg,
-        border: `1.5px solid ${border}`,
+        borderWidth: 2,
+        borderStyle: 'solid',
+        borderColor: (msg.animation === 'rainbow' && !danger) ? undefined : (danger ? 'oklch(0.6 0.25 25)' : accentColor),
         borderRadius: 'var(--radius-m)',
-        padding: '12px 20px',
-        boxShadow: danger ? '0 0 32px oklch(0.6 0.25 25 / 0.5), 0 6px 24px rgba(0,0,0,0.25)' : 'var(--elevation-20)',
+        padding: '16px 24px',
+        boxShadow: (msg.animation === 'rainbow' && !danger) ? undefined : `0 0 30px ${accentColor}44, 0 10px 40px rgba(0,0,0,0.5)`,
         width: '100%',
         ...sizeStyles[msg.size || 'medium'],
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
-        animation: danger ? 'dangerPulse 1.2s ease-in-out infinite, modalIn 280ms ease' : 'modalIn 280ms ease',
+        gap: 16,
+        animation: `${danger ? 'dangerPulse 0.8s ease-in-out infinite, ' : ''}modalIn 280ms ease${(msg.animation && msg.animation !== 'none') ? `, ${msg.animation === 'rainbow' ? 'rainbowBorder 2.5s linear' : 'anim-' + msg.animation + ' ' + (msg.animation === 'shake' ? '0.2s' : msg.animation === 'float' ? '1.5s' : '1s') + ' ease-in-out'} infinite` : ''}`,
         pointerEvents: 'auto',
-        position: 'relative'
+        position: 'relative',
+        overflow: 'visible'
       }}>
-        <i className={danger ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-info'} style={{ color: iconColor, fontSize: 20, flex: '0 0 auto' }}></i>
-        <div style={{ fontSize: 'inherit', color: textColor, fontFamily: 'var(--font-sans)', lineHeight: 1.4, fontWeight: danger ? 600 : 500, textAlign: 'left', flex: 1, minWidth: 0 }}>
-          <span style={{ color: finalNameColor, fontWeight: 700 }}>{msg.who} {sayWord}:</span>{' '}
-          {containerReady && (<>
-            {shown}
-            {shown.length < messageBody.length && <span style={{ display: 'inline-block', width: 2, height: '1em', background: textColor, marginLeft: 1, verticalAlign: 'middle', animation: 'cursorBlink 0.8s steps(1) infinite' }}></span>}
-          </>)}
+        {/* Glow effect */}
+        <div style={{ position: 'absolute', inset: -2, borderRadius: 'inherit', background: `linear-gradient(45deg, ${accentColor}, transparent, ${accentColor})`, opacity: 0.3, zIndex: -1 }}></div>
+
+        <i className={danger ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-info'} style={{ color: iconColor, fontSize: 24, flex: '0 0 auto', filter: `drop-shadow(0 0 8px ${iconColor})` }}></i>
+        <div style={{ fontSize: 'inherit', color: textColor, fontFamily: 'var(--font-sans)', lineHeight: 1.5, fontWeight: 500, textAlign: 'left', flex: 1, minWidth: 0 }}>
+          <span style={{ color: finalNameColor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: `1px solid ${finalNameColor}44`, paddingBottom: 2 }}>{msg.who} {sayWord}:</span>{' '}
+          <span style={{ display: 'block', marginTop: 4 }}>
+            {containerReady && (<>
+              {shown}
+              {shown.length < messageBody.length && <span style={{ display: 'inline-block', width: 2, height: '1em', background: textColor, marginLeft: 1, verticalAlign: 'middle', animation: 'cursorBlink 0.8s steps(1) infinite' }}></span>}
+            </>)}
+          </span>
         </div>
         <button 
           onClick={() => onDismiss()}
-          style={{ all: 'unset', width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--fg-4)', transition: 'all 0.2s' }}
+          style={{ all: 'unset', width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', transition: 'all 0.2s', border: '1px solid rgba(255,255,255,0.2)' }}
           className="hover-bg-danger"
         >
           <i className="fa-solid fa-xmark" style={{ fontSize: 14 }}></i>
@@ -1624,7 +1645,14 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [newMsgSize, setNewMsgSize] = useState('medium'); // small, medium, large
   const [newMsgAnim, setNewMsgAnim] = useState('none'); // none, pulse, shake, float
   const [newMsgParticles, setNewMsgParticles] = useState('none'); // none, stars, teeth, fire, confetti
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingMsg, setEditingMsg] = useState(null);
+  const [msgFilter, setMsgFilter] = useState('all');
+  const [msgToDelete, setMsgToDelete] = useState(null);
+  const [showWipeConfirm, setShowWipeConfirm] = useState(false);
+  const [wipeLoading, setWipeLoading] = useState(false);
   const [successNote, setSuccessNote] = useState('');
+  const [previewMsg, setPreviewMsg] = useState(null);
 
   const MILESTONE_OPTIONS = [1, 2, 3, 4, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 360];
 
@@ -1736,13 +1764,29 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
     setPublicNameErr('');
   };
 
+  const handleWipeAll = async () => {
+    setWipeLoading(true);
+    const res = await window.cloudClearAllPlayers();
+    if (res.ok) {
+      resetAllProgress();
+      setGlobalUsers([]);
+      setPublicUsers([]);
+      setFeedback([]);
+      setCustomMessages([]);
+      setWipeLoading(false);
+      setShowWipeConfirm(false);
+      alert(lang === 'es' ? '¡Wipe total completado!' : 'Total wipe completed!');
+    } else {
+      setWipeLoading(false);
+      alert('Error: ' + res.error);
+    }
+  };
+
   const handleResetAll = async () => {
     setResetLoading(true);
     resetAllProgress();
-    // Clear local UI state immediately
     setGlobalUsers([]);
     setPublicUsers([]);
-    
     await new Promise((r) => setTimeout(r, 900));
     setResetLoading(false); setResetDone(true);
     setTimeout(() => setResetDone(false), 3000);
@@ -1750,29 +1794,30 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   };
 
   const UserRow = ({ name, type }) =>
-  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f4f8fc', borderRadius: 10, border: '1px solid rgba(100,160,230,0.2)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f4f8fc', borderRadius: 10, border: '1px solid rgba(100,160,230,0.2)' }}>
       <div style={{ width: 32, height: 32, borderRadius: '50%', background: type === 'admin' ? 'rgba(26,143,255,0.15)' : 'rgba(100,160,230,0.15)', color: type === 'admin' ? '#1a8fff' : '#5a8aaa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
         {(name[0] || '?').toUpperCase()}
       </div>
       <span style={{ flex: 1, fontSize: 15, color: '#1a3a5a', fontWeight: 600 }}>{name}</span>
-      <button onClick={() => onEnterGame(name)} style={{ ...btn, padding: '6px 12px', background: 'rgba(26,143,255,0.1)', color: '#1a8fff', fontSize: 12, border: '1px solid rgba(26,143,255,0.2)', borderRadius: 8 }}>
+      <button onClick={() => onEnterGame(name)} className="app-btn" style={{ ...btn, padding: '6px 12px', background: 'rgba(26,143,255,0.1)', color: '#1a8fff', fontSize: 12, border: '1px solid rgba(26,143,255,0.2)', borderRadius: 8 }}>
         <i className="fa-solid fa-play"></i>
         {lang === 'es' ? 'Jugar' : 'Play'}
       </button>
-      <button onClick={() => setDeleteTarget({ name, type })} style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.08)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.2)', borderRadius: 8 }}>
+      <button onClick={() => setDeleteTarget({ name, type })} className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.08)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.2)', borderRadius: 8 }}>
         <i className="fa-solid fa-trash"></i>
       </button>
     </div>;
+
 
 
   return (
     <div style={{ minHeight: '100vh', background: '#e8f2fb', fontFamily: "'PixelifySans', var(--font-sans)", position: 'relative', overflow: 'hidden' }}>
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(uploads/background-e5bd6167.png)', backgroundSize: 'cover', backgroundPosition: 'center', pointerEvents: 'none', opacity: 0.45 }} />
 
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 520, margin: '0 auto', padding: '32px 20px 56px' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 700, margin: '0 auto', padding: '32px 20px 56px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-          <button onClick={onBack} style={{ ...btn, padding: '8px 12px', background: 'rgba(255,255,255,0.8)', color: '#4a6a8a', fontSize: 13, border: '1px solid rgba(100,160,230,0.35)' }}>
+          <button onClick={onBack} className="app-btn" style={{ ...btn, padding: '8px 12px', background: 'rgba(255,255,255,0.8)', color: '#4a6a8a', fontSize: 13, border: '1px solid rgba(100,160,230,0.35)' }}>
             <i className="fa-solid fa-arrow-left"></i>
           </button>
           <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#1a8fff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
@@ -1782,7 +1827,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
             <div style={{ fontSize: 20, fontWeight: 700, color: '#1a3a5a', lineHeight: 1 }}>Panel Admin</div>
 
           </div>
-          <button onClick={onLangChange} style={{ ...btn, padding: '8px 12px', background: 'rgba(255,255,255,0.8)', color: '#4a6a8a', fontSize: 13, border: '1px solid rgba(100,160,230,0.35)' }}>
+          <button onClick={onLangChange} className="app-btn" style={{ ...btn, padding: '8px 12px', background: 'rgba(255,255,255,0.8)', color: '#4a6a8a', fontSize: 13, border: '1px solid rgba(100,160,230,0.35)' }}>
             {lang === 'es' ? '🇬🇧' : '🇪🇸'}
           </button>
         </div>
@@ -1794,12 +1839,13 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
             { id: 'leaderboard', label: 'Ranking', icon: 'fa-trophy' },
             { id: 'feedback', label: 'Feedback', icon: 'fa-comments' },
             { id: 'messages', label: 'Mensajes', icon: 'fa-bullhorn' },
+            { id: 'danger', label: lang === 'es' ? 'Zona Peligrosa' : 'Danger Zone', icon: 'fa-triangle-exclamation' },
           ].map(t => (
-            <button key={t.id} onClick={() => setAdminTab(t.id)} style={{
-              ...btn, flex: 1, padding: '8px 4px', fontSize: 11, borderRadius: 10,
-              background: adminTab === t.id ? '#1a8fff' : 'transparent',
-              color: adminTab === t.id ? '#fff' : '#4a6a8a',
-              border: 'none', boxShadow: adminTab === t.id ? '0 4px 12px rgba(26,143,255,0.25)' : 'none'
+            <button key={t.id} onClick={() => setAdminTab(t.id)} className="app-btn" style={{
+              ...btn, flex: 1, padding: '8px 12px', fontSize: 11, borderRadius: 10,
+              background: adminTab === t.id ? (t.id === 'danger' ? '#e11d24' : '#1a8fff') : 'transparent',
+              color: adminTab === t.id ? '#fff' : (t.id === 'danger' ? '#e11d24' : '#4a6a8a'),
+              border: 'none', boxShadow: adminTab === t.id ? `0 4px 12px ${t.id === 'danger' ? 'rgba(225,29,36,0.25)' : 'rgba(26,143,255,0.25)'}` : 'none'
             }}>
               <i className={`fa-solid ${t.icon}`} style={{ fontSize: 10 }}></i>
               {t.label}
@@ -1849,7 +1895,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
               <div style={{ textAlign: 'center', padding: '12px 0', color: '#8aaacc', fontFamily: 'var(--font-sans)', fontSize: 13 }}>
                 {globalLoading ? (lang === 'es' ? 'Cargando base de datos...' : 'Loading database...') : (lang === 'es' ? 'No hay jugadores en el ranking' : 'No players in leaderboard')}
               </div> :
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 450, overflowY: 'auto', paddingRight: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
                 {globalUsers.filter(u => u.name.toLowerCase() !== 'james').map((u) => (
                   <div key={'global-' + u.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f0f7ff', borderRadius: 10, border: '1px solid rgba(0,118,219,0.15)' }}>
                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary-i100)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
@@ -1859,7 +1905,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                       <div style={{ fontSize: 14, color: '#1a3a5a', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
                       <div style={{ fontSize: 10, color: '#5a8aaa', fontWeight: 600 }}>{window.formatNum(u.totalEarned)} dientes · Prestigio {u.prestige || 0}</div>
                     </div>
-                    <button onClick={() => setDeleteTarget({ name: u.name, type: 'global' })} style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.25)', borderRadius: 8 }}>
+                    <button onClick={() => setDeleteTarget({ name: u.name, type: 'global' })} className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.25)', borderRadius: 8 }}>
                       <i className="fa-solid fa-user-slash"></i>
                     </button>
                   </div>
@@ -1886,6 +1932,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                       });
                     }
                   }}
+                  className="app-btn"
                   style={{ ...btn, padding: '4px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 11, border: '1px solid rgba(220,50,50,0.2)', borderRadius: 8, marginLeft: 'auto' }}
                 >
                   <i className="fa-solid fa-dumpster-fire" style={{ marginRight: 6 }}></i>
@@ -1896,10 +1943,10 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
             </div>
             
             {feedback.length === 0 ?
-              <div style={{ textAlign: 'center', padding: '12px 0', color: '#8aaacc', fontFamily: 'var(--font-sans)', fontSize: 13 }}>
+              <div style={{ textAlign: 'center', padding: '24px 0', color: '#8aaacc', fontFamily: 'var(--font-sans)', fontSize: 13 }}>
                 {feedbackLoading ? (lang === 'es' ? 'Cargando mensajes...' : 'Loading messages...') : (lang === 'es' ? 'No hay mensajes aún' : 'No messages yet')}
               </div> :
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 500, overflowY: 'auto', paddingRight: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 4 }}>
                 {feedback.map((f, idx) => (
                   <div key={'fb-' + idx} style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: 12, border: '1px solid rgba(100,160,230,0.15)', position: 'relative' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' }}>
@@ -1954,237 +2001,395 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
               {isSavingMessages && <span style={{ fontSize: 10, color: '#ff9800', marginLeft: 8 }}>{lang === 'es' ? 'Guardando...' : 'Saving...'}</span>}
             </div>
 
-            {/* Create form */}
-            <div style={{ background: '#f0f4f8', padding: 14, borderRadius: 12, marginBottom: 16, border: '1px dashed #cbd5e0' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#4a5568', marginBottom: 8 }}>
-                {lang === 'es' ? 'Crear nuevo mensaje' : 'Create new message'}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <input 
-                  type="text" 
-                  placeholder={lang === 'es' ? 'ej. Cris' : 'e.g. Cris'}
-                  value={newMsgName}
-                  onChange={e => setNewMsgName(e.target.value)}
-                  style={{ all: 'unset', boxSizing: 'border-box', width: '100%', padding: '8px 12px', background: '#fff', borderRadius: 8, fontSize: 13, border: '1px solid #e2e8f0' }}
-                />
-                <div style={{ position: 'relative' }}>
-                  <textarea 
-                    placeholder={lang === 'es' ? 'Mensaje sarcástico...' : 'Sarcastic message...'}
-                    maxLength={100}
-                    value={newMsgText}
-                    onChange={e => setNewMsgText(e.target.value)}
-                    style={{ all: 'unset', boxSizing: 'border-box', width: '100%', padding: '8px 12px', background: '#fff', borderRadius: 8, fontSize: 13, border: '1px solid #e2e8f0', minHeight: 60, fontFamily: 'var(--font-sans)' }}
-                  />
-                  <div style={{ position: 'absolute', bottom: 4, right: 8, fontSize: 10, color: newMsgText.length >= 100 ? '#e53e3e' : '#a0aec0' }}>
-                    {newMsgText.length}/100
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 10, color: '#718096', marginBottom: 2 }}>{lang === 'es' ? 'Minuto de juego:' : 'Playtime Minute:'}</div>
-                    <input 
-                      type="number" 
-                      min={1}
-                      value={newMsgMilestone}
-                      onChange={e => setNewMsgMilestone(parseInt(e.target.value) || 1)}
-                      style={{ all: 'unset', boxSizing: 'border-box', width: '100%', padding: '8px 12px', background: '#fff', borderRadius: 8, fontSize: 13, border: '1px solid #e2e8f0' }}
-                    />
-                    {(() => {
-                      const taken = customMessages.some(m => m.milestone === newMsgMilestone);
-                      if (taken) {
-                        let next = 1; while(customMessages.some(m => m.milestone === next)) next++;
-                        return <div style={{ fontSize: 9, color: '#e53e3e', marginTop: 4 }}>{lang === 'es' ? `¡Ocupado! Prueba con el ${next}` : `Taken! Try minute ${next}`}</div>;
-                      }
-                      return null;
-                    })()}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 10, color: '#718096', marginBottom: 2 }}>{lang === 'es' ? 'Color del Nombre:' : 'Name Color:'}</div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <input type="color" value={newMsgColor} onChange={e => setNewMsgColor(e.target.value)} style={{ width: 36, height: 36, border: 'none', borderRadius: 8, cursor: 'pointer', padding: 0, background: 'none' }} />
-                      <div style={{ fontSize: 11, color: '#4a5568', alignSelf: 'center' }}>{newMsgColor}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 10, color: '#718096', marginBottom: 2 }}>{lang === 'es' ? 'Posición y Tamaño:' : 'Pos & Size:'}</div>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <select value={newMsgPos} onChange={e => setNewMsgPos(e.target.value)} style={{ flex: 1, padding: '6px', fontSize: 11, borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                        <option value="top">{lang === 'es' ? 'Arriba' : 'Top'}</option>
-                        <option value="center">{lang === 'es' ? 'Centro' : 'Center'}</option>
-                        <option value="bottom">{lang === 'es' ? 'Abajo' : 'Bottom'}</option>
-                      </select>
-                      <select value={newMsgSize} onChange={e => setNewMsgSize(e.target.value)} style={{ flex: 1, padding: '6px', fontSize: 11, borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                        <option value="small">S</option>
-                        <option value="medium">M</option>
-                        <option value="large">L</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 10, color: '#718096', marginBottom: 2 }}>{lang === 'es' ? 'Efecto y Partículas:' : 'Effect & Particles:'}</div>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <select value={newMsgAnim} onChange={e => setNewMsgAnim(e.target.value)} style={{ flex: 1, padding: '6px', fontSize: 11, borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                        <option value="none">-</option>
-                        <option value="pulse">Pulse</option>
-                        <option value="shake">Shake</option>
-                        <option value="float">Float</option>
-                      </select>
-                      <select value={newMsgParticles} onChange={e => setNewMsgParticles(e.target.value)} style={{ flex: 1, padding: '6px', fontSize: 11, borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                        <option value="none">-</option>
-                        <option value="stars">✨</option>
-                        <option value="teeth">🦷</option>
-                        <option value="fire">🔥</option>
-                        <option value="confetti">🎉</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => {
-                    if (!newMsgName || !newMsgText) return;
-                    if (customMessages.some(m => m.milestone === newMsgMilestone)) return;
-                    const newMsg = {
-                      id: Math.random().toString(36).substr(2, 9),
-                      who: newMsgName, text: newMsgText, milestone: newMsgMilestone,
-                      color: newMsgColor, position: newMsgPos, size: newMsgSize,
-                      animation: newMsgAnim, particles: newMsgParticles,
-                      createdAt: Date.now()
-                    };
-                    const updated = [...customMessages, newMsg];
-                    setCustomMessages(updated);
-                    saveMessagesToCloud(updated);
-                    setNewMsgName(''); setNewMsgText('');
-                    setSuccessNote(lang === 'es' ? '¡Mensaje creado!' : 'Message created!');
-                    setTimeout(() => setSuccessNote(''), 3000);
-                  }}
-                  style={{ ...btn, height: 40, width: '100%', background: '#1a8fff', color: '#fff', marginTop: 10, boxShadow: '0 4px 12px rgba(26,143,255,0.2)' }}
-                >
-                  <i className="fa-solid fa-plus"></i> {lang === 'es' ? 'Crear Mensaje' : 'Create Message'}
-                </button>
-              </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              <button 
+                onClick={() => { setEditingMsg(null); setShowCreateModal(true); }}
+                className="app-btn"
+                style={{ ...btn, flex: 1, height: 44, background: '#1a8fff', color: '#fff', boxShadow: '0 4px 12px rgba(26,143,255,0.2)', fontSize: 14 }}
+              >
+                <i className="fa-solid fa-plus"></i> {lang === 'es' ? 'Nuevo mensaje' : 'New message'}
+              </button>
+              <select 
+                value={msgFilter}
+                onChange={e => setMsgFilter(e.target.value)}
+                className="app-select"
+                style={{ width: 120 }}
+              >
+                <option value="all">{lang === 'es' ? 'Todos' : 'All'}</option>
+                <option value="shown">{lang === 'es' ? 'Ya mostrados' : 'Shown'}</option>
+                <option value="pending">{lang === 'es' ? 'Pendientes' : 'Pending'}</option>
+              </select>
             </div>
 
-            {/* List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
-              {[...customMessages].sort((a, b) => a.milestone - b.milestone).map(m => (
-                <div key={m.id} style={{ padding: '12px', background: '#fff', borderRadius: 10, border: '1px solid #edf2f7', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[...customMessages]
+                .filter(m => {
+                  const currentT = window.__timePlayed || 0;
+                  if (msgFilter === 'shown') return m.milestone <= currentT;
+                  if (msgFilter === 'pending') return m.milestone > currentT;
+                  return true;
+                })
+                .sort((a, b) => a.milestone - b.milestone)
+                .map(m => (
+                <div key={m.id} style={{ padding: '14px', background: '#fff', borderRadius: 12, border: '1px solid #edf2f7', display: 'flex', flexDirection: 'column', gap: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: m.color || '#1a8fff' }}></div>
-                      <span style={{ fontWeight: 700, fontSize: 13, color: '#2d3748' }}>{m.who}</span>
+                      <div style={{ width: 14, height: 14, borderRadius: '50%', background: m.color || '#1a8fff', boxShadow: `0 0 8px ${m.color || '#1a8fff'}44` }}></div>
+                      <span style={{ fontWeight: 700, fontSize: 14, color: '#2d3748' }}>{m.who}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: '#718096' }}>{m.milestone} min</span>
-                      <select 
-                        value={m.milestone}
-                        onChange={e => {
-                          const newVal = parseInt(e.target.value);
-                          const updated = customMessages.map(x => x.id === m.id ? { ...x, milestone: newVal } : x);
-                          setCustomMessages(updated);
-                          saveMessagesToCloud(updated);
-                        }}
-                        style={{ all: 'unset', fontSize: 10, color: '#1a8fff', background: '#f0f7ff', padding: '2px 8px', borderRadius: 6, cursor: 'pointer', border: '1px solid #cce4ff' }}
-                      >
-                        {Array.from({length: 120}, (_, i) => i + 1).map(opt => {
-                          const isTaken = customMessages.some(x => x.milestone === opt && x.id !== m.id);
-                          return <option key={opt} value={opt} disabled={isTaken}>
-                            {opt}m {isTaken ? '(!)' : ''}
-                          </option>;
-                        })}
-                      </select>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#718096', background: '#f7fafc', padding: '3px 10px', borderRadius: 20 }}>
+                      <i className="fa-regular fa-clock" style={{ marginRight: 5 }}></i>
+                      {lang === 'es' ? `Al minuto ${m.milestone}` : `At minute ${m.milestone}`}
                     </div>
                   </div>
-                  <div style={{ fontSize: 13, color: '#4a5568', lineHeight: 1.4, fontStyle: 'italic' }}>
+                  <div style={{ fontSize: 13, color: '#4a5568', lineHeight: 1.5, fontStyle: 'italic', background: '#fdfdfd', padding: '10px 14px', borderRadius: 10, borderLeft: `3px solid ${m.color || '#1a8fff'}` }}>
                     "{m.text}"
                   </div>
+                  
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      {m.position && <span style={{ fontSize: 9, color: '#a0aec0', background: '#f7fafc', padding: '1px 5px', borderRadius: 4 }}>{m.position}</span>}
-                      {m.particles && m.particles !== 'none' && <span style={{ fontSize: 9, color: '#a0aec0', background: '#f7fafc', padding: '1px 5px', borderRadius: 4 }}>{m.particles}</span>}
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
+                        <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 10 }}></i>
+                        {m.animation || 'none'}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
+                        <i className="fa-solid fa-sparkles" style={{ fontSize: 10 }}></i>
+                        {m.particles || 'none'}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
+                        <i className="fa-solid fa-up-down-left-right" style={{ fontSize: 10 }}></i>
+                        {m.position} / {m.size}
+                      </div>
                     </div>
-                    <button 
-                      onClick={() => {
-                        if (confirm(lang === 'es' ? '¿Eliminar?' : 'Delete?')) {
-                          const updated = customMessages.filter(x => x.id !== m.id);
-                          setCustomMessages(updated);
-                          saveMessagesToCloud(updated);
-                        }
-                      }}
-                      style={{ all: 'unset', color: '#e53e3e', fontSize: 11, cursor: 'pointer' }}
-                    >
-                      <i className="fa-solid fa-trash"></i>
-                    </button>
+                    <div style={{ display: 'flex', gap: 14 }}>
+                      <button 
+                        onClick={() => setPreviewMsg({ ...m, es: m.text, en: m.text })} 
+                        className="app-btn"
+                        style={{ all: 'unset', color: '#ff9800', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        <i className="fa-solid fa-eye"></i> {lang === 'es' ? 'Previsualizar' : 'Preview'}
+                      </button>
+                      <button onClick={() => setEditingMsg(m)} className="app-btn" style={{ all: 'unset', color: '#1a8fff', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                        <i className="fa-solid fa-pen-to-square"></i> {lang === 'es' ? 'Editar' : 'Edit'}
+                      </button>
+                      <button onClick={() => setMsgToDelete(m)} className="app-btn" style={{ all: 'unset', color: '#e53e3e', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                        <i className="fa-solid fa-trash"></i> {lang === 'es' ? 'Borrar' : 'Delete'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
+              {customMessages.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#a0aec0', fontStyle: 'italic', fontSize: 14 }}>
+                  {lang === 'es' ? 'No hay mensajes creados' : 'No messages created'}
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Danger zone */}
-        <div style={{ background: 'rgba(255,240,240,0.92)', borderRadius: 16, padding: '20px', border: '1px solid rgba(220,50,50,0.2)', backdropFilter: 'blur(8px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <i className="fa-solid fa-triangle-exclamation" style={{ color: '#c33', fontSize: 14 }}></i>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#7a1a1a' }}>{lang === 'es' ? 'Zona peligrosa' : 'Danger zone'}</span>
+        {adminTab === 'danger' && (
+          <div style={card}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <i className="fa-solid fa-triangle-exclamation" style={{ color: '#e11d24', fontSize: 15 }}></i>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#7a1a1a' }}>{lang === 'es' ? 'Zona Peligrosa' : 'Danger Zone'}</span>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ background: '#fff5f5', border: '1px solid #feb2b2', padding: 16, borderRadius: 12 }}>
+                <div style={{ fontWeight: 700, color: '#c53030', fontSize: 14, marginBottom: 4 }}>{lang === 'es' ? 'Resetear progreso del juego' : 'Reset game progress'}</div>
+                <div style={{ fontSize: 12, color: '#7b2d2d', lineHeight: 1.5, marginBottom: 14 }}>
+                  {lang === 'es' ? 'Borra el progreso de todos los jugadores y el ranking global. Las cuentas se mantienen.' : 'Wipes all player progress and global leaderboard. Accounts are preserved.'}
+                </div>
+                <button onClick={() => setShowResetConfirm(true)} className="app-btn" style={{ ...btn, width: '100%', height: 40, background: '#e11d24', color: '#fff' }}>
+                  <i className="fa-solid fa-rotate-left"></i> {lang === 'es' ? 'Resetear Progreso' : 'Reset Progress'}
+                </button>
+                {resetDone && <div style={{ marginTop: 8, fontSize: 12, color: '#2f855a', textAlign: 'center' }}>{lang === 'es' ? '¡Reset completado!' : 'Reset complete!'}</div>}
+              </div>
+
+              <div style={{ background: '#2d3748', border: '1px solid #1a202c', padding: 16, borderRadius: 12 }}>
+                <div style={{ fontWeight: 700, color: '#fff', fontSize: 14, marginBottom: 4 }}>{lang === 'es' ? 'Wipe Total (Eliminar todo)' : 'Total Wipe (Delete everything)'}</div>
+                <div style={{ fontSize: 12, color: '#cbd5e0', lineHeight: 1.5, marginBottom: 14 }}>
+                  {lang === 'es' ? '¡ACCIÓN IRREVERSIBLE! Elimina todos los jugadores, cuentas, mensajes y feedback de la base de datos.' : 'IRREVERSIBLE! Deletes all players, accounts, messages, and feedback from the database.'}
+                </div>
+                <button onClick={() => setShowWipeConfirm(true)} className="app-btn" style={{ ...btn, width: '100%', height: 40, background: '#000', color: '#fff', border: '1px solid #4a5568' }}>
+                  <i className="fa-solid fa-skull-crossbones"></i> {lang === 'es' ? 'EJECUTAR WIPE TOTAL' : 'EXECUTE TOTAL WIPE'}
+                </button>
+              </div>
+            </div>
           </div>
-          <div style={{ fontSize: 13, color: '#a06060', fontFamily: 'var(--font-sans)', marginBottom: 14, lineHeight: 1.5 }}>
-            {lang === 'es' ? 'Borra el progreso de TODOS los jugadores y el leaderboard global. Los usuarios no se eliminan.' : 'Wipes ALL players progress and the global leaderboard. Users are not deleted.'}
-          </div>
-          <button onClick={() => setShowResetConfirm(true)} style={{ ...btn, width: '100%', padding: '12px 0', background: '#c33', color: '#fff', fontSize: 14, borderRadius: 10 }}>
-            <i className="fa-solid fa-rotate-left"></i>
-            {lang === 'es' ? 'Resetear todo el progreso' : 'Reset all progress'}
-          </button>
-          {resetDone && <div style={{ marginTop: 10, textAlign: 'center', fontSize: 13, color: '#1a7a3a', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-            <i className="fa-solid fa-check-circle"></i>{lang === 'es' ? '¡Reseteado!' : 'Reset done!'}
-          </div>}
-        </div>
+        )}
       </div>
 
-      {deleteTarget &&
-      <Modal onClose={() => setDeleteTarget(null)}>
-          <div style={{ width: 50, height: 50, borderRadius: 'var(--radius-s)', background: 'var(--negative-i010)', color: 'var(--negative-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-            <i className="fa-solid fa-trash" style={{ fontSize: 18 }}></i>
-          </div>
-          <div className="t-heading-m">{lang === 'es' ? `Eliminar "${deleteTarget.name}"` : `Delete "${deleteTarget.name}"`}</div>
-          <div className="t-body-m" style={{ color: 'var(--fg-2)', marginTop: 6 }}>
-            {lang === 'es' ? 'Se borrarán todos sus datos y progreso del juego.' : 'All their data and game progress will be deleted.'}
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-            <button onClick={() => setDeleteTarget(null)} style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'var(--bg-3)', color: 'var(--fg-1)', borderRadius: 'var(--radius-s)', fontWeight: 500, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
-              {lang === 'es' ? 'Cancelar' : 'Cancel'}
-            </button>
-            <button onClick={() => handleDelete(deleteTarget)} style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'var(--negative-i100)', color: '#fff', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
-              {lang === 'es' ? 'Eliminar' : 'Delete'}
-            </button>
+      {/* --- INDEPENDENT MODALS (TOP LEVEL) --- */}
+
+      {/* Create/Edit Message Modal */}
+      {(showCreateModal || editingMsg) && (
+        <Modal onClose={() => { setShowCreateModal(false); setEditingMsg(null); }} maxWidth={550}>
+          <div style={{ padding: '4px' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fff7ed', color: '#ff9800', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="fa-solid fa-bullhorn"></i>
+              </div>
+              {editingMsg ? (lang === 'es' ? 'Editar mensaje' : 'Edit message') : (lang === 'es' ? 'Crear nuevo mensaje' : 'Create new message')}
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Nombre del Emisor' : 'Sender Name'}</div>
+                <input 
+                  type="text" 
+                  className="app-input"
+                  placeholder={lang === 'es' ? 'ej. Cris' : 'e.g. Cris'}
+                  value={editingMsg ? editingMsg.who : newMsgName}
+                  onChange={e => editingMsg ? setEditingMsg({...editingMsg, who: e.target.value}) : setNewMsgName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Contenido del Mensaje' : 'Message Content'}</div>
+                <div style={{ position: 'relative' }}>
+                  <textarea 
+                    className="app-input app-textarea"
+                    placeholder={lang === 'es' ? 'Escribe algo sarcástico...' : 'Write something sarcastic...'}
+                    maxLength={100}
+                    value={editingMsg ? editingMsg.text : newMsgText}
+                    onChange={e => editingMsg ? setEditingMsg({...editingMsg, text: e.target.value}) : setNewMsgText(e.target.value)}
+                  />
+                  <div style={{ position: 'absolute', bottom: 12, right: 14, fontSize: 10, color: (editingMsg ? editingMsg.text.length : newMsgText.length) >= 100 ? '#e53e3e' : '#a0aec0', fontWeight: 700 }}>
+                    {(editingMsg ? editingMsg.text.length : newMsgText.length)}/100
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Minuto de juego' : 'Playtime Minute'}</div>
+                  <input 
+                    type="number" 
+                    min={1}
+                    className="app-input"
+                    value={editingMsg ? editingMsg.milestone : newMsgMilestone}
+                    onChange={e => {
+                      const val = parseInt(e.target.value) || 1;
+                      editingMsg ? setEditingMsg({...editingMsg, milestone: val}) : setNewMsgMilestone(val);
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Color del Nombre' : 'Name Color'}</div>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <input 
+                      type="color" 
+                      value={editingMsg ? editingMsg.color : newMsgColor} 
+                      onChange={e => editingMsg ? setEditingMsg({...editingMsg, color: e.target.value}) : setNewMsgColor(e.target.value)} 
+                      style={{ width: 36, height: 36, border: '2px solid #e2e8f0', borderRadius: '50%', cursor: 'pointer', background: '#fff', overflow: 'hidden', padding: 0 }} 
+                    />
+                    <div style={{ fontSize: 13, color: '#1a3a5a', fontWeight: 700, fontFamily: 'monospace', background: '#f1f5f9', padding: '6px 10px', borderRadius: 10 }}>{editingMsg ? editingMsg.color : newMsgColor}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Posición y Tamaño' : 'Pos & Size'}</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <select className="app-select" style={{ flex: 1 }} value={editingMsg ? editingMsg.position : newMsgPos} onChange={e => editingMsg ? setEditingMsg({...editingMsg, position: e.target.value}) : setNewMsgPos(e.target.value)}>
+                      <option value="top">Top</option>
+                      <option value="center">Center</option>
+                      <option value="bottom">Bottom</option>
+                    </select>
+                    <select className="app-select" style={{ flex: 1 }} value={editingMsg ? editingMsg.size : newMsgSize} onChange={e => editingMsg ? setEditingMsg({...editingMsg, size: e.target.value}) : setNewMsgSize(e.target.value)}>
+                      <option value="small">S</option>
+                      <option value="medium">M</option>
+                      <option value="large">L</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Efecto y Partículas' : 'Effect & Particles'}</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <select className="app-select" style={{ flex: 1 }} value={editingMsg ? editingMsg.animation : newMsgAnim} onChange={e => editingMsg ? setEditingMsg({...editingMsg, animation: e.target.value}) : setNewMsgAnim(e.target.value)}>
+                      <option value="none">-</option>
+                      <option value="pulse">Pulse 💓</option>
+                      <option value="shake">Shake 🫨</option>
+                      <option value="float">Float ☁️</option>
+                      <option value="rainbow">Rainbow 🌈</option>
+                    </select>
+                    <select className="app-select" style={{ flex: 1 }} value={editingMsg ? editingMsg.particles : newMsgParticles} onChange={e => editingMsg ? setEditingMsg({...editingMsg, particles: e.target.value}) : setNewMsgParticles(e.target.value)}>
+                      <option value="none">-</option>
+                      <option value="stars">Stars ✨</option>
+                      <option value="teeth">Teeth 🦷</option>
+                      <option value="fire">Fire 🔥</option>
+                      <option value="confetti">Confetti 🎉</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                <button onClick={() => { setShowCreateModal(false); setEditingMsg(null); }} className="app-btn" style={{ ...btn, flex: 1, height: 46, background: '#f1f5f9', color: '#64748b', fontSize: 14, fontWeight: 700 }}>
+                  {lang === 'es' ? 'Cancelar' : 'Cancel'}
+                </button>
+                <button 
+                  onClick={() => {
+                    if (editingMsg) {
+                      if (!editingMsg.who || !editingMsg.text) return;
+                      const updated = customMessages.map(m => m.id === editingMsg.id ? editingMsg : m);
+                      setCustomMessages(updated);
+                      saveMessagesToCloud(updated);
+                      setEditingMsg(null);
+                      setSuccessNote(lang === 'es' ? '¡Mensaje actualizado!' : 'Message updated!');
+                      setTimeout(() => setSuccessNote(''), 3000);
+                    } else {
+                      if (!newMsgName || !newMsgText) return;
+                      const updated = [...customMessages, {
+                        id: Math.random().toString(36).substr(2, 9),
+                        who: newMsgName, text: newMsgText, milestone: newMsgMilestone,
+                        color: newMsgColor, position: newMsgPos, size: newMsgSize,
+                        animation: newMsgAnim, particles: newMsgParticles,
+                        createdAt: Date.now()
+                      }];
+                      setCustomMessages(updated);
+                      saveMessagesToCloud(updated);
+                      setNewMsgName(''); setNewMsgText('');
+                      setShowCreateModal(false);
+                      setSuccessNote(lang === 'es' ? '¡Mensaje creado!' : 'Message created!');
+                      setTimeout(() => setSuccessNote(''), 3000);
+                    }
+                  }}
+                  className="app-btn"
+                  style={{ ...btn, flex: 2, height: 46, background: '#1a8fff', color: '#fff', fontSize: 14, fontWeight: 700, boxShadow: '0 4px 12px rgba(26,143,255,0.25)' }}
+                >
+                  <i className="fa-solid fa-check" style={{ marginRight: 8 }}></i>
+                  {lang === 'es' ? (editingMsg ? 'Actualizar' : 'Guardar') : (editingMsg ? 'Update' : 'Save')}
+                </button>
+              </div>
+            </div>
           </div>
         </Modal>
-      }
+      )}
 
-      {showResetConfirm &&
-      <Modal onClose={() => setShowResetConfirm(false)}>
-          <div style={{ width: 50, height: 50, borderRadius: 'var(--radius-s)', background: 'var(--negative-i010)', color: 'var(--negative-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-            <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 18 }}></i>
-          </div>
-          <div className="t-heading-m">{lang === 'es' ? '¿Resetear todo?' : 'Reset everything?'}</div>
-          <div className="t-body-m" style={{ color: 'var(--fg-2)', marginTop: 6 }}>
-            {lang === 'es' ? 'Se borrará el progreso en juego de todos los jugadores y el ranking global. Las cuentas no se eliminan.' : 'All in-game progress and the global ranking will be wiped. Accounts are not deleted.'}
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-            <button onClick={() => setShowResetConfirm(false)} style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'var(--bg-3)', color: 'var(--fg-1)', borderRadius: 'var(--radius-s)', fontWeight: 500, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
-              {lang === 'es' ? 'Cancelar' : 'Cancel'}
-            </button>
-            <button onClick={handleResetAll} disabled={resetLoading} style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'var(--negative-i100)', color: '#fff', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 14, cursor: resetLoading ? 'wait' : 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)', opacity: resetLoading ? 0.7 : 1 }}>
-              {resetLoading ? <i className="fa-solid fa-circle-notch fa-spin"></i> : lang === 'es' ? '¡Resetear todo!' : 'Reset everything!'}
-            </button>
+      {/* Delete Milestone Message Confirmation */}
+      {msgToDelete && (
+        <Modal onClose={() => setMsgToDelete(null)}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '10px 0' }}>
+            <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#fff5f5', color: '#e53e3e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: '0 4px 12px rgba(229,62,62,0.15)' }}>
+              <i className="fa-solid fa-trash-can"></i>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a', marginBottom: 6 }}>{lang === 'es' ? '¿Eliminar mensaje?' : 'Delete message?'}</div>
+              <div style={{ fontSize: 14, color: '#718096', lineHeight: 1.6 }}>
+                {lang === 'es' ? `Estás por eliminar el mensaje de "${msgToDelete.who}". Esta acción no se puede deshacer.` : `You are about to delete the message from "${msgToDelete.who}". This action cannot be undone.`}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
+              <button onClick={() => setMsgToDelete(null)} className="app-btn" style={{ ...btn, flex: 1, height: 44, background: '#f1f5f9', color: '#64748b' }}>
+                {lang === 'es' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button 
+                onClick={() => {
+                  const updated = customMessages.filter(x => x.id !== msgToDelete.id);
+                  setCustomMessages(updated);
+                  saveMessagesToCloud(updated);
+                  setMsgToDelete(null);
+                }}
+                className="app-btn"
+                style={{ ...btn, flex: 1, height: 44, background: '#e53e3e', color: '#fff', boxShadow: '0 4px 12px rgba(229,62,62,0.2)' }}
+              >
+                {lang === 'es' ? 'Eliminar' : 'Delete'}
+              </button>
+            </div>
           </div>
         </Modal>
-      }
-    </div>);
+      )}
 
+      {/* Wipe Confirmation Modal */}
+      {showWipeConfirm && (
+        <Modal onClose={() => setShowWipeConfirm(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '10px 0' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, boxShadow: '0 8px 16px rgba(0,0,0,0.2)' }}>
+              <i className="fa-solid fa-skull"></i>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#000', marginBottom: 8, letterSpacing: '-0.02em' }}>{lang === 'es' ? '¿EJECUTAR WIPE TOTAL?' : 'EXECUTE TOTAL WIPE?'}</div>
+              <div style={{ fontSize: 13, color: '#c53030', lineHeight: 1.6, background: '#fff5f5', padding: 14, borderRadius: 12, border: '1px solid #feb2b2' }}>
+                <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: 6 }}></i>
+                {lang === 'es' ? 'Esta acción ELIMINARÁ TODAS las cuentas, mensajes y feedback permanentemente.' : 'This action will PERMANENTLY DELETE all accounts, messages, and feedback.'}
+                <div style={{ fontWeight: 800, marginTop: 8, textTransform: 'uppercase' }}>{lang === 'es' ? '¡NO HAY VUELTA ATRÁS!' : 'THERE IS NO GOING BACK!'}</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
+              <button onClick={() => setShowWipeConfirm(false)} className="app-btn" style={{ ...btn, flex: 1, height: 46, background: '#f1f5f9', color: '#64748b' }}>
+                {lang === 'es' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button 
+                onClick={handleWipeAll}
+                disabled={wipeLoading}
+                className="app-btn"
+                style={{ ...btn, flex: 1, height: 46, background: '#000', color: '#fff' }}
+              >
+                {wipeLoading ? <i className="fa-solid fa-circle-notch fa-spin"></i> : (lang === 'es' ? 'SÍ, BORRAR TODO' : 'YES, WIPE ALL')}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete User Confirmation */}
+      {deleteTarget && (
+        <Modal onClose={() => setDeleteTarget(null)}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '10px 0' }}>
+            <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#fff5f5', color: '#e53e3e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+              <i className="fa-solid fa-user-slash"></i>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a', marginBottom: 6 }}>{lang === 'es' ? `Eliminar "${deleteTarget.name}"` : `Delete "${deleteTarget.name}"`}</div>
+              <div style={{ fontSize: 14, color: '#718096', lineHeight: 1.6 }}>
+                {lang === 'es' ? 'Se borrarán todos sus datos y progreso del juego permanentemente.' : 'All their data and game progress will be permanently deleted.'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
+              <button onClick={() => setDeleteTarget(null)} className="app-btn" style={{ ...btn, flex: 1, height: 44, background: '#f1f5f9', color: '#64748b' }}>
+                {lang === 'es' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button onClick={() => handleDelete(deleteTarget)} className="app-btn" style={{ ...btn, flex: 1, height: 44, background: '#e53e3e', color: '#fff' }}>
+                {lang === 'es' ? 'Eliminar' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Reset Progress Confirmation */}
+      {showResetConfirm && (
+        <Modal onClose={() => setShowResetConfirm(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '10px 0' }}>
+            <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#fffbeb', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+              <i className="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a', marginBottom: 6 }}>{lang === 'es' ? '¿Resetear todo?' : 'Reset everything?'}</div>
+              <div style={{ fontSize: 14, color: '#718096', lineHeight: 1.6 }}>
+                {lang === 'es' ? 'Se borrará el progreso en juego de todos los jugadores y el ranking global. Las cuentas se mantienen.' : 'All in-game progress and the global ranking will be wiped. Accounts are preserved.'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
+              <button onClick={() => setShowResetConfirm(false)} className="app-btn" style={{ ...btn, flex: 1, height: 44, background: '#f1f5f9', color: '#64748b' }}>
+                {lang === 'es' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button onClick={handleResetAll} disabled={resetLoading} className="app-btn" style={{ ...btn, flex: 1, height: 44, background: '#d97706', color: '#fff' }}>
+                {resetLoading ? <i className="fa-solid fa-circle-notch fa-spin"></i> : (lang === 'es' ? '¡Resetear todo!' : 'Reset everything!')}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {previewMsg && (
+        <BossMarquee msg={previewMsg} lang={lang} danger={false} onDismiss={() => setPreviewMsg(null)} />
+      )}
+    </div>
+  );
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
@@ -2335,16 +2540,13 @@ function App() {
         onLangChange={() => handleLangChange()}
         onEnterGame={handleAdminEnterGame}
         onBack={handleAdminBack} />);
-
-
   }
 
   if (screen === 'game') {
     return (
       <Game key={username} username={username} lang={lang} onLangChange={handleLangChange}
-      onLogout={handleLogout} onDeleteUser={handleDeleteUser}
-      numFormat={numFormat} onNumFormatChange={handleNumFormatChange} />);
-
+        onLogout={handleLogout} onDeleteUser={handleDeleteUser}
+        numFormat={numFormat} onNumFormatChange={handleNumFormatChange} />);
   }
 
   return (
@@ -2360,83 +2562,7 @@ function App() {
       onSoundToggle={handleSoundToggle} />);
 }
 
-function VersionLogModal({ onClose, lang }) {
-  const versions = VERSION_HISTORY.map((item) => ({
-    v: item.v,
-    date: item.date,
-    desc: lang === 'es' ? item.es : item.en
-  }));
-
-  return (
-    <Modal onClose={onClose} maxWidth={420}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-        <i className="fa-solid fa-clock-rotate-left" style={{ color: '#1a8fff', fontSize: 20 }}></i>
-        <div className="t-heading-m">{lang === 'es' ? 'Historial de Versiones' : 'Version History'}</div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', maxHeight: 400, paddingRight: 6 }}>
-        {versions.map((v, i) => (
-          <div key={v.v + i} style={{ borderLeft: '2px solid #e1e8ef', paddingLeft: 16, paddingBottom: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#1a8fff', background: 'rgba(26,143,255,0.1)', padding: '2px 8px', borderRadius: 6 }}>{v.v}</span>
-              {v.date && <span style={{ fontSize: 10, color: '#8aaacc', fontFamily: 'var(--font-sans)' }}>{v.date}</span>}
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>{v.desc}</div>
-          </div>
-        ))}
-      </div>
-      <button onClick={onClose} style={{ ...primaryBtnStyle, marginTop: 20 }}>
-        {lang === 'es' ? 'Volver' : 'Back'}
-      </button>
-    </Modal>
-  );
-}
-
-function AboutModal({ onClose, lang }) {
-  const [showLog, setShowLog] = useState(false);
-  const versions = VERSION_HISTORY.map((item) => ({
-    v: item.v,
-    date: item.date,
-    desc: lang === 'es' ? item.es : item.en,
-    latest: item.latest
-  }));
-
-  if (showLog) return <VersionLogModal onClose={() => setShowLog(false)} lang={lang} />;
-
-  return (
-    <Modal onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 300, maxWidth: 360, minHeight: 0 }}>
-        <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 180, objectFit: 'contain', marginBottom: 8, flexShrink: 0 }} />
-        <div style={{ fontSize: 15, fontWeight: 600, color: '#333', fontFamily: 'var(--font-sans)', marginBottom: 16, flexShrink: 0, padding: "20px 0px" }}>
-          {lang === 'es' ? 'Creado por Jaime Arias' : 'Created by Jaime Arias'}
-        </div>
-        <div style={{ width: '100%', borderTop: '1.5px dashed #d0dce8', marginBottom: 16, flexShrink: 0 }} />
-        <div style={{ width: '100%' }}>
-          {(() => {
-            const latest = versions.find((v) => v.latest);
-            if (!latest) return null;
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: '#1a8fff', padding: '4px 14px', borderRadius: 999 }}>{latest.v}</span>
-                {latest.date && <span style={{ fontSize: 11, color: '#aac0d4', fontFamily: 'var(--font-sans)' }}>{latest.date}</span>}
-                <button 
-                  onClick={() => setShowLog(true)}
-                  style={{ all: 'unset', color: '#1a8fff', fontSize: 12, fontWeight: 600, marginTop: 10, cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  {lang === 'es' ? 'Ver log de versiones' : 'View version log'}
-                </button>
-              </div>);
-
-          })()}
-        </div>
-        <button onClick={onClose} style={{ all: 'unset', boxSizing: 'border-box', marginTop: 24, width: '100%', textAlign: 'center', padding: '13px 0', borderRadius: 999, background: '#1a8fff', color: '#fff', fontSize: 16, fontWeight: 600, fontFamily: "'PixelifySans', var(--font-sans)", cursor: 'pointer', flexShrink: 0 }}>
-          {lang === 'es' ? 'Cerrar' : 'Close'}
-        </button>
-      </div>
-    </Modal>);
-
-}
-
-Object.assign(window, { AboutModal, Modal, MenuItem, MenuDivider, primaryBtnStyle, secondaryBtnStyle, deleteUserSave, ADMIN_NAME });
+Object.assign(window, { Modal, MenuItem, MenuDivider, deleteUserSave, ADMIN_NAME });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(App));

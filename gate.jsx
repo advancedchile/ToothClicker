@@ -37,7 +37,7 @@ function LeaderboardHeader({ lb, lang }) {
           <i className="fa-solid fa-ranking-star" style={{ color: 'var(--warning-i100)', fontSize: 20 }}></i>
           <div className="t-heading-m">{t.lbTitle}</div>
         </div>
-        <button onClick={lb.refresh} disabled={lb.loading} style={{ all: 'unset', boxSizing: 'border-box', padding: '6px 10px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', color: 'var(--fg-2)', fontSize: 12, fontWeight: 500, cursor: lb.loading ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', opacity: lb.loading ? 0.6 : 1 }}>
+        <button onClick={lb.refresh} disabled={lb.loading} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', padding: '6px 10px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', color: 'var(--fg-2)', fontSize: 12, fontWeight: 500, cursor: lb.loading ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', opacity: lb.loading ? 0.6 : 1, background: 'var(--bg-1)' }}>
           <i className={lb.loading ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-rotate'} style={{ fontSize: 11 }}></i>
           {t.lbRefresh}
         </button>
@@ -45,7 +45,7 @@ function LeaderboardHeader({ lb, lang }) {
       <div className="t-body-m" style={{ color: 'var(--fg-3)', marginTop: 4 }}>{t.lbSub}</div>
       <div className="t-body-s" style={{ color: lb.error ? 'var(--negative-i130)' : 'var(--fg-3)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
         {status}
-        {lb.error && <button onClick={lb.refresh} style={{ all: 'unset', cursor: 'pointer', color: 'var(--primary-i100)', fontWeight: 600, textDecoration: 'underline', marginLeft: 6 }}>{t.lbRetry}</button>}
+        {lb.error && <button onClick={lb.refresh} className="app-btn" style={{ all: 'unset', cursor: 'pointer', color: 'var(--primary-i100)', fontWeight: 600, textDecoration: 'underline', marginLeft: 6 }}>{t.lbRetry}</button>}
       </div>
     </div>
   );
@@ -127,28 +127,28 @@ function UserPill({ name, onSelect, isOwn }) {
   const [hov, setHov] = useStateG(false);
   return (
     <button
+      className="app-btn"
       style={{
         all: 'unset', boxSizing: 'border-box',
         display: 'flex', alignItems: 'center', gap: 14,
         width: '100%', padding: '12px 20px', borderRadius: 999,
-        background: hov ? 'rgba(26,143,255,0.18)' : 'rgba(255,255,255,0.82)',
-        border: `2px solid ${hov ? 'rgba(26,143,255,0.6)' : (isOwn ? 'rgba(26,143,255,0.4)' : 'rgba(100,160,230,0.3)')}`,
-        boxShadow: hov ? '0 4px 16px rgba(26,143,255,0.18)' : '0 2px 10px rgba(80,140,220,0.08)',
+        background: 'rgba(255,255,255,0.82)',
+        border: `2px solid ${isOwn ? 'rgba(26,143,255,0.4)' : 'rgba(100,160,230,0.3)'}`,
+        boxShadow: '0 2px 10px rgba(80,140,220,0.08)',
         cursor: 'pointer', transition: 'all 140ms',
         fontFamily: "'PixelifySans', var(--font-sans)",
-        transform: hov ? 'translateY(-1px)' : 'none', backdropFilter: 'blur(6px)',
+        backdropFilter: 'blur(6px)',
       }}
       onClick={() => onSelect(name)}
-      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
     >
-      <div style={{ width: 34, height: 34, borderRadius: '50%', background: hov ? '#1a8fff' : (isOwn ? 'rgba(26,143,255,0.2)' : 'rgba(100,160,230,0.2)'), color: hov ? '#fff' : '#3a6a9a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, flexShrink: 0, transition: 'all 140ms' }}>
+      <div style={{ width: 34, height: 34, borderRadius: '50%', background: isOwn ? 'rgba(26,143,255,0.2)' : 'rgba(100,160,230,0.2)', color: '#3a6a9a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, flexShrink: 0, transition: 'all 140ms' }}>
         {(name[0] || '?').toUpperCase()}
       </div>
-      <span style={{ fontSize: 16, fontWeight: 600, color: hov ? '#1a6acc' : '#334455', flex: 1, transition: 'color 140ms' }}>{name}</span>
+      <span style={{ fontSize: 16, fontWeight: 600, color: '#334455', flex: 1, transition: 'color 140ms' }}>{name}</span>
       {isOwn && <span style={{ fontSize: 10, fontWeight: 600, color: '#1a8fff', background: 'rgba(26,143,255,0.12)', padding: '3px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
         {window.__lang === 'en' ? 'YOU' : 'TÚ'}
       </span>}
-      <i className="fa-solid fa-arrow-right" style={{ fontSize: 12, color: hov ? '#1a8fff' : 'rgba(100,160,200,0.5)', transition: 'color 140ms' }}></i>
+      <i className="fa-solid fa-arrow-right" style={{ fontSize: 12, color: 'rgba(100,160,200,0.5)', transition: 'color 140ms' }}></i>
     </button>
   );
 }
@@ -197,7 +197,7 @@ function AdminPasswordModal({ lang, onSuccess, onClose }) {
                 animation: err ? 'shake 0.35s ease' : 'none',
               }}
             />
-            <button type="button" onClick={() => setShow(s => !s)} style={{ all: 'unset', position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#8aaacc', fontSize: 14 }}>
+            <button type="button" onClick={() => setShow(s => !s)} className="app-btn" style={{ all: 'unset', position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#8aaacc', fontSize: 14 }}>
               <i className={show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'}></i>
             </button>
           </div>
@@ -205,10 +205,10 @@ function AdminPasswordModal({ lang, onSuccess, onClose }) {
             {lang === 'es' ? '❌ Contraseña incorrecta' : '❌ Wrong password'}
           </div>}
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'rgba(100,140,180,0.12)', color: '#4a6080', borderRadius: 10, fontWeight: 500, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
+            <button type="button" onClick={onClose} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'rgba(100,140,180,0.12)', color: '#4a6080', borderRadius: 10, fontWeight: 500, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
               {lang === 'es' ? 'Cancelar' : 'Cancel'}
             </button>
-            <button type="submit" style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: '#1a8fff', color: '#fff', borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
+            <button type="submit" className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: '#1a8fff', color: '#fff', borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
               {lang === 'es' ? 'Entrar' : 'Enter'}
             </button>
           </div>
@@ -284,14 +284,14 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, u
                   boxShadow: '0 2px 12px rgba(80,140,220,0.10)', transition: 'border 150ms',
                 }}
               />
-              <button type="submit" disabled={!canCreate} style={{
+              <button type="submit" disabled={!canCreate} className="app-btn" style={{
                 all: 'unset', boxSizing: 'border-box',
                 position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
                 width: 36, height: 36, borderRadius: 999,
                 background: canCreate ? '#1a8fff' : 'rgba(100,140,180,0.2)',
                 color: canCreate ? '#fff' : 'rgba(100,140,180,0.5)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: canCreate ? 'pointer' : 'not-allowed', transition: 'background 150ms',
+                cursor: canCreate ? 'pointer' : 'not-allowed',
               }}>
                 <i className="fa-solid fa-arrow-right-to-bracket" style={{ fontSize: 14 }}></i>
               </button>
@@ -322,23 +322,17 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, u
 
         {/* Bottom row */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, width: '100%' }}>
-          <button onClick={() => setShowLb(true)} style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(6px)', border: '1px solid rgba(100,160,230,0.3)', borderRadius: 999, color: '#4a6a8a', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 140ms', fontFamily: "'PixelifySans', var(--font-sans)" }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.9)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.7)'}>
+          <button onClick={() => setShowLb(true)} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(6px)', border: '1px solid rgba(100,160,230,0.3)', borderRadius: 999, color: '#4a6a8a', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: "'PixelifySans', var(--font-sans)" }}>
             <span style={{ fontSize: 16 }}>👑</span> Leaderboard
           </button>
-          <button onClick={() => onLangChange(lang === 'es' ? 'en' : 'es')} style={{ all: 'unset', boxSizing: 'border-box', padding: '11px 16px', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(6px)', border: '1px solid rgba(100,160,230,0.3)', borderRadius: 999, color: '#4a6a8a', fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'background 140ms', fontFamily: "'PixelifySans', var(--font-sans)" }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.9)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.7)'}>
+          <button onClick={() => onLangChange(lang === 'es' ? 'en' : 'es')} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', padding: '11px 16px', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(6px)', border: '1px solid rgba(100,160,230,0.3)', borderRadius: 999, color: '#4a6a8a', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'PixelifySans', var(--font-sans)" }}>
             <i className="fa-solid fa-language" style={{ marginRight: 6 }}></i>
             {lang === 'es' ? '🇬🇧 EN' : '🇪🇸 ES'}
           </button>
         </div>
 
         {/* Discrete admin lock — tiny, subtle */}
-        <button onClick={handleLockTap} title="" style={{ all: 'unset', cursor: 'pointer', color: 'rgba(80,110,150,0.2)', fontSize: 11, padding: '4px 8px', borderRadius: 999, transition: 'color 200ms' }}
-          onMouseEnter={e => e.currentTarget.style.color = 'rgba(80,110,150,0.45)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'rgba(80,110,150,0.2)'}>
+        <button onClick={handleLockTap} title="" className="app-btn" style={{ all: 'unset', cursor: 'pointer', color: 'rgba(80,110,150,0.2)', fontSize: 11, padding: '4px 8px', borderRadius: 999 }}>
           <i className="fa-solid fa-lock"></i>
         </button>
 

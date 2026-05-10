@@ -222,9 +222,31 @@ async function cloudSaveCustomMessages(messages) {
   });
 }
 
+async function cloudClearAllPlayers() {
+  return _enqueue(async () => {
+    try {
+      const cleanRecord = {
+        adminAccounts: ['James'],
+        scores: [],
+        feedback: [],
+        customMessages: []
+      };
+      await _cloudPut(cleanRecord);
+      return { ok: true };
+    } catch (e) { return { ok: false, error: e.message || 'network' }; }
+  });
+}
+
 Object.assign(window, {
-  cloudFetchLeaderboard, cloudSubmitScore, cloudDeleteScore,
-  cloudResetAll, cloudLoadAdminAccounts, cloudSaveAdminAccounts,
-  cloudSubmitFeedback, cloudFetchFeedback, cloudDeleteFeedback, cloudClearAllFeedback,
-  cloudLoadCustomMessages, cloudSaveCustomMessages
+  cloudLoadAdminAccounts,
+  cloudSaveAdminAccounts,
+  cloudFetchLeaderboard,
+  cloudSubmitScore,
+  cloudDeleteScore,
+  cloudFetchFeedback,
+  cloudDeleteFeedback,
+  cloudClearAllFeedback,
+  cloudLoadCustomMessages,
+  cloudSaveCustomMessages,
+  cloudClearAllPlayers
 });
