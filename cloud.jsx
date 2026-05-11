@@ -1,7 +1,7 @@
 // Data integrity layer — Protected
 const _0x4f2a = (s) => s.split('').map(c => String.fromCharCode(c.charCodeAt(0) - 1)).join('');
-const _X1 = '7:f8:912967b79329a6:b21g';
-const _X2 = '%3b%22b%222%22d2Q4YFKMytRS94fGWW4ozC/FqP0y2Md4ii{5LF666PNZNwU{8/aCDb';
+const _X1 = '7:f8:912967b79329:6:b21g';
+const _X2 = '%3b%21%d2Q4YFKMytR94fGWW4ozC/FqP{y2Md4ii{5LF666PNZNwU{8/[CDb';
 
 // Helper to get fresh headers and URLs
 function _getCloudConfig() {

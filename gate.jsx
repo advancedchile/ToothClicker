@@ -336,7 +336,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, u
           <i className="fa-solid fa-lock"></i>
         </button>
 
-        <div style={{ marginTop: 4, fontSize: 11, color: 'rgba(80,110,150,0.3)', fontFamily: 'var(--font-sans)', letterSpacing: 0.2 }}>v0.0.34-beta</div>
+        <div style={{ marginTop: 4, fontSize: 11, color: 'rgba(80,110,150,0.3)', fontFamily: 'var(--font-sans)', letterSpacing: 0.2 }}>{window.APP_VERSION || 'v0.0.35-beta'}</div>
       </div>
 
       {showLb && (
