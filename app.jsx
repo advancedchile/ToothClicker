@@ -14,6 +14,20 @@ const LAST_RESET_KEY   = 'tooth-clicker-last-reset-v1';
 const ADMIN_AUTH_KEY   = 'tooth-clicker-admin-session-v1';
 const ADMIN_NAME       = 'James'; // reserved superuser name
 
+const MUSIC_TRACKS = [
+  { id: '1', title: 'Cartucho Azul', src: 'uploads/Cartucho_Azul.mp3' },
+  { id: '2', title: 'Cartucho Azul 2', src: 'uploads/Cartucho_Azul_2.mp3' },
+  { id: '3', title: 'Respira en 8 Bits 1', src: 'uploads/Respira_en_8_Bits_1.mp3' },
+  { id: '4', title: 'Respira en 8 Bits 2', src: 'uploads/Respira_en_8_Bits_2.mp3' }
+];
+
+function formatTime(secs) {
+  if (isNaN(secs)) return "00:00";
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
 function loadAllSaves() {try {return JSON.parse(localStorage.getItem(SAVES_KEY) || '{}') || {};} catch (e) {return {};}}
 function saveAllSaves(o) {try {localStorage.setItem(SAVES_KEY, JSON.stringify(o));} catch (e) {}}
 function loadUserSave(u) {if (!u) return null;return loadAllSaves()[u] || null;}
@@ -281,6 +295,144 @@ function defaultState() {
   return { teeth: 0, totalEarned: 0, totalClicks: 0, goldenClicks: 0, generators: {}, clickUpgrades: {}, achievements: {}, newAchievementIds: {}, storeUpgrades: {}, prestige: 0, prestigeCount: 0, selectedTooth: 0, startedAt: Date.now(), timePlayed: 0, lastTick: Date.now(), feedbackSent: false, feedbackCount: 0, dontShowTourAgain: false, hasSeenTour: false, hasSeenHelpIndicator: false };
 }
 
+function MusicFloatingBtn({ isPlaying, onClick }) {
+  return (
+    <>
+      <style>{`
+        @keyframes soundWave {
+          0% { height: 4px; }
+          100% { height: 24px; }
+        }
+      `}</style>
+      <div 
+        onClick={onClick}
+        style={{
+          position: 'fixed',
+          bottom: 30, right: 30,
+          width: 56, height: 56,
+          borderRadius: '50%',
+          background: 'var(--primary-i100)',
+          boxShadow: '0 4px 12px rgba(0, 118, 219, 0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 50,
+          color: '#fff',
+          transition: 'transform 0.2s',
+        }}
+        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+        onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+      >
+        {isPlaying ? (
+          <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 24 }}>
+            {[1,2,3,4].map(i => (
+              <div key={i} style={{
+                width: 4, background: '#fff', borderRadius: 2,
+                animation: `soundWave ${0.4 + Math.random() * 0.4}s ease-in-out infinite alternate`,
+                animationDelay: `${Math.random()}s`
+              }} />
+            ))}
+          </div>
+        ) : (
+          <i className="fa-solid fa-music" style={{ fontSize: 24 }}></i>
+        )}
+      </div>
+    </>
+  );
+}
+
+function MusicPlayerModal({ 
+  onClose, tracks, currentTrack, onSelectTrack,
+  isPlaying, onPlayPause, onStop,
+  volume, onVolumeChange,
+  muted, onMuteToggle,
+  playMode, onPlayModeChange,
+  currentTime, duration, onSeek,
+  soundOn, toggleSound, lang
+}) {
+  return (
+    <Modal onClose={onClose} maxWidth={400}>
+      <div style={{ paddingBottom: 16, borderBottom: '1px solid var(--border-subtle)', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 className="t-heading-s" style={{ margin: 0 }}>{lang === 'es' ? 'Reproductor de Música' : 'Music Player'}</h2>
+        <button onClick={onClose} style={{ all: 'unset', cursor: 'pointer', color: 'var(--fg-3)' }}>
+          <i className="fa-solid fa-xmark" style={{ fontSize: 18 }}></i>
+        </button>
+      </div>
+      
+      {/* Global Controls */}
+      <div style={{ padding: 'var(--spacing-4)', background: 'var(--bg-2)', borderRadius: 'var(--radius-s)', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>{lang === 'es' ? 'Volumen Música' : 'Music Volume'}</div>
+          <button onClick={onMuteToggle} style={{ all: 'unset', cursor: 'pointer', color: muted ? 'var(--negative-i100)' : 'var(--fg-2)' }}>
+            <i className={`fa-solid ${muted ? 'fa-volume-xmark' : 'fa-volume-high'}`}></i>
+          </button>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value={muted ? 0 : volume} onChange={e => onVolumeChange(parseFloat(e.target.value))} style={{ width: '100%', cursor: 'pointer' }} />
+        
+        <div style={{ height: 1, background: 'var(--border-subtle)', margin: '16px 0' }} />
+        
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>{lang === 'es' ? 'Efectos de Sonido' : 'Sound Effects'}</div>
+          <button onClick={toggleSound} style={{ all: 'unset', cursor: 'pointer', color: soundOn ? 'var(--positive-i100)' : 'var(--fg-3)', fontSize: 20 }}>
+            <i className={`fa-solid ${soundOn ? 'fa-toggle-on' : 'fa-toggle-off'}`}></i>
+          </button>
+        </div>
+      </div>
+
+      {/* Play Modes */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <button onClick={() => onPlayModeChange('shuffle')} style={{ flex: 1, padding: '8px', background: playMode === 'shuffle' ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${playMode === 'shuffle' ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: playMode === 'shuffle' ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+          <i className="fa-solid fa-shuffle"></i> {lang === 'es' ? 'Aleatorio' : 'Shuffle'}
+        </button>
+        <button onClick={() => onPlayModeChange('loop')} style={{ flex: 1, padding: '8px', background: playMode === 'loop' ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${playMode === 'loop' ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: playMode === 'loop' ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+          <i className="fa-solid fa-repeat"></i> {lang === 'es' ? 'Bucle' : 'Loop'}
+        </button>
+        <button onClick={() => onPlayModeChange('stop')} style={{ flex: 1, padding: '8px', background: playMode === 'stop' ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${playMode === 'stop' ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: playMode === 'stop' ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+          <i className="fa-solid fa-ban"></i> {lang === 'es' ? 'Fin' : 'End'}
+        </button>
+      </div>
+
+      {/* Track List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto', paddingRight: 4 }}>
+        {tracks.map(t => {
+          const isCurrent = currentTrack?.id === t.id;
+          return (
+            <div key={t.id} style={{ background: isCurrent ? 'var(--primary-i010)' : 'transparent', border: `1px solid ${isCurrent ? 'var(--primary-i030)' : 'var(--border-subtle)'}`, borderRadius: 8, padding: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isCurrent ? 8 : 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 14, color: isCurrent ? 'var(--primary-i100)' : 'var(--fg-1)' }}>{t.title}</div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  {isCurrent ? (
+                    <>
+                      <button onClick={onPlayPause} style={{ all: 'unset', cursor: 'pointer', color: 'var(--primary-i100)' }}>
+                        <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
+                      </button>
+                      <button onClick={onStop} style={{ all: 'unset', cursor: 'pointer', color: 'var(--negative-i100)' }}>
+                        <i className="fa-solid fa-stop"></i>
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={() => onSelectTrack(t)} style={{ all: 'unset', cursor: 'pointer', color: 'var(--fg-3)' }}>
+                      <i className="fa-solid fa-play"></i>
+                    </button>
+                  )}
+                </div>
+              </div>
+              {isCurrent && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 11, color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums', width: 34 }}>{formatTime(currentTime)}</span>
+                  <input type="range" min="0" max={duration || 100} step="0.1" value={currentTime || 0} onChange={e => onSeek(parseFloat(e.target.value))} style={{ flex: 1, cursor: 'pointer' }} />
+                  <span style={{ fontSize: 11, color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums', width: 34 }}>{formatTime(duration)}</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Modal>
+  );
+}
+
 const topBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '8px 12px', fontSize: 13, fontWeight: 500, color: 'var(--fg-2)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', background: 'var(--bg-1)', fontFamily: 'var(--font-sans)' };
 const primaryBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '10px 18px', background: 'var(--primary-i100)', color: '#fff', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 14, cursor: 'pointer', flex: 1, textAlign: 'center', fontFamily: 'var(--font-sans)' };
 const secondaryBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '10px 18px', background: 'var(--bg-3)', color: 'var(--fg-1)', borderRadius: 'var(--radius-s)', fontWeight: 500, fontSize: 14, cursor: 'pointer', flex: 1, textAlign: 'center', fontFamily: 'var(--font-sans)' };
@@ -368,6 +520,79 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const specialNextRef = useRef(Date.now() + 30000); // first spawn after 30s
   const [crystalFrenzyUntil, setCrystalFrenzyUntil] = useState(0);
   const [holdBonusUntil, setHoldBonusUntil] = useState(0);
+  
+  // Music Player State
+  const audioRef = useRef(null);
+  const musicAttempted = useRef(false);
+  const [musicModalOpen, setMusicModalOpen] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState(() => MUSIC_TRACKS[Math.floor(Math.random() * MUSIC_TRACKS.length)]);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(() => { const v = localStorage.getItem('music-vol'); return v !== null ? parseFloat(v) : 0.4; });
+  const [musicMuted, setMusicMuted] = useState(false);
+  const [playMode, setPlayMode] = useState('shuffle');
+  const [musicTime, setMusicTime] = useState(0);
+  const [musicDuration, setMusicDuration] = useState(0);
+
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.volume = musicMuted ? 0 : musicVolume;
+    }
+    const audio = audioRef.current;
+    const onTimeUpdate = () => setMusicTime(audio.currentTime);
+    const onLoadedMetadata = () => setMusicDuration(audio.duration);
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.pause();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = musicMuted ? 0 : musicVolume;
+      localStorage.setItem('music-vol', musicVolume.toString());
+    }
+  }, [musicVolume, musicMuted]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!audio.src.endsWith(currentTrack.src)) {
+      audio.src = currentTrack.src;
+      setMusicTime(0);
+      if (isMusicPlaying) audio.play().catch(() => setIsMusicPlaying(false));
+    }
+    const onEnded = () => {
+      if (playMode === 'stop') {
+        setIsMusicPlaying(false);
+        audio.currentTime = 0;
+      } else if (playMode === 'loop') {
+        audio.currentTime = 0;
+        audio.play().catch(() => setIsMusicPlaying(false));
+      } else {
+        let nextIdx = Math.floor(Math.random() * MUSIC_TRACKS.length);
+        setCurrentTrack(MUSIC_TRACKS[nextIdx]);
+      }
+    };
+    audio.addEventListener('ended', onEnded);
+    return () => audio.removeEventListener('ended', onEnded);
+  }, [currentTrack, playMode, isMusicPlaying]);
+
+  useEffect(() => {
+    if (audioRef.current && !isMusicPlaying && !musicAttempted.current) {
+      musicAttempted.current = true;
+      audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(() => {});
+    }
+  }, []);
+
+  const tryStartMusic = useCallback(() => {
+    if (audioRef.current && audioRef.current.paused && !isMusicPlaying) {
+      audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(() => {});
+    }
+  }, [isMusicPlaying]);
   const [isMainMouseDown, setIsMainMouseDown] = useState(false);
   const [goldHoldProgress, setGoldHoldProgress] = useState(0); // 0–1
   const goldHoldRef = useRef({ interval: null, clicks: 0 });
@@ -682,6 +907,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   }, []);
 
   const handleClick = useCallback((e) => {
+    tryStartMusic();
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;const y = e.clientY - rect.top;
     performClick(x, y);
@@ -1378,6 +1604,49 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           </div>
         </section>
       </main>
+
+      <MusicFloatingBtn isPlaying={isMusicPlaying} onClick={() => setMusicModalOpen(true)} />
+      {musicModalOpen && (
+        <MusicPlayerModal
+          lang={lang}
+          onClose={() => setMusicModalOpen(false)}
+          tracks={MUSIC_TRACKS}
+          currentTrack={currentTrack}
+          onSelectTrack={(t) => { setCurrentTrack(t); setIsMusicPlaying(true); }}
+          isPlaying={isMusicPlaying}
+          onPlayPause={() => {
+            if (isMusicPlaying) {
+              audioRef.current?.pause();
+              setIsMusicPlaying(false);
+            } else {
+              audioRef.current?.play().then(() => setIsMusicPlaying(true)).catch(()=>{});
+            }
+          }}
+          onStop={() => {
+            if (audioRef.current) {
+              audioRef.current.pause();
+              audioRef.current.currentTime = 0;
+            }
+            setIsMusicPlaying(false);
+          }}
+          volume={musicVolume}
+          onVolumeChange={setMusicVolume}
+          muted={musicMuted}
+          onMuteToggle={() => setMusicMuted(!musicMuted)}
+          playMode={playMode}
+          onPlayModeChange={setPlayMode}
+          currentTime={musicTime}
+          duration={musicDuration}
+          onSeek={(val) => {
+            if (audioRef.current) {
+              audioRef.current.currentTime = val;
+              setMusicTime(val);
+            }
+          }}
+          soundOn={soundOn}
+          toggleSound={toggleSound}
+        />
+      )}
 
       {/* Golden tooth */}
       {golden &&
