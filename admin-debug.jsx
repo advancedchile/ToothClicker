@@ -5,6 +5,10 @@ window.AdminAutoClicker = function AdminAutoClicker({ onSimulateClick, lang, isM
   const [cpsRate, setCpsRate] = useState(0); // 0 = Normal, 5, 10, 15, 20
   
   useEffect(() => {
+    if (isBlocked) setCpsRate(0);
+  }, [isBlocked]);
+
+  useEffect(() => {
     if (cpsRate === 0 || !isMainMouseDown || isBlocked) return;
     
     const intervalTime = 1000 / cpsRate;
