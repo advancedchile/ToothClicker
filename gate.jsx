@@ -325,10 +325,6 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, u
           <button onClick={() => setShowLb(true)} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(6px)', border: '1px solid rgba(100,160,230,0.3)', borderRadius: 999, color: '#4a6a8a', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: "'PixelifySans', var(--font-sans)" }}>
             <span style={{ fontSize: 16 }}>👑</span> Leaderboard
           </button>
-          <button onClick={() => onLangChange(lang === 'es' ? 'en' : 'es')} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', padding: '11px 16px', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(6px)', border: '1px solid rgba(100,160,230,0.3)', borderRadius: 999, color: '#4a6a8a', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'PixelifySans', var(--font-sans)" }}>
-            <i className="fa-solid fa-language" style={{ marginRight: 6 }}></i>
-            {lang === 'es' ? '🇬🇧 EN' : '🇪🇸 ES'}
-          </button>
         </div>
 
         {/* Discrete admin lock — tiny, subtle */}

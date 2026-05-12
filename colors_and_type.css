@@ -278,10 +278,7 @@ small { font: var(--fw-regular) 0.75rem/1.125rem var(--font-sans); color: var(--
 .particle-confetti:nth-child(3n) { background: #00D1FF; }
 .particle-confetti:nth-child(3n+1) { background: #FFD700; }
 
-.hover-bg-danger:hover {
-  background: rgba(225,29,36,0.1) !important;
-  color: var(--negative-i100) !important;
-}
+
 
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -368,17 +365,7 @@ small { font: var(--fw-regular) 0.75rem/1.125rem var(--font-sans); color: var(--
   user-select: none !important;
 }
 
-.app-btn:hover {
-  transform: translateY(-2px) !important;
-  filter: brightness(1.1) !important;
-  box-shadow: 0 6px 15px rgba(0,0,0,0.1) !important;
-}
 
-.app-btn:active {
-  transform: translateY(0) scale(0.96) !important;
-  filter: brightness(0.9) !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
-}
 
 /* Custom Color Input Styles */
 input[type="color"]::-webkit-color-swatch-wrapper {
