@@ -301,7 +301,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, u
 
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 24px 24px', width: '100%', maxWidth: 400 }}>
 
-        <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 220, objectFit: 'contain', marginBottom: 32, filter: 'drop-shadow(0 8px 24px rgba(80,140,220,0.22))' }} />
+        <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 220, objectFit: 'contain', marginBottom: 24, filter: 'drop-shadow(0 8px 24px rgba(80,140,220,0.22))', animation: 'pulse 1.5s infinite ease-in-out' }} />
 
         {/* Registration — only if this device hasn't registered yet */}
         {!deviceUser && (
