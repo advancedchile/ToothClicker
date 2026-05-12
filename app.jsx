@@ -302,7 +302,7 @@ function MusicFloatingBtn({ isPlaying, onClick }) {
       style={{
         position: 'fixed',
         bottom: 30, right: 30,
-        width: 25, height: 25,
+        width: 20, height: 20,
         borderRadius: '50%',
         background: 'var(--primary-i100)',
         boxShadow: '0 4px 12px rgba(0, 118, 219, 0.4)',
@@ -317,7 +317,7 @@ function MusicFloatingBtn({ isPlaying, onClick }) {
       onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
       onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
     >
-      <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`} style={{ fontSize: 11, marginLeft: isPlaying ? 0 : 2 }}></i>
+      <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`} style={{ fontSize: 9, marginLeft: isPlaying ? 0 : 2 }}></i>
     </div>
   );
 }
@@ -442,6 +442,13 @@ function MenuItem({ icon, label, onClick, danger, trailing }) {
 function MenuDivider() {return <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 2px' }} />;}
 
 function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange }) {
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setInitialLoading(false), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const bootRef = useRef(null);
   if (bootRef.current === null) {
     const OFFLINE_CAP_S = 2 * 60 * 60;
@@ -1573,6 +1580,16 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           }
         }}
       />
+
+      {initialLoading && (
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10000, animation: 'fadeOut 0.3s ease 1.2s forwards' }}>
+          <img src="uploads/logo.png" alt="Logo" style={{ width: 120, marginBottom: 20, animation: 'pulse 1s infinite ease-in-out', objectFit: 'contain' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--primary-i100)', fontWeight: 600, fontSize: 16 }}>
+            <i className="fa-solid fa-circle-notch fa-spin"></i>
+            {initialLang === 'es' ? 'Cargando clínica dental...' : 'Loading dental clinic...'}
+          </div>
+        </div>
+      )}
 
       <MusicFloatingBtn isPlaying={isMusicPlaying} onClick={() => setMusicModalOpen(true)} />
       {musicModalOpen && (
