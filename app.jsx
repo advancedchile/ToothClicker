@@ -426,7 +426,10 @@ function MusicPlayerModal({
             <div key={t.id} 
               onClick={() => { if (!isCurrent) onSelectTrack(t); }}
               style={{ background: isCurrent ? 'var(--primary-i005)' : 'transparent', border: `1px solid ${isCurrent ? 'var(--primary-i020)' : 'var(--border-subtle)'}`, borderRadius: 10, padding: '12px 14px', cursor: isCurrent ? 'default' : 'pointer', transition: 'all 150ms' }}>
-              <div style={{ fontWeight: 600, fontSize: 14, color: isCurrent ? 'var(--primary-i100)' : 'var(--fg-1)', marginBottom: isCurrent ? 8 : 0 }}>{t.title}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: isCurrent ? 8 : 0 }}>
+                <i className="fa-solid fa-play" style={{ fontSize: 10, color: isCurrent ? 'var(--primary-i100)' : 'var(--fg-3)', opacity: isCurrent ? 1 : 0.6 }}></i>
+                <div style={{ fontWeight: 600, fontSize: 14, color: isCurrent ? 'var(--primary-i100)' : 'var(--fg-1)' }}>{t.title}</div>
+              </div>
               
               {isCurrent && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -634,32 +637,54 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
       .catch(err => console.warn('GitHub Music Sync failed, using fallbacks.', err));
   }, []);
 
+  const initialFadeDone = useRef(false);
+
+  // Volume sync (no fade for user adjustments)
+  useEffect(() => {
+    if (audioRef.current && initialFadeDone.current) {
+      audioRef.current.volume = musicMuted ? 0 : musicVolume;
+      localStorage.setItem('music-vol', musicVolume.toString());
+    }
+  }, [musicVolume, musicMuted]);
+
+  // Handle Play/Change Track (Fade-in ONLY on entry)
   useEffect(() => {
     if (audioRef.current && isMusicPlaying) {
       const targetVol = musicMuted ? 0 : musicVolume;
-      audioRef.current.volume = 0;
-      audioRef.current.play().catch(e => {
-        console.error('Audio play blocked:', e);
-        setIsMusicPlaying(false);
-      });
+      
+      if (!initialFadeDone.current) {
+        audioRef.current.volume = 0;
+        audioRef.current.play().catch(e => {
+          console.error('Initial audio play blocked:', e);
+          setIsMusicPlaying(false);
+        });
 
-      // Fade in effect
-      let cur = 0;
-      const step = 0.02;
-      const interval = setInterval(() => {
-        cur += step;
-        if (cur >= targetVol) {
-          if (audioRef.current) audioRef.current.volume = targetVol;
-          clearInterval(interval);
-        } else {
-          if (audioRef.current) audioRef.current.volume = cur;
-        }
-      }, 50);
-      return () => clearInterval(interval);
+        // Initial fade in effect
+        let cur = 0;
+        const step = 0.02;
+        const interval = setInterval(() => {
+          cur += step;
+          if (cur >= targetVol) {
+            if (audioRef.current) audioRef.current.volume = targetVol;
+            initialFadeDone.current = true;
+            clearInterval(interval);
+          } else {
+            if (audioRef.current) audioRef.current.volume = cur;
+          }
+        }, 50);
+        return () => clearInterval(interval);
+      } else {
+        // Regular track change or resume - instant volume sync
+        audioRef.current.volume = targetVol;
+        audioRef.current.play().catch(e => {
+          console.error('Audio play blocked:', e);
+          setIsMusicPlaying(false);
+        });
+      }
     } else if (audioRef.current && !isMusicPlaying) {
       audioRef.current.pause();
     }
-  }, [isMusicPlaying, currentTrack, musicMuted, musicVolume]);
+  }, [isMusicPlaying, currentTrack]);
 
   const userPausedMusic = useRef(false);
 
