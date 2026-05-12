@@ -181,17 +181,18 @@ function BossMarquee({ msg, lang, danger, onDismiss }) {
   );
 }
 
-function FallingTeethSimulation({ isClicking, currentTeeth, toothImg }) {
+function FallingTeethSimulation({ totalGenerators, clickPulse, toothImg }) {
   const containerRef = useRef(null);
   const [particles, setParticles] = useState([]);
   const particlesRef = useRef([]);
   const lastSpawnRef = useRef(performance.now());
+  const lastClickPulseRef = useRef(clickPulse);
   const animationRef = useRef(null);
   
-  const stateRef = useRef({ currentTeeth, isClicking, toothImg });
+  const stateRef = useRef({ totalGenerators, clickPulse, toothImg });
   useEffect(() => {
-    stateRef.current = { currentTeeth, isClicking, toothImg };
-  }, [currentTeeth, isClicking, toothImg]);
+    stateRef.current = { totalGenerators, clickPulse, toothImg };
+  }, [totalGenerators, clickPulse, toothImg]);
 
   useEffect(() => {
     let lastTime = performance.now();
@@ -204,28 +205,40 @@ function FallingTeethSimulation({ isClicking, currentTeeth, toothImg }) {
       
       const st = stateRef.current;
       
+      const createTooth = () => ({
+        id: Math.random().toString(36),
+        x: Math.random() * (width - 30),
+        y: -40,
+        vx: (Math.random() - 0.5) * 60,
+        vy: 50 + Math.random() * 100, 
+        rot: Math.random() * 360,
+        rotV: (Math.random() - 0.5) * 200,
+        size: 15 + Math.random() * 25,
+        state: 'falling', 
+        life: 2 + Math.random() * 2,
+        img: st.toothImg
+      });
+
+      if (st.clickPulse !== lastClickPulseRef.current) {
+        const diff = st.clickPulse - lastClickPulseRef.current;
+        lastClickPulseRef.current = st.clickPulse;
+        for (let i = 0; i < diff; i++) {
+          if (particlesRef.current.length < 400) {
+            particlesRef.current.push(createTooth());
+          }
+        }
+      }
+
       let rate = 0;
-      if (st.currentTeeth > 0) rate = Math.min(10, 1 + Math.log10(st.currentTeeth)); 
-      if (st.isClicking) rate = rate * 3 + 4; 
+      if (st.totalGenerators > 0) {
+        rate = (1 / 7) + Math.max(0, st.totalGenerators - 1) * 0.05; 
+      }
       
       const spawnInterval = rate > 0 ? 1000 / rate : Infinity;
       
-      if (st.currentTeeth > 0 && rate > 0 && now - lastSpawnRef.current > spawnInterval) {
+      if (rate > 0 && now - lastSpawnRef.current > spawnInterval) {
         if (particlesRef.current.length < 400) {
-          const newTooth = {
-            id: Math.random().toString(36),
-            x: Math.random() * (width - 30),
-            y: -40,
-            vx: (Math.random() - 0.5) * 60,
-            vy: 50 + Math.random() * 100, 
-            rot: Math.random() * 360,
-            rotV: (Math.random() - 0.5) * 200,
-            size: 15 + Math.random() * 25,
-            state: 'falling', 
-            life: 2 + Math.random() * 2,
-            img: st.toothImg
-          };
-          particlesRef.current.push(newTooth);
+          particlesRef.current.push(createTooth());
         }
         lastSpawnRef.current = now;
       }
@@ -1214,7 +1227,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
         {/* LEFT */}
         <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)', alignSelf: 'start', position: 'sticky', top: 'var(--spacing-6)' }}>
           <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-m)', padding: 'var(--spacing-8) var(--spacing-6)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-5)', boxShadow: 'var(--elevation-10)', overflow: 'hidden', position: 'relative' }}>
-            <FallingTeethSimulation isClicking={isMainMouseDown} currentTeeth={state.teeth} toothImg={currentToothImg} />
+            <FallingTeethSimulation clickPulse={clickPulse} totalGenerators={Object.values(state.generators || {}).reduce((a, b) => a + b, 0)} toothImg={currentToothImg} />
             {username === 'James' && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 4 }}>
                 <button onClick={() => { 
