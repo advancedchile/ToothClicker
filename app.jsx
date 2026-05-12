@@ -297,48 +297,28 @@ function defaultState() {
 
 function MusicFloatingBtn({ isPlaying, onClick }) {
   return (
-    <>
-      <style>{`
-        @keyframes soundWave {
-          0% { height: 4px; }
-          100% { height: 24px; }
-        }
-      `}</style>
-      <div 
-        onClick={onClick}
-        style={{
-          position: 'fixed',
-          bottom: 30, right: 30,
-          width: 56, height: 56,
-          borderRadius: '50%',
-          background: 'var(--primary-i100)',
-          boxShadow: '0 4px 12px rgba(0, 118, 219, 0.4)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          zIndex: 50,
-          color: '#fff',
-          transition: 'transform 0.2s',
-        }}
-        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-        onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-      >
-        {isPlaying ? (
-          <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 24 }}>
-            {[1,2,3,4].map(i => (
-              <div key={i} style={{
-                width: 4, background: '#fff', borderRadius: 2,
-                animation: `soundWave ${0.4 + Math.random() * 0.4}s ease-in-out infinite alternate`,
-                animationDelay: `${Math.random()}s`
-              }} />
-            ))}
-          </div>
-        ) : (
-          <i className="fa-solid fa-music" style={{ fontSize: 24 }}></i>
-        )}
-      </div>
-    </>
+    <div 
+      onClick={onClick}
+      style={{
+        position: 'fixed',
+        bottom: 30, right: 30,
+        width: 56, height: 56,
+        borderRadius: '50%',
+        background: 'var(--primary-i100)',
+        boxShadow: '0 4px 12px rgba(0, 118, 219, 0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        zIndex: 50,
+        color: '#fff',
+        transition: 'transform 0.2s',
+      }}
+      onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+      onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+    >
+      <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`} style={{ fontSize: 24, marginLeft: isPlaying ? 0 : 4 }}></i>
+    </div>
   );
 }
 
@@ -527,7 +507,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const [musicModalOpen, setMusicModalOpen] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(() => MUSIC_TRACKS[Math.floor(Math.random() * MUSIC_TRACKS.length)]);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-  const [musicVolume, setMusicVolume] = useState(() => { const v = localStorage.getItem('music-vol'); return v !== null ? parseFloat(v) : 0.4; });
+  const [musicVolume, setMusicVolume] = useState(() => { const v = localStorage.getItem('music-vol'); const parsed = parseFloat(v); return !isNaN(parsed) ? parsed : 0.4; });
   const [musicMuted, setMusicMuted] = useState(false);
   const [playMode, setPlayMode] = useState('shuffle');
   const [musicTime, setMusicTime] = useState(0);
@@ -562,8 +542,9 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     if (!audio) return;
     if (!audio.src.endsWith(currentTrack.src)) {
       audio.src = currentTrack.src;
+      audio.load();
       setMusicTime(0);
-      if (isMusicPlaying) audio.play().catch(() => setIsMusicPlaying(false));
+      if (isMusicPlaying) audio.play().catch(e => { console.error('Audio play blocked:', e); setIsMusicPlaying(false); });
     }
     const onEnded = () => {
       if (playMode === 'stop') {
@@ -571,7 +552,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
         audio.currentTime = 0;
       } else if (playMode === 'loop') {
         audio.currentTime = 0;
-        audio.play().catch(() => setIsMusicPlaying(false));
+        audio.play().catch(e => { console.error('Audio play blocked:', e); setIsMusicPlaying(false); });
       } else {
         let nextIdx = Math.floor(Math.random() * MUSIC_TRACKS.length);
         setCurrentTrack(MUSIC_TRACKS[nextIdx]);
@@ -584,13 +565,13 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   useEffect(() => {
     if (audioRef.current && !isMusicPlaying && !musicAttempted.current) {
       musicAttempted.current = true;
-      audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(() => {});
+      audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(e => console.warn('Autoplay blocked:', e));
     }
   }, []);
 
   const tryStartMusic = useCallback(() => {
     if (audioRef.current && audioRef.current.paused && !isMusicPlaying) {
-      audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(() => {});
+      audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(e => console.warn('Manual play blocked:', e));
     }
   }, [isMusicPlaying]);
   const [isMainMouseDown, setIsMainMouseDown] = useState(false);

@@ -450,6 +450,10 @@ function AboutModal({ onClose, lang }) {
 function GameTour({ step, lang, onNext, onPrev, onClose, dontShowAgain, onToggleShowAgain }) {
   const t = window.STRINGS[lang];
   const [closing, setClosing] = React.useState(false);
+  
+  React.useEffect(() => {
+    setClosing(false);
+  }, [step]);
   const steps = [
     {
       targetId: null,
@@ -531,7 +535,7 @@ function GameTour({ step, lang, onNext, onPrev, onClose, dontShowAgain, onToggle
 
   return (
     <div style={{ 
-      position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'auto',
+      position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: closing ? 'none' : 'auto',
       animation: closing ? 'fadeOut 250ms forwards' : 'fadeIn 300ms forwards',
       display: rect ? 'block' : 'flex',
       alignItems: 'center',
