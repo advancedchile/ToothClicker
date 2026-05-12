@@ -364,15 +364,23 @@ function MusicFloatingBtn({ isPlaying, onClick }) {
 
 function MusicPlayerModal({ 
   onClose, tracks, currentTrack, onSelectTrack,
-  isPlaying, onTogglePlay,
+  isPlaying, onTogglePlay, onStop,
   volume, onChangeVolume,
   muted, onToggleMute,
   playMode, onChangePlayMode,
   currentTime, duration, onSeek,
   soundOn, toggleSound, lang
 }) {
+  const isShuffle = playMode.includes('shuffle');
+  const isLoop = playMode.includes('loop');
+  const isStop = playMode === 'stop';
+
   return (
     <Modal onClose={onClose} maxWidth={400}>
+      <style>{`
+        .music-slider { height: 2px; -webkit-appearance: none; background: var(--border-subtle); border-radius: 1px; outline: none; }
+        .music-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; border-radius: 50%; background: var(--primary-i100); cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+      `}</style>
       <div style={{ paddingBottom: 16, borderBottom: '1px solid var(--border-subtle)', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 className="t-heading-s" style={{ margin: 0 }}>{lang === 'es' ? 'Reproductor de Música' : 'Music Player'}</h2>
         <button onClick={onClose} style={{ all: 'unset', cursor: 'pointer', color: 'var(--fg-3)' }}>
@@ -380,7 +388,6 @@ function MusicPlayerModal({
         </button>
       </div>
       
-      {/* Global Controls */}
       <div style={{ padding: 'var(--spacing-4)', background: 'var(--bg-2)', borderRadius: 'var(--radius-s)', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ fontWeight: 600, fontSize: 14 }}>{lang === 'es' ? 'Volumen Música' : 'Music Volume'}</div>
@@ -388,7 +395,7 @@ function MusicPlayerModal({
             <i className={`fa-solid ${muted ? 'fa-volume-xmark' : 'fa-volume-high'}`}></i>
           </button>
         </div>
-        <input type="range" min="0" max="1" step="0.01" value={muted ? 0 : volume} onChange={e => onChangeVolume(parseFloat(e.target.value))} style={{ width: '100%', cursor: 'pointer' }} />
+        <input type="range" min="0" max="1" step="0.01" value={muted ? 0 : volume} onChange={e => onChangeVolume(parseFloat(e.target.value))} className="music-slider" style={{ width: '100%', cursor: 'pointer' }} />
         
         <div style={{ height: 1, background: 'var(--border-subtle)', margin: '16px 0' }} />
         
@@ -400,46 +407,45 @@ function MusicPlayerModal({
         </div>
       </div>
 
-      {/* Play Modes */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <button onClick={() => onChangePlayMode('shuffle')} style={{ flex: 1, padding: '8px', background: playMode === 'shuffle' ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${playMode === 'shuffle' ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: playMode === 'shuffle' ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => onChangePlayMode('shuffle')} style={{ flex: 1, padding: '8px', background: isShuffle ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${isShuffle ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: isShuffle ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 150ms' }}>
           <i className="fa-solid fa-shuffle"></i> {lang === 'es' ? 'Aleatorio' : 'Shuffle'}
         </button>
-        <button onClick={() => onChangePlayMode('loop')} style={{ flex: 1, padding: '8px', background: playMode === 'loop' ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${playMode === 'loop' ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: playMode === 'loop' ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => onChangePlayMode('loop')} style={{ flex: 1, padding: '8px', background: isLoop ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${isLoop ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: isLoop ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 150ms' }}>
           <i className="fa-solid fa-repeat"></i> {lang === 'es' ? 'Bucle' : 'Loop'}
         </button>
-        <button onClick={() => onChangePlayMode('stop')} style={{ flex: 1, padding: '8px', background: playMode === 'stop' ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${playMode === 'stop' ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: playMode === 'stop' ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => onChangePlayMode('stop')} style={{ flex: 1, padding: '8px', background: isStop ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${isStop ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: isStop ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 150ms' }}>
           <i className="fa-solid fa-ban"></i> {lang === 'es' ? 'Fin' : 'End'}
         </button>
       </div>
 
-      {/* Track List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto', paddingRight: 4 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto', paddingRight: 4 }}>
         {tracks.map(t => {
           const isCurrent = currentTrack?.id === t.id;
           return (
-            <div key={t.id} style={{ background: isCurrent ? 'var(--primary-i010)' : 'transparent', border: `1px solid ${isCurrent ? 'var(--primary-i030)' : 'var(--border-subtle)'}`, borderRadius: 8, padding: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isCurrent ? 8 : 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: isCurrent ? 'var(--primary-i100)' : 'var(--fg-1)' }}>{t.title}</div>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  {isCurrent ? (
-                    <>
-                      <button onClick={onTogglePlay} style={{ all: 'unset', cursor: 'pointer', color: 'var(--primary-i100)' }}>
-                        <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
-                      </button>
-                    </>
-                  ) : (
-                    <button onClick={() => onSelectTrack(t)} style={{ all: 'unset', cursor: 'pointer', color: 'var(--fg-3)' }}>
-                      <i className="fa-solid fa-play"></i>
-                    </button>
-                  )}
-                </div>
-              </div>
+            <div key={t.id} 
+              onClick={() => { if (!isCurrent) onSelectTrack(t); }}
+              style={{ background: isCurrent ? 'var(--primary-i005)' : 'transparent', border: `1px solid ${isCurrent ? 'var(--primary-i020)' : 'var(--border-subtle)'}`, borderRadius: 10, padding: '12px 14px', cursor: isCurrent ? 'default' : 'pointer', transition: 'all 150ms' }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: isCurrent ? 'var(--primary-i100)' : 'var(--fg-1)', marginBottom: isCurrent ? 8 : 0 }}>{t.title}</div>
+              
               {isCurrent && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 11, color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums', width: 34 }}>{formatTime(currentTime)}</span>
-                  <input type="range" min="0" max={duration || 100} step="0.1" value={currentTime || 0} onChange={e => onSeek(parseFloat(e.target.value))} style={{ flex: 1, cursor: 'pointer' }} />
-                  <span style={{ fontSize: 11, color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums', width: 34 }}>{formatTime(duration)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <button onClick={(e) => { e.stopPropagation(); onTogglePlay(); }} style={{ all: 'unset', cursor: 'pointer', color: 'var(--primary-i100)', width: 14 }}>
+                    <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`} style={{ fontSize: 14 }}></i>
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); onStop(); }} style={{ all: 'unset', cursor: 'pointer', color: 'var(--negative-i100)', width: 14 }}>
+                    <i className="fa-solid fa-stop" style={{ fontSize: 14 }}></i>
+                  </button>
+                  <input 
+                    type="range" min="0" max={duration || 100} step="0.1" value={currentTime || 0} 
+                    onClick={e => e.stopPropagation()}
+                    onChange={e => onSeek(parseFloat(e.target.value))} 
+                    className="music-slider"
+                    style={{ flex: 1, cursor: 'pointer' }} 
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums', minWidth: 40, textAlign: 'right' }}>
+                    -{window.formatTime(Math.max(0, duration - currentTime))}
+                  </span>
                 </div>
               )}
             </div>
@@ -562,6 +568,24 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const [musicTime, setMusicTime] = useState(0);
   const [musicDuration, setMusicDuration] = useState(0);
   const sessionStartMinutes = useRef(null);
+
+  const handlePlayModeChange = (m) => {
+    setPlayMode(curr => {
+      if (m === 'stop') return curr === 'stop' ? 'shuffle' : 'stop';
+      let parts = curr === 'stop' ? [] : curr.split('+');
+      if (parts.includes(m)) parts = parts.filter(x => x !== m);
+      else parts.push(m);
+      return parts.length === 0 ? 'stop' : parts.join('+');
+    });
+  };
+
+  const handleStop = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsMusicPlaying(false);
+  };
 
   useEffect(() => {
     if (sessionStartMinutes.current === null && state.timePlayed > 0) {
@@ -1853,15 +1877,26 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
         onTimeUpdate={(e) => setMusicTime(e.target.currentTime)}
         onLoadedMetadata={(e) => setMusicDuration(e.target.duration)}
         onEnded={(e) => {
-          if (playMode === 'stop') {
+          const isLoop = playMode.includes('loop');
+          const isShuffle = playMode.includes('shuffle');
+          const isStop = playMode === 'stop';
+
+          if (isStop) {
             setIsMusicPlaying(false);
             e.target.currentTime = 0;
-          } else if (playMode === 'loop') {
+          } else if (isLoop) {
             e.target.currentTime = 0;
             e.target.play().catch(err => { console.error('Loop play blocked:', err); setIsMusicPlaying(false); });
-          } else {
+          } else if (isShuffle) {
             let nextIdx = Math.floor(Math.random() * tracks.length);
             setCurrentTrack(tracks[nextIdx]);
+          } else {
+            // Next in order
+            setCurrentTrack(curr => {
+              const idx = tracks.findIndex(t => t.id === curr.id);
+              const next = tracks[(idx + 1) % tracks.length];
+              return next;
+            });
           }
         }}
       />
@@ -1886,12 +1921,13 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           onSelectTrack={(t) => { setCurrentTrack(t); setIsMusicPlaying(true); }}
           isPlaying={isMusicPlaying}
           onTogglePlay={() => setIsMusicPlaying(!isMusicPlaying)}
+          onStop={handleStop}
           volume={musicVolume}
           onChangeVolume={setMusicVolume}
           muted={musicMuted}
           onToggleMute={() => setMusicMuted(!musicMuted)}
           playMode={playMode}
-          onChangePlayMode={setPlayMode}
+          onChangePlayMode={handlePlayModeChange}
           audioRef={audioRef}
           currentTime={musicTime}
           duration={musicDuration}
