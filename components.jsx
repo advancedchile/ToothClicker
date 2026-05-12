@@ -94,7 +94,7 @@ function TabBar({ tabs, active, onChange, id }) {
 
 }
 
-function GeneratorRow({ gen, owned, cost, canAfford, unlocked, revealed, onBuy, lang, totalTeeth, production, buyQty, actualQty }) {
+function GeneratorRow({ gen, owned, cost, canAfford, unlocked, revealed, onBuy, lang, totalTeeth, production, nextProduction, buyQty, actualQty }) {
   const t = window.STRINGS[lang];
   const name = gen[lang] || gen.es;
   const desc = gen[`desc_${lang}`] || gen.desc_es;
@@ -135,7 +135,7 @@ function GeneratorRow({ gen, owned, cost, canAfford, unlocked, revealed, onBuy, 
       <div style={{ textAlign: 'right', minWidth: 56, flexShrink: 0 }}>
         <div style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t.owned}</div>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-1)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>{owned}</div>
-        {owned > 0 && <div style={{ fontSize: 10, color: 'var(--positive-i100)', fontVariantNumeric: 'tabular-nums' }}>+{window.formatNum(production)}/s</div>}
+        <div style={{ fontSize: 10, color: 'var(--positive-i100)', fontVariantNumeric: 'tabular-nums' }}>+{window.formatNum(owned > 0 ? production : nextProduction, null, null, true)}/s</div>
       </div>
       <div style={{ textAlign: 'right', minWidth: 72, flexShrink: 0 }}>
         <div style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>

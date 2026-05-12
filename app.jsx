@@ -551,6 +551,8 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     }
   }, [musicVolume, musicMuted]);
 
+  const userPausedMusic = useRef(false);
+
   useEffect(() => {
     if (audioRef.current && !isMusicPlaying && !musicAttempted.current) {
       musicAttempted.current = true;
@@ -558,10 +560,15 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     }
   }, []);
 
-  const tryStartMusic = useCallback(() => {
-    if (audioRef.current && audioRef.current.paused && !isMusicPlaying) {
-      audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(e => console.warn('Manual play blocked:', e));
-    }
+  useEffect(() => {
+    const handleFirstClick = () => {
+      if (!userPausedMusic.current && !isMusicPlaying && audioRef.current && audioRef.current.paused) {
+        audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(e => {});
+      }
+      window.removeEventListener('click', handleFirstClick);
+    };
+    window.addEventListener('click', handleFirstClick);
+    return () => window.removeEventListener('click', handleFirstClick);
   }, [isMusicPlaying]);
   const [isMainMouseDown, setIsMainMouseDown] = useState(false);
   const [goldHoldProgress, setGoldHoldProgress] = useState(0); // 0–1
@@ -877,7 +884,6 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   }, []);
 
   const handleClick = useCallback((e) => {
-    tryStartMusic();
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;const y = e.clientY - rect.top;
     performClick(x, y);
@@ -1123,9 +1129,12 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
       cost = genBulkCost(g.baseCost, owned, buyQty);
       canAfford = actualQty >= buyQty; // can afford the full requested qty
     }
+    const baseMult = (storeMults.gen[g.id] || 1) * globalMult;
+    genProductions[g.id] = (owned || 0) * g.baseProduction * baseMult;
+    const nextProduction = g.baseProduction * baseMult;
     const unlocked = state.totalEarned >= g.unlockAt || owned > 0;
     const revealed = state.totalEarned >= g.unlockAt * 0.5 || owned > 0 || window.GENERATORS.indexOf(g) === 0;
-    return { gen: g, owned, cost, unlocked, revealed, canAfford, actualQty, production: genProductions[g.id] };
+    return { gen: g, owned, cost, unlocked, revealed, canAfford, actualQty, production: genProductions[g.id], nextProduction };
   });
 
   const [clickFilter, setClickFilter] = React.useState('all');
@@ -1170,7 +1179,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
             <div>
               <span className="t-mini-caps" style={{ color: 'var(--fg-3)', marginRight: 6 }}>{t.perClick}</span>
               <span className="t-heading-s" style={{ color: 'var(--alternative-i100)', fontVariantNumeric: 'tabular-nums' }}>{fmt(perClick)}</span>
-              {globalMult > 1 && <span className="t-body-s" style={{ color: 'var(--fg-3)', marginLeft: 4 }}>x{globalMult.toFixed(1)}</span>}
+              {globalMult > 1 && <span className="t-body-s" style={{ color: 'var(--fg-3)', marginLeft: 4 }}>x{fmt(Math.floor(globalMult * 100) / 100)}</span>}
             </div>
           </div>
         </div>
@@ -1488,7 +1497,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                 <window.StatTile label={t.prestigeHave} value={fmt(state.prestige)} icon="fa-solid fa-crown" accent="var(--warning-i130)" />
                 <window.StatTile label={lang === 'es' ? 'Veces prestigiado' : 'Times prestiged'} value={fmt(state.prestigeCount || 0)} icon="fa-solid fa-rotate" accent="var(--warning-i100)" />
                 <window.StatTile label={t.prestigeEarn} value={`+${fmt(prestigeGain)}`} icon="fa-solid fa-plus" accent="var(--positive-i100)" />
-                <window.StatTile label={t.prestigeBonus} value={`+${((prestigeMult - 1) * 100).toFixed(0)}%`} icon="fa-solid fa-chart-line" accent="var(--alternative-i100)" />
+                <window.StatTile label={t.prestigeBonus} value={`+${fmt((prestigeMult - 1) * 100)}%`} icon="fa-solid fa-chart-line" accent="var(--alternative-i100)" />
               </div>
               <button onClick={() => setShowPrestigeConfirm(true)} disabled={prestigeGain <= 0} style={{ all: 'unset', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 'var(--spacing-4) var(--spacing-6)', background: prestigeGain > 0 ? 'var(--warning-i100)' : 'var(--bg-3)', color: prestigeGain > 0 ? 'var(--warning-i150)' : 'var(--fg-4)', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 15, cursor: prestigeGain > 0 ? 'pointer' : 'not-allowed', width: '100%', transition: 'background 150ms' }}
             onMouseEnter={(e) => {if (prestigeGain > 0) e.currentTarget.style.background = 'var(--warning-i070)';}}
@@ -1549,7 +1558,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
             { label: t.currentTeeth, value: fmt(state.teeth), strong: true },
             { label: t.perSecond, value: fmt(perSecond), color: 'var(--positive-i100)' },
             { label: t.perClick, value: fmt(perClick), color: 'var(--alternative-i100)' },
-            { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: `x${globalMult.toFixed(2)}`, color: 'var(--warning-i130)' }]
+            { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: `x${fmt(Math.floor(globalMult * 100) / 100)}`, color: 'var(--warning-i130)' }]
             } />
               <window.StatsGroup title={lang === 'es' ? 'Progreso' : 'Progress'} icon="fa-solid fa-chart-line" accent="var(--positive-i100)" rows={[
             { label: t.totalTeeth, value: fmt(state.totalEarned), strong: true },
@@ -1615,13 +1624,16 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           isPlaying={isMusicPlaying}
           onPlayPause={() => {
             if (isMusicPlaying) {
+              userPausedMusic.current = true;
               audioRef.current?.pause();
               setIsMusicPlaying(false);
             } else {
+              userPausedMusic.current = false;
               audioRef.current?.play().then(() => setIsMusicPlaying(true)).catch(()=>{});
             }
           }}
           onStop={() => {
+            userPausedMusic.current = true;
             if (audioRef.current) {
               audioRef.current.pause();
               audioRef.current.currentTime = 0;

@@ -86,10 +86,10 @@ const STRINGS = {
   },
 };
 
-function formatNum(n, modeOverride, langOverride) {
+function formatNum(n, modeOverride, langOverride, keepDecimals = false) {
   const mode = modeOverride || window.__numFormat || 'short';
   const lang = langOverride || window.__lang || 'es';
-  return window.formatNumWithMode(n, mode, lang);
+  return window.formatNumWithMode(n, mode, lang, keepDecimals);
 }
 
 // Tooth stage progression — unlocked by NUMBER OF PRESTIGES PERFORMED (prestigeCount), not by prestige points.
