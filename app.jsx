@@ -552,7 +552,8 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const [tracks, setTracks] = useState([]);
   const [currentTrack, setCurrentTrack] = useState(() => {
     const id = saved?.musicSettings?.currentTrackId;
-    return null; // Initial state null, will be set by useEffect after tracks load
+    const found = MUSIC_TRACKS.find(t => t.id === id);
+    return found || MUSIC_TRACKS[Math.floor(Math.random() * MUSIC_TRACKS.length)];
   });
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [musicVolume, setMusicVolume] = useState(() => saved?.musicSettings?.volume ?? 0.4);
@@ -1848,7 +1849,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
 
       <audio 
         ref={audioRef}
-        src={currentTrack.src}
+        src={currentTrack?.src || ''}
         onTimeUpdate={(e) => setMusicTime(e.target.currentTime)}
         onLoadedMetadata={(e) => setMusicDuration(e.target.duration)}
         onEnded={(e) => {
