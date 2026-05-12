@@ -861,6 +861,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   }, []);
 
   const performClick = useCallback((x, y) => {
+    if (cheatLevel > 0) return;
     const gain = perClickRef.current;
     setState((s) => {
       const now = Date.now();
@@ -1849,6 +1850,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           lang={lang} 
           isMainMouseDown={isMainMouseDown} 
           onSimulateClick={performClick} 
+          isBlocked={cheatLevel > 0}
         />
       )}
       {bossMsg && <BossMarquee msg={bossMsg} lang={lang} danger={bossMsg.danger} onDismiss={() => setBossMsg(null)} />}
