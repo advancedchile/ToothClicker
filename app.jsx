@@ -514,21 +514,15 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const [musicDuration, setMusicDuration] = useState(0);
 
   useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.volume = musicMuted ? 0 : musicVolume;
+    if (audioRef.current && isMusicPlaying) {
+      audioRef.current.play().catch(e => {
+        console.error('Audio play blocked:', e);
+        setIsMusicPlaying(false);
+      });
+    } else if (audioRef.current && !isMusicPlaying) {
+      audioRef.current.pause();
     }
-    const audio = audioRef.current;
-    const onTimeUpdate = () => setMusicTime(audio.currentTime);
-    const onLoadedMetadata = () => setMusicDuration(audio.duration);
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    audio.addEventListener('loadedmetadata', onLoadedMetadata);
-    return () => {
-      audio.removeEventListener('timeupdate', onTimeUpdate);
-      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
-      audio.pause();
-    };
-  }, []);
+  }, [isMusicPlaying, currentTrack]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -536,31 +530,6 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
       localStorage.setItem('music-vol', musicVolume.toString());
     }
   }, [musicVolume, musicMuted]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (!audio.src.endsWith(currentTrack.src)) {
-      audio.src = currentTrack.src;
-      audio.load();
-      setMusicTime(0);
-      if (isMusicPlaying) audio.play().catch(e => { console.error('Audio play blocked:', e); setIsMusicPlaying(false); });
-    }
-    const onEnded = () => {
-      if (playMode === 'stop') {
-        setIsMusicPlaying(false);
-        audio.currentTime = 0;
-      } else if (playMode === 'loop') {
-        audio.currentTime = 0;
-        audio.play().catch(e => { console.error('Audio play blocked:', e); setIsMusicPlaying(false); });
-      } else {
-        let nextIdx = Math.floor(Math.random() * MUSIC_TRACKS.length);
-        setCurrentTrack(MUSIC_TRACKS[nextIdx]);
-      }
-    };
-    audio.addEventListener('ended', onEnded);
-    return () => audio.removeEventListener('ended', onEnded);
-  }, [currentTrack, playMode, isMusicPlaying]);
 
   useEffect(() => {
     if (audioRef.current && !isMusicPlaying && !musicAttempted.current) {
@@ -1585,6 +1554,25 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           </div>
         </section>
       </main>
+
+      <audio 
+        ref={audioRef}
+        src={currentTrack.src}
+        onTimeUpdate={(e) => setMusicTime(e.target.currentTime)}
+        onLoadedMetadata={(e) => setMusicDuration(e.target.duration)}
+        onEnded={(e) => {
+          if (playMode === 'stop') {
+            setIsMusicPlaying(false);
+            e.target.currentTime = 0;
+          } else if (playMode === 'loop') {
+            e.target.currentTime = 0;
+            e.target.play().catch(err => { console.error('Loop play blocked:', err); setIsMusicPlaying(false); });
+          } else {
+            let nextIdx = Math.floor(Math.random() * MUSIC_TRACKS.length);
+            setCurrentTrack(MUSIC_TRACKS[nextIdx]);
+          }
+        }}
+      />
 
       <MusicFloatingBtn isPlaying={isMusicPlaying} onClick={() => setMusicModalOpen(true)} />
       {musicModalOpen && (
