@@ -3,16 +3,23 @@
 // ==========================================================================
 
 // ── App Version (single source of truth) ──────────────────────────────────
-const APP_VERSION = 'v0.0.35-beta';
-const VERSION_DATE = '2026-05-10';
+const APP_VERSION = 'v0.5.1-beta';
+const VERSION_DATE = '2026-05-11';
 
 const VERSION_HISTORY = [
+  {
+    v: 'v0.5.1-beta',
+    date: '2026-05-11',
+    es: 'Reproductor Musical: Implementación de reproductor global dinámico, corrección de bugs de renderizado del menú tour y simulación de partículas completada.',
+    en: 'Music Player: Implemented dynamic global music player, fixed tour menu rendering bugs, and completed particle simulation.',
+    latest: true,
+  },
   {
     v: 'v0.0.35-beta',
     date: '2026-05-10',
     es: 'Panel Admin Premium: Mensajes con efectos acelerados, partículas dinámicas desde bordes, previsualización real y UI mejorada.',
     en: 'Premium Admin Panel: Messages with faster effects, dynamic edge particles, real-time preview, and improved UI.',
-    latest: true,
+    latest: false,
   },
   {
     v: 'v0.0.34-beta',

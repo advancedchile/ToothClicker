@@ -302,7 +302,7 @@ function MusicFloatingBtn({ isPlaying, onClick }) {
       style={{
         position: 'fixed',
         bottom: 30, right: 30,
-        width: 56, height: 56,
+        width: 25, height: 25,
         borderRadius: '50%',
         background: 'var(--primary-i100)',
         boxShadow: '0 4px 12px rgba(0, 118, 219, 0.4)',
@@ -317,7 +317,7 @@ function MusicFloatingBtn({ isPlaying, onClick }) {
       onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
       onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
     >
-      <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`} style={{ fontSize: 24, marginLeft: isPlaying ? 0 : 4 }}></i>
+      <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`} style={{ fontSize: 11, marginLeft: isPlaying ? 0 : 2 }}></i>
     </div>
   );
 }
