@@ -427,7 +427,7 @@ function MusicPlayerModal({
               onClick={() => { if (!isCurrent) onSelectTrack(t); }}
               style={{ background: isCurrent ? 'var(--primary-i005)' : 'transparent', border: `1px solid ${isCurrent ? 'var(--primary-i020)' : 'var(--border-subtle)'}`, borderRadius: 10, padding: '12px 14px', cursor: isCurrent ? 'default' : 'pointer', transition: 'all 150ms' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: isCurrent ? 8 : 0 }}>
-                <i className="fa-solid fa-play" style={{ fontSize: 10, color: isCurrent ? 'var(--primary-i100)' : 'var(--fg-3)', opacity: isCurrent ? 1 : 0.6 }}></i>
+                {!isCurrent && <i className="fa-solid fa-play" style={{ fontSize: 10, color: 'var(--fg-3)', opacity: 0.6 }}></i>}
                 <div style={{ fontWeight: 600, fontSize: 14, color: isCurrent ? 'var(--primary-i100)' : 'var(--fg-1)' }}>{t.title}</div>
               </div>
               
@@ -1909,14 +1909,16 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           if (isStop) {
             setIsMusicPlaying(false);
             e.target.currentTime = 0;
-          } else if (isLoop) {
-            e.target.currentTime = 0;
-            e.target.play().catch(err => { console.error('Loop play blocked:', err); setIsMusicPlaying(false); });
           } else if (isShuffle) {
+            // Shuffle (with or without Loop) = random next
             let nextIdx = Math.floor(Math.random() * tracks.length);
             setCurrentTrack(tracks[nextIdx]);
+          } else if (isLoop) {
+            // Loop alone = repeat current
+            e.target.currentTime = 0;
+            e.target.play().catch(err => { console.error('Loop play blocked:', err); setIsMusicPlaying(false); });
           } else {
-            // Next in order
+            // Neither = next in order
             setCurrentTrack(curr => {
               const idx = tracks.findIndex(t => t.id === curr.id);
               const next = tracks[(idx + 1) % tracks.length];
