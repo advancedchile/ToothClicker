@@ -342,46 +342,69 @@ function defaultState() {
   return { teeth: 0, totalEarned: 0, totalClicks: 0, goldenClicks: 0, generators: {}, clickUpgrades: {}, achievements: {}, newAchievementIds: {}, storeUpgrades: {}, prestige: 0, prestigeCount: 0, selectedTooth: 0, startedAt: Date.now(), timePlayed: 0, lastTick: Date.now(), feedbackSent: false, feedbackCount: 0, dontShowTourAgain: false, hasSeenTour: false, hasSeenHelpIndicator: false, clinicName: null, level: 0, xp: 0, xpUpgrades: {}, musicSettings: { volume: 0.4, muted: false, playMode: 'shuffle', currentTrackId: null } };
 }
 
-function MusicFloatingBtn({ isPlaying, onClick, currentTrack, currentTime, duration }) {
+function MusicFloatingBtn({ isPlaying, onClick, currentTrack, currentTime, duration, onHover, onLeave, lang }) {
   return (
     <div 
       onClick={onClick}
+      onMouseEnter={onHover}
+      onMouseLeave={onLeave}
       style={{
         position: 'fixed',
         bottom: 30, right: 30,
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
+        gap: 12,
         zIndex: 50,
         cursor: 'pointer'
       }}
     >
+      <style>{`
+        @keyframes musicWave {
+          0%, 100% { height: 4px; }
+          50% { height: 14px; }
+        }
+      `}</style>
       {isPlaying && currentTrack && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pointerEvents: 'none' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary-i100)', background: 'var(--bg-1)', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--primary-i030)', whiteSpace: 'nowrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-1)', padding: '4px 10px', borderRadius: 8, border: '1px solid var(--primary-i030)', boxShadow: 'var(--elevation-10)', pointerEvents: 'none', animation: 'fadeIn 0.3s ease' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary-i100)', whiteSpace: 'nowrap' }}>
             {currentTrack.title}
           </div>
-          <div style={{ fontSize: 9, color: 'var(--fg-3)', fontWeight: 600, background: 'rgba(255,255,255,0.8)', padding: '1px 6px', borderRadius: 4, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ width: 1, height: 10, background: 'var(--border-subtle)' }} />
+          <div style={{ fontSize: 9, color: 'var(--fg-3)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
             -{formatMusicTime(Math.max(0, duration - currentTime))}
           </div>
         </div>
       )}
       <div 
         style={{
-          width: 32, height: 32,
+          width: 38, height: 38,
           borderRadius: '50%',
-          background: 'var(--primary-i100)',
-          boxShadow: '0 4px 12px rgba(0, 118, 219, 0.4)',
+          background: isPlaying ? 'var(--primary-i100)' : 'var(--bg-2)',
+          border: `2px solid ${isPlaying ? 'transparent' : 'var(--border-subtle)'}`,
+          boxShadow: isPlaying ? '0 4px 15px rgba(0, 118, 219, 0.4)' : 'none',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#fff',
-          transition: 'transform 0.2s',
+          color: isPlaying ? '#fff' : 'var(--fg-3)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          position: 'relative'
         }}
-        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-        onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.borderColor = 'var(--primary-i100)'; }}
+        onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.borderColor = isPlaying ? 'transparent' : 'var(--border-subtle)'; }}
       >
-        <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`} style={{ fontSize: 12, marginLeft: isPlaying ? 0 : 2 }}></i>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 14 }}>
+          {[0.1, 0.4, 0.2, 0.5, 0.3].map((delay, i) => (
+            <div key={i} style={{ 
+              width: 2, 
+              height: isPlaying ? 14 : 2, 
+              background: isPlaying ? '#fff' : 'var(--fg-3)', 
+              borderRadius: 2,
+              opacity: isPlaying ? 1 : 0.6,
+              animation: isPlaying ? `musicWave 0.8s ease-in-out infinite ${delay}s` : 'none',
+              transition: 'all 0.3s ease'
+            }} />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1966,7 +1989,24 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
         </div>
       )}
 
-      <MusicFloatingBtn isPlaying={isMusicPlaying} onClick={() => setMusicModalOpen(true)} currentTrack={currentTrack} currentTime={musicTime} duration={musicDuration} />
+      <MusicFloatingBtn 
+        isPlaying={isMusicPlaying} 
+        onClick={() => setMusicModalOpen(true)} 
+        currentTrack={currentTrack} 
+        currentTime={musicTime} 
+        duration={musicDuration}
+        lang={lang}
+        onHover={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          setGlobalTooltip({
+            type: 'text',
+            text: isMusicPlaying ? (lang === 'es' ? 'Reproduciendo' : 'Playing') : (lang === 'es' ? 'Click para escuchar música.' : 'Click to play music.'),
+            pos: { x: rect.left + rect.width / 2, y: rect.top - 8 },
+            direction: 'up'
+          });
+        }}
+        onLeave={() => setGlobalTooltip(null)}
+      />
       {musicModalOpen && (
         <MusicPlayerModal
           lang={lang}
