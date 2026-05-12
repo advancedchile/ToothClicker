@@ -167,6 +167,116 @@ function BossMarquee({ msg, lang, danger, onDismiss }) {
   );
 }
 
+function FallingTeethSimulation({ isClicking, currentTeeth, toothImg }) {
+  const containerRef = useRef(null);
+  const [particles, setParticles] = useState([]);
+  const particlesRef = useRef([]);
+  const lastSpawnRef = useRef(performance.now());
+  const animationRef = useRef(null);
+  
+  const stateRef = useRef({ currentTeeth, isClicking, toothImg });
+  useEffect(() => {
+    stateRef.current = { currentTeeth, isClicking, toothImg };
+  }, [currentTeeth, isClicking, toothImg]);
+
+  useEffect(() => {
+    let lastTime = performance.now();
+    const tick = (now) => {
+      const dt = Math.max(0.001, Math.min((now - lastTime) / 1000, 0.1)); 
+      lastTime = now;
+      
+      const width = containerRef.current ? containerRef.current.clientWidth : 300;
+      const height = containerRef.current ? containerRef.current.clientHeight : 320;
+      
+      const st = stateRef.current;
+      
+      let rate = 0;
+      if (st.currentTeeth > 0) rate = Math.min(10, 1 + Math.log10(st.currentTeeth)); 
+      if (st.isClicking) rate = rate * 3 + 4; 
+      
+      const spawnInterval = rate > 0 ? 1000 / rate : Infinity;
+      
+      if (st.currentTeeth > 0 && rate > 0 && now - lastSpawnRef.current > spawnInterval) {
+        if (particlesRef.current.length < 400) {
+          const newTooth = {
+            id: Math.random().toString(36),
+            x: Math.random() * (width - 30),
+            y: -40,
+            vx: (Math.random() - 0.5) * 60,
+            vy: 50 + Math.random() * 100, 
+            rot: Math.random() * 360,
+            rotV: (Math.random() - 0.5) * 200,
+            size: 15 + Math.random() * 25,
+            state: 'falling', 
+            life: 2 + Math.random() * 2,
+            img: st.toothImg
+          };
+          particlesRef.current.push(newTooth);
+        }
+        lastSpawnRef.current = now;
+      }
+
+      let alive = [];
+      const gravity = 800; 
+      const bounceDamping = 0.5;
+
+      for (let p of particlesRef.current) {
+        if (p.state === 'falling') {
+          p.vy += gravity * dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.rot += p.rotV * dt;
+
+          if (p.y + p.size > height - 10) { 
+            p.y = height - 10 - p.size;
+            p.vy = -p.vy * bounceDamping;
+            
+            if (Math.abs(p.vy) < 50) {
+              p.state = 'resting';
+              p.vy = 0;
+              p.vx = 0;
+              p.rotV = 0;
+            }
+          }
+        } else if (p.state === 'resting') {
+          p.life -= dt;
+        }
+
+        if (p.life > 0) alive.push(p);
+      }
+
+      particlesRef.current = alive;
+      setParticles([...alive]);
+      
+      animationRef.current = requestAnimationFrame(tick);
+    };
+    
+    animationRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animationRef.current);
+  }, []);
+
+  return (
+    <div ref={containerRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+      {particles.map(p => (
+        <img 
+          key={p.id} 
+          src={p.img || toothImg} 
+          style={{ 
+            position: 'absolute', 
+            left: 0, top: 0, 
+            width: p.size, height: p.size, 
+            objectFit: 'contain',
+            transform: `translate(${p.x}px, ${p.y}px) rotate(${p.rot}deg)`,
+            opacity: p.state === 'resting' ? Math.min(1, p.life) : 1, 
+            transition: 'opacity 0.1s'
+          }} 
+          alt="" 
+        />
+      ))}
+    </div>
+  );
+}
+
 function defaultState() {
   return { teeth: 0, totalEarned: 0, totalClicks: 0, goldenClicks: 0, generators: {}, clickUpgrades: {}, achievements: {}, newAchievementIds: {}, storeUpgrades: {}, prestige: 0, prestigeCount: 0, selectedTooth: 0, startedAt: Date.now(), timePlayed: 0, lastTick: Date.now(), feedbackSent: false, feedbackCount: 0, dontShowTourAgain: false, hasSeenTour: false, hasSeenHelpIndicator: false };
 }
@@ -457,7 +567,12 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
         es: pick.text, 
         en: pick.text, 
         isCustom: true,
-        milestone: pick.milestone
+        milestone: pick.milestone,
+        color: pick.color,
+        position: pick.position,
+        size: pick.size,
+        animation: pick.animation,
+        particles: pick.particles
       });
 
       // Mark as shown both in local state and persistent state
@@ -825,6 +940,8 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     return true;
   });
 
+  const currentToothImg = holdBonusUntil > Date.now() ? "uploads/gold-tooth-1.png" : crystalFrenzyUntil > Date.now() ? "uploads/crystal-tooth-1.png" : selectedStage.img;
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', fontFamily: 'var(--font-sans)', color: 'var(--fg-1)' }}>
       {/* Top bar */}
@@ -914,6 +1031,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
         {/* LEFT */}
         <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)', alignSelf: 'start', position: 'sticky', top: 'var(--spacing-6)' }}>
           <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-m)', padding: 'var(--spacing-8) var(--spacing-6)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-5)', boxShadow: 'var(--elevation-10)', overflow: 'hidden', position: 'relative' }}>
+            <FallingTeethSimulation isClicking={isMainMouseDown} currentTeeth={state.teeth} toothImg={currentToothImg} />
             {username === 'James' && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 4 }}>
                 <button onClick={() => { 
@@ -951,7 +1069,12 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                       es: pick.text, 
                       en: pick.text, 
                       isCustom: true,
-                      danger: false 
+                      danger: false,
+                      color: pick.color,
+                      position: pick.position,
+                      size: pick.size,
+                      animation: pick.animation,
+                      particles: pick.particles
                     });
                     console.log(`Debug: Triggered msg from pool of ${customMessages.length}`);
                   } else {
@@ -960,7 +1083,17 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                       if (msgs.length > 0) {
                         setCustomMessages(msgs);
                         const pick = msgs[Math.floor(Math.random() * msgs.length)];
-                        setBossMsg({ who: pick.who, es: pick.text, en: pick.text, isCustom: true });
+                        setBossMsg({ 
+                          who: pick.who, 
+                          es: pick.text, 
+                          en: pick.text, 
+                          isCustom: true,
+                          color: pick.color,
+                          position: pick.position,
+                          size: pick.size,
+                          animation: pick.animation,
+                          particles: pick.particles
+                        });
                       } else {
                         setBossMsg({ who: 'System', es: `No hay mensajes (Pool: ${customMessages.length}). Revisa el Admin Panel.`, en: `No messages (Pool: ${customMessages.length}). Check Admin Panel.` });
                       }
@@ -970,29 +1103,29 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
               </div>
             )}
             <div style={{ position: 'relative', width: '100%', height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{
-                position: 'absolute', top: '50%', left: '50%', width: 1200, height: 1200,
-                pointerEvents: 'none', zIndex: 0,
-                background: `repeating-conic-gradient(${sunColor} 0 15deg, transparent 15deg 30deg)`,
-                borderRadius: '50%',
-                opacity: sunOpacity,
-                transition: 'opacity 1.2s ease-out',
-                animation: 'rotateSun 40s linear infinite'
-              }} />
-              <div 
-                id="main-tooth-target"
-                onMouseDown={(e) => { handleClick(e); setIsMainMouseDown(true); }}
-                onMouseUp={() => setIsMainMouseDown(false)}
-                onMouseLeave={() => setIsMainMouseDown(false)}
-                onTouchStart={(e) => { handleClick(e); setIsMainMouseDown(true); }}
-                onTouchEnd={() => setIsMainMouseDown(false)}
-                style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', zIndex: 1 }} key={clickPulse}>
-                <img src={holdBonusUntil > Date.now() ? "uploads/gold-tooth-1.png" : crystalFrenzyUntil > Date.now() ? "uploads/crystal-tooth-1.png" : selectedStage.img} alt="tooth" style={{ width: 260, height: 260, objectFit: 'contain', filter: holdBonusUntil > Date.now() ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : goldenMult > 1 ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : crystalMult > 1 ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))', animation: 'toothClick 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' }} />
-                {floats.map((f) =>
-                <div key={f.id} style={{ position: 'absolute', left: f.x, top: f.y, pointerEvents: 'none', color: '#000000', fontWeight: 900, fontSize: 18, textShadow: '-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 2px 4px rgba(0,0,0,0.2)', animation: 'clickPop 600ms ease-out forwards', fontVariantNumeric: 'tabular-nums', '--tx': `${f.tx}px`, zIndex: 100 }}>+{fmt(f.gain)}</div>
-                )}
+                <div style={{
+                  position: 'absolute', top: '50%', left: '50%', width: 1200, height: 1200,
+                  pointerEvents: 'none', zIndex: 0,
+                  background: `repeating-conic-gradient(${sunColor} 0 15deg, transparent 15deg 30deg)`,
+                  borderRadius: '50%',
+                  opacity: sunOpacity,
+                  transition: 'opacity 1.2s ease-out',
+                  animation: 'rotateSun 40s linear infinite'
+                }} />
+                <div 
+                  id="main-tooth-target"
+                  onMouseDown={(e) => { handleClick(e); setIsMainMouseDown(true); }}
+                  onMouseUp={() => setIsMainMouseDown(false)}
+                  onMouseLeave={() => setIsMainMouseDown(false)}
+                  onTouchStart={(e) => { handleClick(e); setIsMainMouseDown(true); }}
+                  onTouchEnd={() => setIsMainMouseDown(false)}
+                  style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', zIndex: 1 }} key={clickPulse}>
+                  <img src={currentToothImg} alt="tooth" style={{ width: 260, height: 260, objectFit: 'contain', filter: holdBonusUntil > Date.now() ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : goldenMult > 1 ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : crystalMult > 1 ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))', animation: 'toothClick 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' }} />
+                  {floats.map((f) =>
+                  <div key={f.id} style={{ position: 'absolute', left: f.x, top: f.y, pointerEvents: 'none', color: '#000000', fontWeight: 900, fontSize: 18, textShadow: '-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 2px 4px rgba(0,0,0,0.2)', animation: 'clickPop 600ms ease-out forwards', fontVariantNumeric: 'tabular-nums', '--tx': `${f.tx}px`, zIndex: 100 }}>+{fmt(f.gain)}</div>
+                  )}
                 {toothParticles.map((p) => (
-                  <img key={p.id} src={holdBonusUntil > Date.now() ? "uploads/gold-tooth-1.png" : crystalFrenzyUntil > Date.now() ? "uploads/crystal-tooth-1.png" : selectedStage.img} alt="" style={{ position: 'absolute', left: p.x, top: p.y, width: 34, height: 34, objectFit: 'contain', pointerEvents: 'none', animation: 'toothPop 2000ms ease-out forwards', '--tx': `${p.tx}px`, '--rot': `${p.rot}deg`, zIndex: 90, opacity: 0.9 }} />
+                  <img key={p.id} src={currentToothImg} alt="" style={{ position: 'absolute', left: p.x, top: p.y, width: 34, height: 34, objectFit: 'contain', pointerEvents: 'none', animation: 'toothPop 2000ms ease-out forwards', '--tx': `${p.tx}px`, '--rot': `${p.rot}deg`, zIndex: 90, opacity: 0.9 }} />
                 ))}
                 {bubbles.map((b) => {
                   const age = (Date.now() - b.born) / 900;
@@ -1001,7 +1134,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                   );
                 })}
               </div>
-            </div>
+              </div>
             <div style={{ textAlign: 'center' }}>
               <div className="t-heading-m">{t.clickMe}</div>
               <div className="t-body-m" style={{ color: 'var(--fg-3)', marginTop: 4 }}>+{fmt(perClick)} {t.teeth} / click</div>
