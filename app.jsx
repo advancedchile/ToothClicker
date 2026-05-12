@@ -684,8 +684,11 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const perSecond = perSecondRaw * globalMult;
   const genProductions = useMemo(() => {const out = {};for (const g of window.GENERATORS) out[g.id] = (state.generators[g.id] || 0) * g.baseProduction * globalMult;return out;}, [state.generators, globalMult]);
   const achUnlockedCount = Object.values(state.achievements || {}).filter(Boolean).length;
-  // 50% harder prestige requirement: divisor raised from 1B to 1.5B
-  const prestigeGain = useMemo(() => {const base = Math.max(0, state.totalEarned - 1_500_000);if (base <= 0) return 0;return Math.floor(Math.pow(base / 1_500_000_000, 0.5) * 15);}, [state.totalEarned]);
+  const prestigeReq = useMemo(() => {
+    const count = state.prestigeCount || 0;
+    return 5_000_000_000_000 * Math.pow(1.25, count);
+  }, [state.prestigeCount]);
+  const prestigeGain = state.totalEarned >= prestigeReq ? 1 : 0;
 
   // Game tick
   useEffect(() => {
@@ -1494,16 +1497,16 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                 <div className="t-body-m" style={{ color: 'var(--fg-3)', marginTop: 4, maxWidth: 540 }}>{t.prestigeDesc}</div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-5)' }}>
-                <window.StatTile label={t.prestigeHave} value={fmt(state.prestige)} icon="fa-solid fa-crown" accent="var(--warning-i130)" />
-                <window.StatTile label={lang === 'es' ? 'Veces prestigiado' : 'Times prestiged'} value={fmt(state.prestigeCount || 0)} icon="fa-solid fa-rotate" accent="var(--warning-i100)" />
-                <window.StatTile label={t.prestigeEarn} value={`+${fmt(prestigeGain)}`} icon="fa-solid fa-plus" accent="var(--positive-i100)" />
-                <window.StatTile label={t.prestigeBonus} value={`+${fmt((prestigeMult - 1) * 100)}%`} icon="fa-solid fa-chart-line" accent="var(--alternative-i100)" />
+                <window.StatTile label={t.prestigeHave} value={fmt(state.prestige)} icon="fa-solid fa-crown" accent="var(--warning-i130)" helpText={lang === 'es' ? 'Sonrisas doradas actuales.' : 'Current golden smiles.'} />
+                <window.StatTile label={lang === 'es' ? 'Veces prestigiado' : 'Times prestiged'} value={fmt(state.prestigeCount || 0)} icon="fa-solid fa-rotate" accent="var(--warning-i100)" helpText={lang === 'es' ? 'Cantidad de veces que has reiniciado tu progreso.' : 'Number of times you have reset your progress.'} />
+                <window.StatTile label={t.prestigeEarn} value={`+${fmt(prestigeGain)}`} icon="fa-solid fa-plus" accent="var(--positive-i100)" helpText={lang === 'es' ? 'Sonrisas doradas que obtendrás al prestigiar.' : 'Golden smiles you will get by prestiging.'} />
+                <window.StatTile label={t.prestigeBonus} value={`+${fmt((prestigeMult - 1) * 100)}%`} icon="fa-solid fa-chart-line" accent="var(--alternative-i100)" helpText={lang === 'es' ? 'Bonus de producción total de tus sonrisas doradas.' : 'Total production bonus from your golden smiles.'} />
               </div>
               <button onClick={() => setShowPrestigeConfirm(true)} disabled={prestigeGain <= 0} style={{ all: 'unset', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 'var(--spacing-4) var(--spacing-6)', background: prestigeGain > 0 ? 'var(--warning-i100)' : 'var(--bg-3)', color: prestigeGain > 0 ? 'var(--warning-i150)' : 'var(--fg-4)', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 15, cursor: prestigeGain > 0 ? 'pointer' : 'not-allowed', width: '100%', transition: 'background 150ms' }}
             onMouseEnter={(e) => {if (prestigeGain > 0) e.currentTarget.style.background = 'var(--warning-i070)';}}
             onMouseLeave={(e) => {if (prestigeGain > 0) e.currentTarget.style.background = 'var(--warning-i100)';}}>
                 <i className="fa-solid fa-crown"></i>
-                {prestigeGain > 0 ? t.prestigeBtn : t.prestigeLock}
+                {prestigeGain > 0 ? t.prestigeBtn : (lang === 'es' ? `Necesitas ${fmt(prestigeReq)} dientes totales` : `You need ${fmt(prestigeReq)} total teeth`)}
               </button>
 
               {/* Tooth progression gallery */}

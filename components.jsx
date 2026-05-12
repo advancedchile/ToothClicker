@@ -31,12 +31,13 @@ function ToothIcon({ size = 220, golden = false }) {
 
 }
 
-function StatTile({ label, value, sub, icon, accent }) {
+function StatTile({ label, value, sub, icon, accent, helpText }) {
   return (
     <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-m)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', padding: "12px 14px" }}>
       <div className="t-mini-caps" style={{ color: 'var(--fg-3)', display: 'flex', alignItems: 'center', gap: 6 }}>
         {icon && <i className={icon} style={{ fontSize: 11, color: accent || 'var(--fg-3)' }}></i>}
         {label}
+        {helpText && <i className="fa-solid fa-circle-question" title={helpText} style={{ fontSize: 11, color: 'var(--fg-4)', cursor: 'help' }}></i>}
       </div>
       <div className="t-heading-l" style={{ color: accent || 'var(--fg-1)', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
       {sub && <div className="t-body-s" style={{ color: 'var(--fg-3)' }}>{sub}</div>}
