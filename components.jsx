@@ -65,13 +65,13 @@ function StatsGroup({ title, icon, accent, rows }) {
 
 }
 
-function TabBar({ tabs, active, onChange }) {
+function TabBar({ tabs, active, onChange, id }) {
   return (
-    <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--border-subtle)', marginBottom: 'var(--spacing-5)', overflowX: 'auto' }}>
+    <div id={id} style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--border-subtle)', marginBottom: 'var(--spacing-5)', overflowX: 'auto' }}>
       {tabs.map((t) => {
         const isActive = active === t.id;
         return (
-          <button key={t.id} onClick={() => onChange(t.id)} style={{
+          <button key={t.id} id={`tab-${t.id}`} onClick={() => onChange(t.id)} style={{
             position: 'relative',
             background: 'none', border: 'none', borderBottom: isActive ? '2px solid var(--primary-i100)' : '2px solid transparent',
             padding: 'var(--spacing-3) var(--spacing-4)', color: isActive ? 'var(--primary-i100)' : 'var(--fg-2)',
@@ -220,7 +220,6 @@ function ClickUpgradeRow({ up, purchased, canAfford, unlocked, onBuy, lang, tota
 function achIcon(ach) {
   const cat = ach.cat;
   if (cat === 'secret' || !cat) {
-    // secrets: try to derive from id keyword
     const id = ach.id || '';
     if (id.includes('golden') || id.includes('gold')) return 'fa-star';
     if (id.includes('click')) return 'fa-hand-pointer';
@@ -246,11 +245,9 @@ function achIcon(ach) {
   if (cat === 'upgrades' || cat === 'clicks') return 'fa-arrow-up-right-dots';
   if (cat === 'meta') return 'fa-trophy';
   if (cat === 'gen') {
-    // derive from generator id embedded in achievement id: own_{genId}_{n}
     const parts = (ach.id || '').split('_');
     const genId = parts.slice(1, -1).join('_');
     const gen = window.GENERATORS && window.GENERATORS.find(g => g.id === genId);
-    // Important: strip "fa-solid " if present, as the component adds it back
     if (gen && gen.icon) return gen.icon.replace('fa-solid ', '');
     return 'fa-industry';
   }
@@ -376,7 +373,7 @@ function StoreUpgradeIcon({ up, canAfford, onBuy, lang, fmt, onHover, onLeave })
   );
 }
 
-Object.assign(window, { ToothIcon, StatTile, StatsGroup, TabBar, GeneratorRow, ClickUpgradeRow, AchievementCard, Toast, StoreUpgradeIcon });function VersionLogModal({ onClose, lang }) {
+function VersionLogModal({ onClose, lang }) {
   const versions = (window.VERSION_HISTORY || []).map((item) => ({
     v: item.v,
     date: item.date,
@@ -450,4 +447,188 @@ function AboutModal({ onClose, lang }) {
     </window.Modal>);
 }
 
-Object.assign(window, { AboutModal, VersionLogModal, primaryBtnStyle, secondaryBtnStyle });
+function GameTour({ step, lang, onNext, onPrev, onClose, dontShowAgain, onToggleShowAgain }) {
+  const t = window.STRINGS[lang];
+  const [closing, setClosing] = React.useState(false);
+  const steps = [
+    {
+      targetId: null,
+      title: { es: '¡Bienvenido a Tooth Clicker!', en: 'Welcome to Tooth Clicker!' },
+      desc: { es: 'Prepárate para convertirte en el magnate dental definitivo. 🦷✨', en: 'Get ready to become the ultimate dental tycoon. 🦷✨' }
+    },
+    {
+      targetId: 'main-tooth-target',
+      title: { es: '¡Dale caña!', en: 'Go for it!' },
+      desc: { es: 'Haz click en este diente para empezar a recolectar piezas. ¡Cada click cuenta!', en: 'Click on this tooth to start collecting pieces. Every click counts!' }
+    },
+    {
+      targetId: 'game-tabs-tour',
+      title: { es: 'Progreso constante', en: 'Constant progress' },
+      desc: { es: 'Aquí es donde ocurre la magia. Compra clínicas, desbloquea mejoras locas y presume de tus logros dentales.', en: 'This is where the magic happens. Buy clinics, unlock crazy upgrades, and show off your dental achievements.' }
+    },
+    {
+      targetId: 'tab-prestige',
+      title: { es: 'Poder ancestral', en: 'Ancient power' },
+      desc: { es: '¿Listo para el siguiente nivel? El prestigio te da bonus permanentes que te harán imparable.', en: 'Ready for the next level? Prestige gives you permanent bonuses that will make you unstoppable.' }
+    },
+    {
+      targetId: 'tab-leaderboard',
+      title: { es: 'La cima te espera', en: 'The top awaits' },
+      desc: { es: 'Mira cómo te comparas con otros dentistas de todo el mundo en tiempo real.', en: 'See how you compare with other dentists around the world in real time.' }
+    },
+    {
+      targetId: 'manual-tour-trigger',
+      title: { es: 'Siempre aquí para ayudarte', en: 'Always here to help' },
+      desc: { es: 'Si alguna vez necesitas repasar algo, puedes volver a iniciar este tour haciendo click en este icono de ayuda. ¡A cepillar!', en: 'If you ever need to review anything, you can restart this tour by clicking this help icon. Happy brushing!' }
+    }
+  ];
+
+  const current = steps[step];
+  if (!current) return null;
+
+  const [rect, setRect] = React.useState(null);
+
+  React.useLayoutEffect(() => {
+    if (current.targetId) {
+      const el = document.getElementById(current.targetId);
+      if (el) {
+        setRect(el.getBoundingClientRect());
+      } else {
+        setRect(null);
+      }
+    } else {
+      setRect(null);
+    }
+  }, [step, current.targetId]);
+
+  const handleClose = () => {
+    setClosing(true);
+    setTimeout(onClose, 250);
+  };
+
+  const modalStyle = rect ? {
+    position: 'fixed',
+    left: rect.left + rect.width / 2,
+    top: rect.bottom + 20,
+    transform: 'translateX(-50%)',
+    zIndex: 10000,
+    width: 320
+  } : {
+    position: 'fixed',
+    left: '50%',
+    top: '50%',
+    transform: 'translate(-50%, -50%)',
+    zIndex: 10000,
+    width: 380
+  };
+
+  // Adjust for edges
+  if (rect) {
+    if (modalStyle.left - 160 < 20) modalStyle.left = 180;
+    if (modalStyle.left + 160 > window.innerWidth - 20) modalStyle.left = window.innerWidth - 180;
+    if (modalStyle.top + 200 > window.innerHeight - 20) modalStyle.top = rect.top - 220;
+  }
+
+  return (
+    <div style={{ 
+      position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'auto',
+      animation: closing ? 'fadeOut 250ms forwards' : 'fadeIn 300ms forwards',
+      display: rect ? 'block' : 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      {/* Blurred and dimmed overlay with a hole cut out */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'rgba(5,9,13,0.5)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 9998,
+        transition: 'clip-path 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+        clipPath: rect ? `polygon(
+          0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, 
+          ${rect.left - 8}px ${rect.top - 8}px, 
+          ${rect.left - 8}px ${rect.bottom + 8}px, 
+          ${rect.right + 8}px ${rect.bottom + 8}px, 
+          ${rect.right + 8}px ${rect.top - 8}px, 
+          ${rect.left - 8}px ${rect.top - 8}px
+        )` : 'none'
+      }} />
+      
+      {/* Highlight border and glow */}
+      {rect && (
+        <div style={{
+          position: 'fixed',
+          left: rect.left - 8,
+          top: rect.top - 8,
+          width: rect.width + 16,
+          height: rect.height + 16,
+          border: '2px solid var(--primary-i100)',
+          boxShadow: '0 0 40px var(--primary-i100)',
+          borderRadius: 12,
+          pointerEvents: 'none',
+          zIndex: 9999,
+          transition: 'all 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+          opacity: closing ? 0 : 1
+        }} />
+      )}
+
+      {/* Modal Container: Handles fixed positioning if rect exists, else flex centering handles it */}
+      <div style={rect ? {
+        position: 'fixed',
+        left: modalStyle.left,
+        top: modalStyle.top,
+        transform: modalStyle.transform,
+        zIndex: 10000,
+        width: modalStyle.width
+      } : {
+        position: 'relative',
+        zIndex: 10000,
+        width: modalStyle.width
+      }}>
+        <div className="tour-modal" style={{
+          background: 'var(--bg-1)',
+          padding: 'var(--spacing-6)',
+          borderRadius: 'var(--radius-l)',
+          boxShadow: 'var(--elevation-30)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          animation: closing ? 'modalOut 250ms forwards' : 'modalIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary-i100)', textTransform: 'uppercase', letterSpacing: 1 }}>
+              {lang === 'es' ? `Paso ${step + 1} de ${steps.length}` : `Step ${step + 1} of ${steps.length}`}
+            </span>
+            <button onClick={handleClose} style={{ all: 'unset', cursor: 'pointer', color: 'var(--fg-3)', fontSize: 18 }} className="hover-bg-danger">
+              <i className="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div className="t-heading-m" style={{ color: 'var(--fg-1)' }}>{current.title[lang] || current.title.es}</div>
+          <div className="t-body-m" style={{ color: 'var(--fg-2)', lineHeight: 1.5 }}>{current.desc[lang] || current.desc.es}</div>
+
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+              <input type="checkbox" checked={dontShowAgain} onChange={onToggleShowAgain} style={{ cursor: 'pointer' }} />
+              <span style={{ fontSize: 12, color: 'var(--fg-3)', fontWeight: 500 }}>{lang === 'es' ? 'No volver a mostrar' : 'Don\'t show again'}</span>
+            </label>
+          </div>
+
+          <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
+            {step > 0 && (
+              <button onClick={onPrev} style={secondaryBtnStyle}>
+                {lang === 'es' ? 'Anterior' : 'Previous'}
+              </button>
+            )}
+            <button onClick={step === steps.length - 1 ? handleClose : onNext} style={primaryBtnStyle}>
+              {step === steps.length - 1 ? (lang === 'es' ? '¡Entendido!' : 'Got it!') : (lang === 'es' ? 'Siguiente' : 'Next')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { AboutModal, VersionLogModal, GameTour, StatTile, StatsGroup, TabBar, GeneratorRow, ClickUpgradeRow, AchievementCard, Toast, StoreUpgradeIcon, ToothIcon, primaryBtnStyle, secondaryBtnStyle });

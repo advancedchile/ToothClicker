@@ -168,7 +168,7 @@ function BossMarquee({ msg, lang, danger, onDismiss }) {
 }
 
 function defaultState() {
-  return { teeth: 0, totalEarned: 0, totalClicks: 0, goldenClicks: 0, generators: {}, clickUpgrades: {}, achievements: {}, newAchievementIds: {}, storeUpgrades: {}, prestige: 0, prestigeCount: 0, selectedTooth: 0, startedAt: Date.now(), timePlayed: 0, lastTick: Date.now(), feedbackSent: false, feedbackCount: 0 };
+  return { teeth: 0, totalEarned: 0, totalClicks: 0, goldenClicks: 0, generators: {}, clickUpgrades: {}, achievements: {}, newAchievementIds: {}, storeUpgrades: {}, prestige: 0, prestigeCount: 0, selectedTooth: 0, startedAt: Date.now(), timePlayed: 0, lastTick: Date.now(), feedbackSent: false, feedbackCount: 0, dontShowTourAgain: false, hasSeenTour: false, hasSeenHelpIndicator: false };
 }
 
 const topBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '8px 12px', fontSize: 13, fontWeight: 500, color: 'var(--fg-2)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', background: 'var(--bg-1)', fontFamily: 'var(--font-sans)' };
@@ -276,6 +276,20 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   });
   const [customMessages, setCustomMessages] = useState([]);
   const customLastShownRef = useRef({}); // { msgId: timestamp }
+  const [currentTourStep, setCurrentTourStep] = useState(null);
+  const [dontShowTourAgain, setDontShowTourAgain] = useState(() => {
+    const saved = loadUserSave(username);
+    return saved?.dontShowTourAgain === true;
+  });
+  // We'll track if the user has EVER seen the tour to decide whether to auto-start
+  const [hasSeenTour, setHasSeenTour] = useState(() => {
+    const saved = loadUserSave(username);
+    return !!saved?.hasSeenTour;
+  });
+  const [hasSeenHelpIndicator, setHasSeenHelpIndicator] = useState(() => {
+    const saved = loadUserSave(username);
+    return !!saved?.hasSeenHelpIndicator;
+  });
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -389,6 +403,14 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     window.addEventListener('beforeunload', onUnload);
     return () => {clearInterval(saveId);window.removeEventListener('beforeunload', onUnload);onUnload();};
   }, [username]);
+
+  useEffect(() => {
+    // Show tour if it's the first time and they haven't opted out
+    if (!hasSeenTour && !dontShowTourAgain && state.totalEarned === 0 && currentTourStep === null) {
+      const timer = setTimeout(() => setCurrentTourStep(0), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [hasSeenTour, state.totalEarned, currentTourStep]);
 
   useEffect(() => {
     const pushScore = () => {const s = stateRef.current;if (!s) return;window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0 });};
@@ -807,7 +829,17 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', fontFamily: 'var(--font-sans)', color: 'var(--fg-1)' }}>
       {/* Top bar */}
       <header style={{ height: 64, background: 'var(--bg-1)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', padding: '0 var(--spacing-6)', gap: 'var(--spacing-4)', position: 'sticky', top: 0, zIndex: 10 }}>
-        <img src="uploads/logo-horizontal-4d4fb63d.png" style={{ height: 44, width: 'auto', objectFit: 'contain', flexShrink: 0 }} alt="Tooth Clicker" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <img src="uploads/logo-horizontal-4d4fb63d.png" style={{ height: 44, width: 'auto', objectFit: 'contain', flexShrink: 0 }} alt="Tooth Clicker" />
+          <button 
+            id="manual-tour-trigger"
+            onClick={() => setCurrentTourStep(0)}
+            style={{ ...topBtnStyle, padding: '4px 8px', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            title={lang === 'es' ? 'Tour guiado' : 'Guided tour'}
+          >
+            <i className="fa-solid fa-question" style={{ fontSize: 14 }}></i>
+          </button>
+        </div>
         <div style={{ flex: 1 }} />
         {/* Inline stats — single line */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
@@ -848,7 +880,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           <i className={saveFlash ? 'fa-solid fa-check' : 'fa-solid fa-floppy-disk'} style={{ marginRight: 6, color: saveFlash ? 'var(--positive-i100)' : 'inherit' }}></i>
           {saveFlash ? t.savedJustNow : t.saveNow}
         </button>
-        <div ref={menuRef} style={{ position: 'relative' }}>
+        <div id="user-menu-tour" ref={menuRef} style={{ position: 'relative' }}>
           <button 
             onClick={() => setMenuOpen((o) => !o)} 
             style={{ 
@@ -948,6 +980,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                 animation: 'rotateSun 40s linear infinite'
               }} />
               <div 
+                id="main-tooth-target"
                 onMouseDown={(e) => { handleClick(e); setIsMainMouseDown(true); }}
                 onMouseUp={() => setIsMainMouseDown(false)}
                 onMouseLeave={() => setIsMainMouseDown(false)}
@@ -991,7 +1024,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
 
       {/* RIGHT */}
       <section style={{ background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-m)', padding: 'var(--spacing-5) var(--spacing-6) var(--spacing-6)', height: 'calc(100vh - 120px)', maxHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-          <window.TabBar active={tab} onChange={setTab} tabs={[
+          <window.TabBar id="game-tabs-tour" active={tab} onChange={setTab} tabs={[
           { id: 'generators', label: t.tabGen, icon: 'fa-solid fa-industry' },
           { id: 'click', label: t.tabClick, icon: 'fa-solid fa-hand-pointer' },
           { id: 'achievements', label: t.tabAch, icon: 'fa-solid fa-trophy', dot: Object.keys(state.newAchievementIds || {}).length > 0 },
@@ -1474,6 +1507,36 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           </div>
         </window.Modal>
       )}
+      {currentTourStep !== null && (
+        <window.GameTour 
+          step={currentTourStep} 
+          lang={lang} 
+          onNext={() => setCurrentTourStep(s => s + 1)}
+          onPrev={() => setCurrentTourStep(s => s - 1)}
+          dontShowAgain={dontShowTourAgain}
+          onToggleShowAgain={() => {
+            const next = !dontShowTourAgain;
+            setDontShowTourAgain(next);
+            setState(s => ({ ...s, dontShowTourAgain: next }));
+          }}
+          onClose={() => {
+            if (currentTourStep !== null && currentTourStep < 5 && !hasSeenHelpIndicator) {
+              setCurrentTourStep(5);
+              return;
+            }
+            if (!hasSeenTour || !hasSeenHelpIndicator) {
+              const nextSeenTour = true;
+              const nextSeenHelp = true;
+              setHasSeenTour(nextSeenTour);
+              setHasSeenHelpIndicator(nextSeenHelp);
+              setState(s => ({ ...s, hasSeenTour: nextSeenTour, hasSeenHelpIndicator: nextSeenHelp }));
+            }
+            setCurrentTourStep(null);
+          }}
+        />
+      )}
+
+
     </div>);
 }
 
