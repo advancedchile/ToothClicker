@@ -76,7 +76,7 @@ function TabBar({ tabs, active, onChange, id }) {
       {tabs.map((t) => {
         const isActive = active === t.id;
         return (
-          <button key={t.id} id={`tab-${t.id}`} onClick={() => onChange(t.id)} style={{
+          <button key={t.id} id={`tab-${t.id}`} onClick={() => { window.playClickSound && window.playClickSound(); onChange(t.id); }} style={{
             position: 'relative',
             background: 'none', border: 'none', borderBottom: isActive ? '2px solid var(--primary-i100)' : '2px solid transparent',
             padding: 'var(--spacing-3) var(--spacing-4)', color: isActive ? 'var(--primary-i100)' : 'var(--fg-2)',

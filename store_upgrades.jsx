@@ -24,25 +24,27 @@ window.STORE_UPGRADES = (() => {
     });
   }
 
-  // 2. GENERATOR UPGRADES (approx 200)
+  // 2. GENERATOR UPGRADES (based on milestones: 10, 25, 50, 100, 250, 500, 1000, 3000, 5000, 10000, 20000)
+  const milestones = [10, 25, 50, 100, 250, 500, 1000, 3000, 5000, 10000, 20000];
   gens.forEach((gen, gIdx) => {
-    for (let i = 1; i <= 5; i++) {
-      const cost = Math.floor(gen.baseCost * 250 * Math.pow(75, i));
+    milestones.forEach((m, mIdx) => {
+      // Scale cost based on milestone and generator base cost
+      const cost = Math.floor(gen.baseCost * 15 * Math.pow(m, 1.2) * (mIdx + 1));
       upgrades.push({
-        id: `gen_up_${gen.id}_${i}`,
+        id: `gen_up_${gen.id}_${m}`,
         type: 'generator',
         targetId: gen.id,
         multiplier: 2,
         cost: cost,
-        requirement: Math.floor(cost * 0.65),
+        milestone: m,
         icon: gen.icon.replace('fa-solid ', ''),
-        es: `${gen.es} mejorado Nivel ${i}`,
-        en: `${gen.en} upgraded Level ${i}`,
+        es: `${gen.es} mejorado (${m} unidades)`,
+        en: `${gen.en} upgraded (${m} units)`,
         desc_es: `La producción de ${gen.es} se duplica.`,
         desc_en: `The production of ${gen.en} is doubled.`,
         color: '#ffc220'
       });
-    }
+    });
   });
 
   // 3. GLOBAL UPGRADES (approx 50)

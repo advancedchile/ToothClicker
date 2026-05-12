@@ -53,8 +53,16 @@ function LeaderboardHeader({ lb, lang }) {
 
 function LeaderboardBody({ lb, lang, currentUser }) {
   const t = window.STRINGS[lang];
+  const [sortBy, setSortBy] = window.useStateG('prestige'); // 'prestige' or 'level'
   const allRows = lb.scores || [];
-  const rows = allRows.filter(r => r.name.toLowerCase() !== 'james');
+  const rows = allRows
+    .filter(r => r.name.toLowerCase() !== 'james')
+    .sort((a, b) => {
+      if (sortBy === 'level') {
+        return (b.level || 0) - (a.level || 0) || (b.prestigeCount || 0) - (a.prestigeCount || 0);
+      }
+      return (b.prestigeCount || 0) - (a.prestigeCount || 0) || (b.level || 0) - (a.level || 0);
+    });
   
   if (lb.loading && rows.length === 0 && !lb.error) return (
     <div style={{ padding: 'var(--spacing-8) var(--spacing-4)', textAlign: 'center', color: 'var(--fg-3)' }}>
@@ -69,7 +77,34 @@ function LeaderboardBody({ lb, lang, currentUser }) {
     </div>
   );
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', maxHeight: 460 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', maxHeight: 520 }}>
+      {/* Sort Filters */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '0 4px' }}>
+        <button 
+          onClick={() => { window.playClickSound && window.playClickSound(); setSortBy('prestige'); }}
+          style={{
+            all: 'unset', boxSizing: 'border-box', flex: 1, padding: '8px', borderRadius: 8, textAlign: 'center', fontSize: 10, fontWeight: 700, cursor: 'pointer',
+            background: sortBy === 'prestige' ? 'var(--primary-i100)' : 'var(--bg-3)',
+            color: sortBy === 'prestige' ? '#fff' : 'var(--fg-3)',
+            transition: 'all 150ms', fontFamily: 'var(--font-sans)'
+          }}
+        >
+          <i className="fa-solid fa-crown" style={{ marginRight: 6 }}></i>
+          {lang === 'es' ? 'POR PRESTIGIO' : 'BY PRESTIGE'}
+        </button>
+        <button 
+          onClick={() => { window.playClickSound && window.playClickSound(); setSortBy('level'); }}
+          style={{
+            all: 'unset', boxSizing: 'border-box', flex: 1, padding: '8px', borderRadius: 8, textAlign: 'center', fontSize: 10, fontWeight: 700, cursor: 'pointer',
+            background: sortBy === 'level' ? 'var(--primary-i100)' : 'var(--bg-3)',
+            color: sortBy === 'level' ? '#fff' : 'var(--fg-3)',
+            transition: 'all 150ms', fontFamily: 'var(--font-sans)'
+          }}
+        >
+          <i className="fa-solid fa-graduation-cap" style={{ marginRight: 6 }}></i>
+          {lang === 'es' ? 'POR NIVEL' : 'BY LEVEL'}
+        </button>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 90px 140px', gap: 'var(--spacing-3)', padding: '0 var(--spacing-3)', color: 'var(--fg-3)', marginBottom: 2 }} className="t-mini-caps">
         <div>{t.lbRank}</div><div>{t.lbPlayer}</div>
         <div style={{ textAlign: 'right' }}>{t.lbPrestige}</div>
@@ -82,18 +117,22 @@ function LeaderboardBody({ lb, lang, currentUser }) {
           <div key={r.name + '-' + i} style={{ display: 'grid', gridTemplateColumns: '36px 1fr 90px 140px', gap: 'var(--spacing-3)', alignItems: 'center', padding: '10px var(--spacing-3)', background: isCurrent ? 'var(--primary-i010)' : 'var(--bg-1)', border: `1px solid ${isCurrent ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 'var(--radius-s)' }}>
             <div style={{ width: 28, height: 28, borderRadius: '50%', background: medal || 'var(--bg-3)', color: medal ? '#fff' : 'var(--fg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{i + 1}</div>
             <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-              {window.TOOTH_STAGES && <img src={window.getToothStage(r.prestige || 0).img} alt="" style={{ width: 40, height: 40, objectFit: 'contain', flexShrink: 0 }} />}
+              {window.TOOTH_STAGES && <img src={window.getToothStage(r.prestigeCount || 0).img} alt="" style={{ width: 40, height: 40, objectFit: 'contain', flexShrink: 0 }} />}
               <div style={{ minWidth: 0 }}>
                 <div className="t-heading-xs" style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {r.name}
                   {isCurrent && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: 'var(--primary-i100)', color: '#fff', padding: '2px 6px', borderRadius: 999 }}>{t.lbYou}</span>}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--primary-i100)', fontWeight: 600, marginBottom: 2 }}>
+                  {r.clinicName || (lang === 'es' ? `Clínica de ${r.name}` : `${r.name}'s Clinic`)}
+                  <span style={{ marginLeft: 8, color: 'var(--fg-3)', fontWeight: 400 }}>• Niv. {r.level || 0}</span>
                 </div>
                 <div className="t-body-s" style={{ color: 'var(--fg-3)' }}>{window.formatTime(r.timePlayed || 0)}</div>
               </div>
             </div>
             <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--warning-i130)', fontWeight: 600 }}>
               <i className="fa-solid fa-crown" style={{ color: 'var(--warning-i100)', fontSize: 11, marginRight: 4 }}></i>
-              {window.formatNum(r.prestige || 0)}
+              {window.formatNum(r.prestigeCount || 0)}
             </div>
             <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--primary-i100)', fontWeight: 600 }}>{window.formatNum(r.totalEarned || 0)}</div>
           </div>
@@ -139,7 +178,7 @@ function UserPill({ name, onSelect, isOwn }) {
         fontFamily: "'PixelifySans', var(--font-sans)",
         backdropFilter: 'blur(6px)',
       }}
-      onClick={() => onSelect(name)}
+      onClick={() => { window.playClickSound && window.playClickSound(); onSelect(name); }}
     >
       <div style={{ width: 34, height: 34, borderRadius: '50%', background: isOwn ? 'rgba(26,143,255,0.2)' : 'rgba(100,160,230,0.2)', color: '#3a6a9a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, flexShrink: 0, transition: 'all 140ms' }}>
         {(name[0] || '?').toUpperCase()}
@@ -205,10 +244,10 @@ function AdminPasswordModal({ lang, onSuccess, onClose }) {
             {lang === 'es' ? '❌ Contraseña incorrecta' : '❌ Wrong password'}
           </div>}
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={onClose} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'rgba(100,140,180,0.12)', color: '#4a6080', borderRadius: 10, fontWeight: 500, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
+            <button type="button" onClick={() => { window.playClickSound && window.playClickSound(); onClose(); }} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'rgba(100,140,180,0.12)', color: '#4a6080', borderRadius: 10, fontWeight: 500, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
               {lang === 'es' ? 'Cancelar' : 'Cancel'}
             </button>
-            <button type="submit" className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: '#1a8fff', color: '#fff', borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
+            <button type="submit" onClick={() => window.playClickSound && window.playClickSound()} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: '#1a8fff', color: '#fff', borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)' }}>
               {lang === 'es' ? 'Entrar' : 'Enter'}
             </button>
           </div>
@@ -262,7 +301,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, u
 
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 24px 24px', width: '100%', maxWidth: 400 }}>
 
-        <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 200, objectFit: 'contain', marginBottom: 28, filter: 'drop-shadow(0 8px 24px rgba(80,140,220,0.22))' }} />
+        <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 220, objectFit: 'contain', marginBottom: 32, filter: 'drop-shadow(0 8px 24px rgba(80,140,220,0.22))' }} />
 
         {/* Registration — only if this device hasn't registered yet */}
         {!deviceUser && (
@@ -322,17 +361,17 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, u
 
         {/* Bottom row */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, width: '100%' }}>
-          <button onClick={() => setShowLb(true)} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(6px)', border: '1px solid rgba(100,160,230,0.3)', borderRadius: 999, color: '#4a6a8a', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: "'PixelifySans', var(--font-sans)" }}>
+          <button onClick={() => { window.playClickSound && window.playClickSound(); setShowLb(true); }} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', flex: 1, padding: '11px 0', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(6px)', border: '1px solid rgba(100,160,230,0.3)', borderRadius: 999, color: '#4a6a8a', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: "'PixelifySans', var(--font-sans)" }}>
             <span style={{ fontSize: 16 }}>👑</span> Leaderboard
           </button>
         </div>
 
         {/* Discrete admin lock — tiny, subtle */}
-        <button onClick={handleLockTap} title="" className="app-btn" style={{ all: 'unset', cursor: 'pointer', color: 'rgba(80,110,150,0.2)', fontSize: 11, padding: '4px 8px', borderRadius: 999 }}>
+        <button onClick={() => { window.playClickSound && window.playClickSound(); handleLockTap(); }} title="" className="app-btn" style={{ all: 'unset', cursor: 'pointer', color: 'rgba(80,110,150,0.2)', fontSize: 11, padding: '4px 8px', borderRadius: 999 }}>
           <i className="fa-solid fa-lock"></i>
         </button>
 
-        <div style={{ marginTop: 4, fontSize: 11, color: 'rgba(80,110,150,0.3)', fontFamily: 'var(--font-sans)', letterSpacing: 0.2 }}>{window.APP_VERSION || 'v0.5.1-beta'}</div>
+        <div style={{ marginTop: 4, fontSize: 11, color: 'rgba(80,110,150,0.3)', fontFamily: 'var(--font-sans)', letterSpacing: 0.2 }}>{window.APP_VERSION || 'v0.5.5-beta'}</div>
       </div>
 
       {showLb && (

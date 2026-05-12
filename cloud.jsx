@@ -70,12 +70,20 @@ async function cloudSubmitScore(entry) {
         name: entry.name,
         totalEarned: Math.max(entry.totalEarned || 0, idx >= 0 ? (scores[idx].totalEarned || 0) : 0),
         prestige:    Math.max(entry.prestige    || 0, idx >= 0 ? (scores[idx].prestige    || 0) : 0),
+        prestigeCount: Math.max(entry.prestigeCount || 0, idx >= 0 ? (scores[idx].prestigeCount || 0) : 0),
         timePlayed:  Math.max(entry.timePlayed  || 0, idx >= 0 ? (scores[idx].timePlayed  || 0) : 0),
+        clinicName: entry.clinicName || (idx >= 0 ? scores[idx].clinicName : null),
+        level: Math.max(entry.level || 0, idx >= 0 ? (scores[idx].level || 0) : 0),
         teeth: entry.teeth || 0, updatedAt: Date.now(),
       };
       if (idx >= 0) scores[idx] = merged; else scores.push(merged);
-      scores.sort((a, b) => (b.prestige||0)-(a.prestige||0) || (b.totalEarned||0)-(a.totalEarned||0));
-      scores = scores.slice(0, 500);
+      // Priority: PrestigeCount > Level > TotalEarned
+      scores.sort((a, b) => 
+        (b.prestigeCount || 0) - (a.prestigeCount || 0) || 
+        (b.level || 0) - (a.level || 0) || 
+        (b.totalEarned || 0) - (a.totalEarned || 0)
+      );
+      scores = scores.slice(0, 100);
       await _cloudPut({ ...record, scores });
       return { ok: true, scores };
     } catch (e) { return { ok: false, error: e.message || 'network' }; }

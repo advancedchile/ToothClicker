@@ -14,19 +14,35 @@ const LAST_RESET_KEY   = 'tooth-clicker-last-reset-v1';
 const ADMIN_AUTH_KEY   = 'tooth-clicker-admin-session-v1';
 const ADMIN_NAME       = 'James'; // reserved superuser name
 
-const MUSIC_TRACKS = [
-  { id: '1', title: 'Cartucho Azul', src: 'uploads/Cartucho_Azul.mp3' },
-  { id: '2', title: 'Cartucho Azul 2', src: 'uploads/Cartucho_Azul_2.mp3' },
-  { id: '3', title: 'Respira en 8 Bits 1', src: 'uploads/Respira_en_8_Bits_1.mp3' },
-  { id: '4', title: 'Respira en 8 Bits 2', src: 'uploads/Respira_en_8_Bits_2.mp3' }
+let MUSIC_TRACKS = [
+  { id: '1', title: 'Cartucho Azul', src: 'assets/music/Cartucho_Azul.mp3' },
+  { id: '2', title: 'Cartucho Azul 2', src: 'assets/music/Cartucho_Azul_2.mp3' },
+  { id: '3', title: 'Respira en 8 Bits 1', src: 'assets/music/Respira_en_8_Bits_1.mp3' },
+  { id: '4', title: 'Respira en 8 Bits 2', src: 'assets/music/Respira_en_8_Bits_2.mp3' }
 ];
 
 function formatTime(secs) {
-  if (isNaN(secs)) return "00:00";
-  const m = Math.floor(secs / 60);
-  const s = Math.floor(secs % 60);
-  return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  if (isNaN(secs)) return "0 min";
+  const minsTotal = Math.floor(secs / 60);
+  const lang = window.__lang || 'es';
+  
+  if (minsTotal < 60) {
+    return `${minsTotal} min`;
+  } else {
+    const hours = Math.floor(minsTotal / 60);
+    if (lang === 'es') {
+      return `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+    } else {
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+    }
+  }
 }
+
+window.playClickSound = () => {
+  if (window.playTone) {
+    window.playTone(880, 0.05, 'sine', 0.05);
+  }
+};
 
 function loadAllSaves() {try {return JSON.parse(localStorage.getItem(SAVES_KEY) || '{}') || {};} catch (e) {return {};}}
 function saveAllSaves(o) {try {localStorage.setItem(SAVES_KEY, JSON.stringify(o));} catch (e) {}}
@@ -304,8 +320,19 @@ function FallingTeethSimulation({ totalGenerators, clickPulse, toothImg }) {
   );
 }
 
+window.getXPRequired = function(level) {
+  if (level <= 0) return 100;
+  let req = 100;
+  // Mult starts at 1.75 and grows by 0.5 per level
+  for (let i = 0; i < level; i++) {
+    req *= (1.75 + (i * 0.5));
+    if (req > 1e307) return 1e308; // Infinity safety
+  }
+  return Math.floor(req);
+};
+
 function defaultState() {
-  return { teeth: 0, totalEarned: 0, totalClicks: 0, goldenClicks: 0, generators: {}, clickUpgrades: {}, achievements: {}, newAchievementIds: {}, storeUpgrades: {}, prestige: 0, prestigeCount: 0, selectedTooth: 0, startedAt: Date.now(), timePlayed: 0, lastTick: Date.now(), feedbackSent: false, feedbackCount: 0, dontShowTourAgain: false, hasSeenTour: false, hasSeenHelpIndicator: false };
+  return { teeth: 0, totalEarned: 0, totalClicks: 0, goldenClicks: 0, generators: {}, clickUpgrades: {}, achievements: {}, newAchievementIds: {}, storeUpgrades: {}, prestige: 0, prestigeCount: 0, selectedTooth: 0, startedAt: Date.now(), timePlayed: 0, lastTick: Date.now(), feedbackSent: false, feedbackCount: 0, dontShowTourAgain: false, hasSeenTour: false, hasSeenHelpIndicator: false, clinicName: null, level: 0, xp: 0, xpUpgrades: {}, musicSettings: { volume: 0.4, muted: false, playMode: 'shuffle', currentTrackId: null } };
 }
 
 function MusicFloatingBtn({ isPlaying, onClick }) {
@@ -337,10 +364,10 @@ function MusicFloatingBtn({ isPlaying, onClick }) {
 
 function MusicPlayerModal({ 
   onClose, tracks, currentTrack, onSelectTrack,
-  isPlaying, onPlayPause, onStop,
-  volume, onVolumeChange,
-  muted, onMuteToggle,
-  playMode, onPlayModeChange,
+  isPlaying, onTogglePlay,
+  volume, onChangeVolume,
+  muted, onToggleMute,
+  playMode, onChangePlayMode,
   currentTime, duration, onSeek,
   soundOn, toggleSound, lang
 }) {
@@ -357,11 +384,11 @@ function MusicPlayerModal({
       <div style={{ padding: 'var(--spacing-4)', background: 'var(--bg-2)', borderRadius: 'var(--radius-s)', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ fontWeight: 600, fontSize: 14 }}>{lang === 'es' ? 'Volumen Música' : 'Music Volume'}</div>
-          <button onClick={onMuteToggle} style={{ all: 'unset', cursor: 'pointer', color: muted ? 'var(--negative-i100)' : 'var(--fg-2)' }}>
+          <button onClick={onToggleMute} style={{ all: 'unset', cursor: 'pointer', color: muted ? 'var(--negative-i100)' : 'var(--fg-2)' }}>
             <i className={`fa-solid ${muted ? 'fa-volume-xmark' : 'fa-volume-high'}`}></i>
           </button>
         </div>
-        <input type="range" min="0" max="1" step="0.01" value={muted ? 0 : volume} onChange={e => onVolumeChange(parseFloat(e.target.value))} style={{ width: '100%', cursor: 'pointer' }} />
+        <input type="range" min="0" max="1" step="0.01" value={muted ? 0 : volume} onChange={e => onChangeVolume(parseFloat(e.target.value))} style={{ width: '100%', cursor: 'pointer' }} />
         
         <div style={{ height: 1, background: 'var(--border-subtle)', margin: '16px 0' }} />
         
@@ -375,13 +402,13 @@ function MusicPlayerModal({
 
       {/* Play Modes */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <button onClick={() => onPlayModeChange('shuffle')} style={{ flex: 1, padding: '8px', background: playMode === 'shuffle' ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${playMode === 'shuffle' ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: playMode === 'shuffle' ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => onChangePlayMode('shuffle')} style={{ flex: 1, padding: '8px', background: playMode === 'shuffle' ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${playMode === 'shuffle' ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: playMode === 'shuffle' ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
           <i className="fa-solid fa-shuffle"></i> {lang === 'es' ? 'Aleatorio' : 'Shuffle'}
         </button>
-        <button onClick={() => onPlayModeChange('loop')} style={{ flex: 1, padding: '8px', background: playMode === 'loop' ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${playMode === 'loop' ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: playMode === 'loop' ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => onChangePlayMode('loop')} style={{ flex: 1, padding: '8px', background: playMode === 'loop' ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${playMode === 'loop' ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: playMode === 'loop' ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
           <i className="fa-solid fa-repeat"></i> {lang === 'es' ? 'Bucle' : 'Loop'}
         </button>
-        <button onClick={() => onPlayModeChange('stop')} style={{ flex: 1, padding: '8px', background: playMode === 'stop' ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${playMode === 'stop' ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: playMode === 'stop' ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => onChangePlayMode('stop')} style={{ flex: 1, padding: '8px', background: playMode === 'stop' ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${playMode === 'stop' ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: playMode === 'stop' ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
           <i className="fa-solid fa-ban"></i> {lang === 'es' ? 'Fin' : 'End'}
         </button>
       </div>
@@ -397,11 +424,8 @@ function MusicPlayerModal({
                 <div style={{ display: 'flex', gap: 12 }}>
                   {isCurrent ? (
                     <>
-                      <button onClick={onPlayPause} style={{ all: 'unset', cursor: 'pointer', color: 'var(--primary-i100)' }}>
+                      <button onClick={onTogglePlay} style={{ all: 'unset', cursor: 'pointer', color: 'var(--primary-i100)' }}>
                         <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
-                      </button>
-                      <button onClick={onStop} style={{ all: 'unset', cursor: 'pointer', color: 'var(--negative-i100)' }}>
-                        <i className="fa-solid fa-stop"></i>
                       </button>
                     </>
                   ) : (
@@ -525,31 +549,92 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const audioRef = useRef(null);
   const musicAttempted = useRef(false);
   const [musicModalOpen, setMusicModalOpen] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState(() => MUSIC_TRACKS[Math.floor(Math.random() * MUSIC_TRACKS.length)]);
+  const [tracks, setTracks] = useState([]);
+  const [currentTrack, setCurrentTrack] = useState(() => {
+    const id = saved?.musicSettings?.currentTrackId;
+    return null; // Initial state null, will be set by useEffect after tracks load
+  });
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-  const [musicVolume, setMusicVolume] = useState(() => { const v = localStorage.getItem('music-vol'); const parsed = parseFloat(v); return !isNaN(parsed) ? parsed : 0.4; });
-  const [musicMuted, setMusicMuted] = useState(false);
-  const [playMode, setPlayMode] = useState('shuffle');
+  const [musicVolume, setMusicVolume] = useState(() => saved?.musicSettings?.volume ?? 0.4);
+  const [musicMuted, setMusicMuted] = useState(() => saved?.musicSettings?.muted ?? false);
+  const [playMode, setPlayMode] = useState(() => saved?.musicSettings?.playMode ?? 'shuffle');
   const [musicTime, setMusicTime] = useState(0);
   const [musicDuration, setMusicDuration] = useState(0);
+  const sessionStartMinutes = useRef(null);
+
+  useEffect(() => {
+    if (sessionStartMinutes.current === null && state.timePlayed > 0) {
+      sessionStartMinutes.current = state.timePlayed / 60;
+    }
+  }, [state.timePlayed]);
+
+  useEffect(() => {
+    setState(s => ({
+      ...s,
+      musicSettings: {
+        volume: musicVolume,
+        muted: musicMuted,
+        playMode: playMode,
+        currentTrackId: currentTrack?.id
+      }
+    }));
+  }, [musicVolume, musicMuted, playMode, currentTrack]);
+
+  // Load dynamic music from GitHub
+  useEffect(() => {
+    fetch('https://api.github.com/repos/advancedchile/ToothClicker/contents/assets/music')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const mp3s = data
+            .filter(f => f.name.endsWith('.mp3') && f.name !== 'congrats.mp3')
+            .map((f, i) => ({
+              id: f.sha, // Use GitHub SHA as stable ID
+              title: f.name.replace(/_/g, ' ').replace('.mp3', ''),
+              src: f.path
+            }));
+          if (mp3s.length > 0) {
+            setTracks(mp3s);
+            // If current track is just a fallback, pick one from the new list
+            setCurrentTrack(curr => {
+              if (!curr || !mp3s.find(t => t.id === curr.id)) {
+                const savedId = saved?.musicSettings?.currentTrackId;
+                return mp3s.find(t => t.id === savedId) || mp3s[Math.floor(Math.random() * mp3s.length)];
+              }
+              return curr;
+            });
+          }
+        }
+      })
+      .catch(err => console.warn('GitHub Music Sync failed, using fallbacks.', err));
+  }, []);
 
   useEffect(() => {
     if (audioRef.current && isMusicPlaying) {
+      const targetVol = musicMuted ? 0 : musicVolume;
+      audioRef.current.volume = 0;
       audioRef.current.play().catch(e => {
         console.error('Audio play blocked:', e);
         setIsMusicPlaying(false);
       });
+
+      // Fade in effect
+      let cur = 0;
+      const step = 0.02;
+      const interval = setInterval(() => {
+        cur += step;
+        if (cur >= targetVol) {
+          if (audioRef.current) audioRef.current.volume = targetVol;
+          clearInterval(interval);
+        } else {
+          if (audioRef.current) audioRef.current.volume = cur;
+        }
+      }, 50);
+      return () => clearInterval(interval);
     } else if (audioRef.current && !isMusicPlaying) {
       audioRef.current.pause();
     }
-  }, [isMusicPlaying, currentTrack]);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = musicMuted ? 0 : musicVolume;
-      localStorage.setItem('music-vol', musicVolume.toString());
-    }
-  }, [musicVolume, musicMuted]);
+  }, [isMusicPlaying, currentTrack, musicMuted, musicVolume]);
 
   const userPausedMusic = useRef(false);
 
@@ -582,6 +667,10 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [cheatLevel, setCheatLevel] = useState(0);
   const clickTimesRef = useRef([]);
+  const [isEditingClinic, setIsEditingClinic] = useState(false);
+  const [tempClinicName, setTempClinicName] = useState(state.clinicName || '');
+  const [showLevelUpModal, setShowLevelUpModal] = useState(false);
+  const [justLeveledTo, setJustLeveledTo] = useState(0);
   const [shownMilestones, setShownMilestones] = useState(() => {
     const saved = loadUserSave(username);
     return new Set(saved?.shownMilestones || []);
@@ -602,6 +691,20 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     const saved = loadUserSave(username);
     return !!saved?.hasSeenHelpIndicator;
   });
+  const buyXpUpgrade = (id) => {
+    const up = (window.XP_UPGRADES || []).find(u => u.id === id);
+    if (!up || state.xpUpgrades[id]) return;
+    const cost = up.baseCost * Math.pow(1.5, state.prestigeCount || 0);
+    if (state.teeth < cost) return;
+    
+    window.playClickSound && window.playClickSound();
+    setState(s => ({
+      ...s,
+      teeth: s.teeth - cost,
+      xpUpgrades: { ...s.xpUpgrades, [id]: true }
+    }));
+  };
+
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -701,7 +804,29 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
         const aMult = 1 + 0.01 * Object.values(s.achievements || {}).filter(Boolean).length;
         const gMult = goldenActiveUntil > now ? 7 : 1;
         const earned = v * pMult * aMult * gMult * dt;
-        return { ...s, teeth: s.teeth + earned, totalEarned: s.totalEarned + earned, timePlayed: s.timePlayed + dt, lastTick: now };
+        
+        // Passive XP Gain
+        const xpPassiveBase = 0;
+        const xpFromUpgrades = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades[up.id] ? up.xpPassive : 0), 0);
+        let newXP = (s.xp || 0) + (xpPassiveBase + xpFromUpgrades) * dt;
+        let newLevel = s.level || 0;
+        const maxLevel = 50000;
+        while (newLevel < maxLevel) {
+          const req = window.getXPRequired(newLevel);
+          if (newXP >= req) {
+            newXP -= req;
+            newLevel++;
+            setTimeout(() => {
+              setJustLeveledTo(newLevel);
+              setShowLevelUpModal(true);
+              const audio = new Audio('assets/music/congrats.mp3');
+              audio.volume = 0.5;
+              audio.play().catch(() => {});
+            }, 0);
+          } else { break; }
+        }
+
+        return { ...s, teeth: s.teeth + earned, totalEarned: s.totalEarned + earned, timePlayed: s.timePlayed + dt, lastTick: now, xp: newXP, level: newLevel };
       });
     }, 100);
     return () => clearInterval(interval);
@@ -709,7 +834,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
 
   // Autosave
   const doManualSave = useCallback(() => {
-    try {persistUserSave(username, stateRef.current);setSaveFlash(true);setTimeout(() => setSaveFlash(false), 1500);const s = stateRef.current;if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0 });} catch (e) {}
+    try {persistUserSave(username, stateRef.current);setSaveFlash(true);setTimeout(() => setSaveFlash(false), 1500);const s = stateRef.current;if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, prestigeCount: s.prestigeCount || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0, clinicName: s.clinicName, level: s.level || 0 });} catch (e) {}
   }, [username]);
 
   useEffect(() => {
@@ -728,7 +853,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   }, [hasSeenTour, state.totalEarned, currentTourStep]);
 
   useEffect(() => {
-    const pushScore = () => {const s = stateRef.current;if (!s) return;window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0 });};
+    const pushScore = () => {const s = stateRef.current;if (!s) return;window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, prestigeCount: s.prestigeCount || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0, clinicName: s.clinicName, level: s.level || 0 });};
     const first = setTimeout(pushScore, 10000);
     const id = setInterval(pushScore, 30000);
     window.addEventListener('beforeunload', pushScore);
@@ -755,12 +880,15 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
 
   // Handle Custom Milestone Messages
   useEffect(() => {
-    if (bossMsg || customMessages.length === 0) return;
+    if (bossMsg || customMessages.length === 0 || sessionStartMinutes.current === null) return;
     const elapsedMinutes = (state.timePlayed || 0) / 60;
     
     // Find messages whose milestone has been reached but haven't been shown
+    // AND were reached during THIS session (to avoid offline spam)
     const pending = customMessages.filter(m => {
-      return elapsedMinutes >= m.milestone && !shownMilestones.has('custom-' + m.id);
+      return elapsedMinutes >= m.milestone && 
+             m.milestone >= sessionStartMinutes.current &&
+             !shownMilestones.has('custom-' + m.id);
     });
 
     if (pending.length > 0) {
@@ -857,7 +985,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
         }
       }, 7000); // 7s duration
     }, 3000);
-    return () => clearInterval(check);
+    return () => clearTimeout(check);
   }, []);
 
   const performClick = useCallback((x, y) => {
@@ -869,9 +997,38 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
       const cps = clickTimesRef.current.length;
       if (cps >= 20 && cheatLevel === 0) {
         const banResult = window.AntiCheat.applyBan(username);
-        if (banResult) setCheatLevel(banResult.newLevel);
+        if (banResult) {
+          setCheatLevel(banResult.newLevel);
+          setIsMainMouseDown(false);
+        }
       }
-      return { ...s, teeth: s.teeth + gain, totalEarned: s.totalEarned + gain, totalClicks: s.totalClicks + 1, maxCPS: Math.max(s.maxCPS || 0, cps) };
+      const xpPerClickBase = 0.1;
+      const xpFromUpgrades = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades[up.id] ? up.xpPerClick : 0), 0);
+      const xpGained = xpPerClickBase + xpFromUpgrades;
+      
+      let newXP = (s.xp || 0) + xpGained;
+      let newLevel = s.level || 0;
+      const maxLevel = 50000;
+      
+      while (newLevel < maxLevel) {
+        const req = window.getXPRequired(newLevel);
+        if (newXP >= req) {
+          newXP -= req;
+          newLevel++;
+          // Trigger level up effect
+          setTimeout(() => {
+            setJustLeveledTo(newLevel);
+            setShowLevelUpModal(true);
+            const audio = new Audio('assets/music/congrats.mp3');
+            audio.volume = 0.5;
+            audio.play().catch(() => {});
+          }, 0);
+        } else {
+          break;
+        }
+      }
+
+      return { ...s, teeth: s.teeth + gain, totalEarned: s.totalEarned + gain, totalClicks: s.totalClicks + 1, maxCPS: Math.max(s.maxCPS || 0, cps), xp: newXP, level: newLevel };
     });
     setFloats([{ id: Math.random(), x, y, gain, born: Date.now(), tx: (Math.random() - 0.5) * 80 }]);
     setToothParticles([{ id: Math.random(), x, y, born: Date.now(), tx: (Math.random() - 0.5) * 320, rot: (Math.random() - 0.5) * 180 }]);
@@ -970,6 +1127,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
         en: `Upgrade bought: ${up.en}!` 
       });
       setTimeout(() => setToast(null), 3000);
+      setGlobalTooltip(null);
       if (soundRef.current) window.playTone(880, 0.15, 'sine', 0.1);
     }
   }, [state.teeth, state.storeUpgrades]);
@@ -1221,7 +1379,33 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
             }}
           >
             <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--primary-i100)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 11 }}>{(username[0] || '?').toUpperCase()}</div>
-            <div className="t-body-s" style={{ color: 'var(--primary-i130)', fontWeight: 500 }}>{username}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <div className="t-body-s" style={{ color: 'var(--primary-i130)', fontWeight: 600, lineHeight: 1.2 }}>{username}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--primary-i100)', textTransform: 'uppercase' }}>Niv. {state.level}</span>
+                <div 
+                  onMouseEnter={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    window.__xpTimer = setTimeout(() => {
+                      const req = window.getXPRequired(state.level);
+                      const missing = req - state.xp;
+                      setGlobalTooltip({ 
+                        type: 'xp', 
+                        direction: 'down',
+                        pos: { x: rect.left + rect.width / 2, y: rect.bottom + 8 } 
+                      });
+                    }, 1000);
+                  }}
+                  onMouseLeave={() => {
+                    clearTimeout(window.__xpTimer);
+                    setGlobalTooltip(null);
+                  }}
+                  style={{ width: 40, height: 4, background: 'rgba(0,118,219,0.1)', borderRadius: 2, overflow: 'hidden', cursor: 'help' }}
+                >
+                  <div style={{ width: `${Math.min(100, (state.xp / window.getXPRequired(state.level)) * 100)}%`, height: '100%', background: 'var(--primary-i100)', transition: 'width 300ms' }} />
+                </div>
+              </div>
+            </div>
             <i className="fa-solid fa-angle-down" style={{ fontSize: 10, color: 'var(--primary-i100)', marginLeft: 2, transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}></i>
           </button>
           {menuOpen &&
@@ -1232,7 +1416,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
               <window.MenuItem icon="fa-circle-info" label={lang === 'es' ? 'Acerca de' : 'About'} onClick={() => {setMenuOpen(false);setShowAbout(true);}} />
               <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => {setMenuOpen(false);setShowFeedbackModal(true);}} />
               <window.MenuDivider />
-              <window.MenuItem icon="fa-right-from-bracket" label={t.logout} onClick={() => {setMenuOpen(false);try {persistUserSave(username, stateRef.current);} catch (e) {}try {const s = stateRef.current;if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0 });} catch (e) {}onLogout && onLogout();}} />
+              <window.MenuItem icon="fa-right-from-bracket" label={t.logout} onClick={() => {setMenuOpen(false);try {persistUserSave(username, stateRef.current);} catch (e) {}try {const s = stateRef.current;if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, prestigeCount: s.prestigeCount || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0, clinicName: s.clinicName, level: s.level || 0 });} catch (e) {}onLogout && onLogout();}} />
               <window.MenuItem icon="fa-trash" label={t.reset} danger onClick={() => {setMenuOpen(false);setShowResetConfirm(true);}} />
             </div>
           }
@@ -1288,32 +1472,55 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                       animation: pick.animation,
                       particles: pick.particles
                     });
-                    console.log(`Debug: Triggered msg from pool of ${customMessages.length}`);
-                  } else {
-                    window.cloudLoadCustomMessages().then(res => {
-                      const msgs = res.ok ? res.messages : [];
-                      if (msgs.length > 0) {
-                        setCustomMessages(msgs);
-                        const pick = msgs[Math.floor(Math.random() * msgs.length)];
-                        setBossMsg({ 
-                          who: pick.who, 
-                          es: pick.text, 
-                          en: pick.text, 
-                          isCustom: true,
-                          color: pick.color,
-                          position: pick.position,
-                          size: pick.size,
-                          animation: pick.animation,
-                          particles: pick.particles
-                        });
-                      } else {
-                        setBossMsg({ who: 'System', es: `No hay mensajes (Pool: ${customMessages.length}). Revisa el Admin Panel.`, en: `No messages (Pool: ${customMessages.length}). Check Admin Panel.` });
-                      }
-                    });
                   }
                 }} style={{ ...debugBtnStyle, background: 'var(--primary-i010)', color: 'var(--primary-i100)', borderColor: 'var(--primary-i030)' }}>Trigger Msg ({customMessages.length})</button>
               </div>
             )}
+            <div style={{ textAlign: 'center', marginBottom: 16, marginTop: -10, position: 'relative', zIndex: 10 }}>
+              {isEditingClinic ? (
+                <input 
+                  autoFocus
+                  value={tempClinicName}
+                  onChange={e => setTempClinicName(e.target.value.slice(0, 30))}
+                  onBlur={() => {
+                    setIsEditingClinic(false);
+                    const final = tempClinicName.trim();
+                    if (final !== state.clinicName) {
+                      setState(s => ({ ...s, clinicName: final || null }));
+                    }
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') e.currentTarget.blur();
+                    if (e.key === 'Escape') {
+                      setTempClinicName(state.clinicName || '');
+                      setIsEditingClinic(false);
+                    }
+                  }}
+                  style={{
+                    all: 'unset', boxSizing: 'border-box',
+                    background: 'var(--bg-1)', border: '2px solid var(--primary-i100)',
+                    borderRadius: 8, padding: '4px 12px', width: 'auto', minWidth: 200,
+                    fontSize: 16, fontWeight: 700, color: 'var(--fg-1)', textAlign: 'center',
+                    boxShadow: '0 4px 12px rgba(0,118,219,0.15)',
+                    fontFamily: 'var(--font-sans)'
+                  }}
+                />
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <span className="t-heading-s" style={{ color: 'var(--fg-1)', letterSpacing: '-0.01em' }}>
+                    {state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)}
+                  </span>
+                  <button 
+                    onClick={() => { window.playClickSound && window.playClickSound(); setIsEditingClinic(true); setTempClinicName(state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)); }} 
+                    style={{ all: 'unset', cursor: 'pointer', color: 'var(--fg-3)', transition: 'color 150ms' }}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-i100)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--fg-3)'}
+                  >
+                    <i className="fa-solid fa-pen-to-square" style={{ fontSize: 13 }}></i>
+                  </button>
+                </div>
+              )}
+            </div>
             <div style={{ position: 'relative', width: '100%', height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{
                   position: 'absolute', top: '50%', left: '50%', width: 1200, height: 1200,
@@ -1354,13 +1561,25 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           </div>
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, width: '100%' }}>
-              {(window.STORE_UPGRADES || []).filter(up => !state.storeUpgrades[up.id] && state.totalEarned >= up.requirement).map(up => {
+              {(window.STORE_UPGRADES || []).filter(up => {
+                if (state.storeUpgrades[up.id]) return false;
+                if (up.type === 'generator') {
+                  return (state.generators[up.targetId] || 0) >= up.milestone;
+                }
+                return state.totalEarned >= up.requirement;
+              }).map(up => {
                 const canAfford = state.teeth >= up.cost;
                 return <window.StoreUpgradeIcon key={up.id} up={up} canAfford={canAfford} onBuy={buyStoreUpgrade} lang={lang} fmt={fmt} onHover={(up, pos) => setGlobalTooltip({ type: 'shop', data: up, pos })} onLeave={() => setGlobalTooltip(null)} />;
               })}
-              {(window.STORE_UPGRADES || []).filter(up => !state.storeUpgrades[up.id] && state.totalEarned >= up.requirement).length === 0 && (
+              {(window.STORE_UPGRADES || []).filter(up => {
+                if (state.storeUpgrades[up.id]) return false;
+                if (up.type === 'generator') {
+                  return (state.generators[up.targetId] || 0) >= up.milestone;
+                }
+                return state.totalEarned >= up.requirement;
+              }).length === 0 && (
                 <div style={{ fontSize: 12, color: 'var(--fg-3)', fontStyle: 'italic', padding: '10px 0' }}>
-                  {lang === 'es' ? 'No hay mejoras disponibles' : 'No upgrades available'}
+                  {lang === 'es' ? 'La tienda está trabajando en nuevas mejoras…' : 'The store is working on new upgrades…'}
                 </div>
               )}
             </div>
@@ -1369,11 +1588,12 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
 
       {/* RIGHT */}
       <section style={{ background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-m)', padding: 'var(--spacing-5) var(--spacing-6) var(--spacing-6)', height: 'calc(100vh - 120px)', maxHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-          <window.TabBar id="game-tabs-tour" active={tab} onChange={setTab} tabs={[
+          <window.TabBar id="game-tabs-tour" active={tab} onChange={(newTab) => { window.playClickSound && window.playClickSound(); setTab(newTab); }} tabs={[
           { id: 'generators', label: t.tabGen, icon: 'fa-solid fa-industry' },
           { id: 'click', label: t.tabClick, icon: 'fa-solid fa-hand-pointer' },
           { id: 'achievements', label: t.tabAch, icon: 'fa-solid fa-trophy', dot: Object.keys(state.newAchievementIds || {}).length > 0 },
           { id: 'prestige', label: t.tabPrestige, icon: 'fa-solid fa-crown' },
+          { id: 'skills', label: lang === 'es' ? 'Academia' : 'Academy', icon: 'fa-solid fa-graduation-cap' },
           { id: 'leaderboard', label: t.tabLeaderboard, icon: 'fa-solid fa-ranking-star' },
           { id: 'stats', label: t.tabStats, icon: 'fa-solid fa-chart-line' }]
           } />
@@ -1388,7 +1608,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                 </div>
                 <div style={{ display: 'flex', gap: 3, background: 'var(--bg-3)', padding: 3, borderRadius: 'var(--radius-s)', flexShrink: 0 }}>
                   {[1, 10, 25, 50, 100, 1000].map((q) =>
-                <button key={q} onClick={() => setBuyQty(q)} style={{
+                <button key={q} onClick={() => { window.playClickSound && window.playClickSound(); setBuyQty(q); }} style={{
                   all: 'unset', boxSizing: 'border-box', padding: '5px 9px', borderRadius: 6,
                   fontSize: 12, fontWeight: buyQty === q ? 700 : 500, cursor: 'pointer',
                   background: buyQty === q ? 'var(--primary-i100)' : 'transparent',
@@ -1524,7 +1744,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                   const isCurrent = (state.selectedTooth || 0) === i && unlocked;
                   return (
                     <div key={i} 
-                      onClick={() => {if (unlocked) setState((prev) => ({ ...prev, selectedTooth: i }));}} 
+                      onClick={() => {if (unlocked) { window.playClickSound && window.playClickSound(); setState((prev) => ({ ...prev, selectedTooth: i })); }}} 
                       onMouseEnter={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
                         setGlobalTooltip({ type: 'stage', data: s, pos: { x: rect.left + rect.width / 2, y: rect.top }, unlocked });
@@ -1552,6 +1772,41 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
               </div>
             </div>
           }
+          {tab === 'skills' &&
+            <div>
+              <div style={{ marginBottom: 'var(--spacing-4)' }}>
+                <div className="t-heading-m">{lang === 'es' ? 'Academia Dental' : 'Dental Academy'}</div>
+                <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Mejora tus conocimientos para subir de nivel más rápido.' : 'Improve your knowledge to level up faster.'}</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {(window.XP_UPGRADES || []).filter(up => (state.prestigeCount || 0) >= up.prestigeReq).slice(0, 50).map(up => {
+                  const purchased = state.xpUpgrades[up.id];
+                  const cost = up.baseCost * Math.pow(1.5, state.prestigeCount || 0);
+                  const canAfford = state.teeth >= cost;
+                  return (
+                    <div key={up.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: purchased ? 'var(--primary-i005)' : 'var(--bg-2)', border: purchased ? '1px solid var(--primary-i020)' : '1px solid var(--border-subtle)', borderRadius: 10, opacity: !purchased && !canAfford ? 0.7 : 1 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: purchased ? 'var(--primary-i100)' : 'var(--fg-1)' }}>{up.name[lang]}</div>
+                        <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>{up.desc[lang]}</div>
+                      </div>
+                      <button 
+                        disabled={purchased || !canAfford}
+                        onClick={() => buyXpUpgrade(up.id)}
+                        style={{
+                          all: 'unset', boxSizing: 'border-box', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: (purchased || !canAfford) ? 'not-allowed' : 'pointer',
+                          background: purchased ? 'var(--positive-i100)' : (canAfford ? 'var(--primary-i100)' : 'var(--bg-3)'),
+                          color: (purchased || canAfford) ? '#fff' : 'var(--fg-3)',
+                          minWidth: 80, textAlign: 'center'
+                        }}
+                      >
+                        {purchased ? (lang === 'es' ? 'Comprado' : 'Purchased') : fmt(cost)}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            }
 
           {tab === 'leaderboard' && <window.LeaderboardPanel username={username} lang={lang} />}
 
@@ -1604,8 +1859,8 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
             e.target.currentTime = 0;
             e.target.play().catch(err => { console.error('Loop play blocked:', err); setIsMusicPlaying(false); });
           } else {
-            let nextIdx = Math.floor(Math.random() * MUSIC_TRACKS.length);
-            setCurrentTrack(MUSIC_TRACKS[nextIdx]);
+            let nextIdx = Math.floor(Math.random() * tracks.length);
+            setCurrentTrack(tracks[nextIdx]);
           }
         }}
       />
@@ -1625,42 +1880,21 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
         <MusicPlayerModal
           lang={lang}
           onClose={() => setMusicModalOpen(false)}
-          tracks={MUSIC_TRACKS}
+          tracks={tracks}
           currentTrack={currentTrack}
           onSelectTrack={(t) => { setCurrentTrack(t); setIsMusicPlaying(true); }}
           isPlaying={isMusicPlaying}
-          onPlayPause={() => {
-            if (isMusicPlaying) {
-              userPausedMusic.current = true;
-              audioRef.current?.pause();
-              setIsMusicPlaying(false);
-            } else {
-              userPausedMusic.current = false;
-              audioRef.current?.play().then(() => setIsMusicPlaying(true)).catch(()=>{});
-            }
-          }}
-          onStop={() => {
-            userPausedMusic.current = true;
-            if (audioRef.current) {
-              audioRef.current.pause();
-              audioRef.current.currentTime = 0;
-            }
-            setIsMusicPlaying(false);
-          }}
+          onTogglePlay={() => setIsMusicPlaying(!isMusicPlaying)}
           volume={musicVolume}
-          onVolumeChange={setMusicVolume}
+          onChangeVolume={setMusicVolume}
           muted={musicMuted}
-          onMuteToggle={() => setMusicMuted(!musicMuted)}
+          onToggleMute={() => setMusicMuted(!musicMuted)}
           playMode={playMode}
-          onPlayModeChange={setPlayMode}
+          onChangePlayMode={setPlayMode}
+          audioRef={audioRef}
           currentTime={musicTime}
           duration={musicDuration}
-          onSeek={(val) => {
-            if (audioRef.current) {
-              audioRef.current.currentTime = val;
-              setMusicTime(val);
-            }
-          }}
+          onSeek={(t) => { if (audioRef.current) audioRef.current.currentTime = t; }}
           soundOn={soundOn}
           toggleSound={toggleSound}
         />
@@ -1836,7 +2070,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           lang={lang} 
           onAcknowledge={() => {
             clickTimesRef.current = [];
-            if (cheatLevel > 1 && username !== 'James') {
+            if (cheatLevel > 1) {
               // Kick user
               onLogout();
             } else {
@@ -1845,20 +2079,21 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           }} 
         />
       )}
-      {username === 'James' && (
+      {username === 'James' && cheatLevel === 0 && (
         <window.AdminAutoClicker 
           lang={lang} 
           isMainMouseDown={isMainMouseDown} 
           onSimulateClick={performClick} 
-          isBlocked={cheatLevel > 0}
         />
       )}
       {bossMsg && <BossMarquee msg={bossMsg} lang={lang} danger={bossMsg.danger} onDismiss={() => setBossMsg(null)} />}
       
       {globalTooltip && (
         <div style={{
-          position: 'fixed', left: globalTooltip.pos.x, top: globalTooltip.pos.y - 8,
-          transform: 'translateX(-50%) translateY(-100%)',
+          position: 'fixed', 
+          left: Math.max(110, Math.min(window.innerWidth - 110, globalTooltip.pos.x)), 
+          top: globalTooltip.pos.y + (globalTooltip.direction === 'down' ? 8 : -8),
+          transform: globalTooltip.direction === 'down' ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-100%)',
           background: 'var(--fg-1)', color: 'var(--bg-1)',
           padding: '8px 14px', borderRadius: 10,
           fontSize: 12, lineHeight: 1.4,
@@ -1888,6 +2123,20 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
             </>
           ) : globalTooltip.type === 'text' ? (
             <div style={{ fontSize: 12 }}>{globalTooltip.text}</div>
+          ) : globalTooltip.type === 'xp' ? (
+            <>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>{lang === 'es' ? 'Experiencia' : 'Experience'}</div>
+              <div style={{ opacity: 0.8, fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>
+                {lang === 'es' ? 'Faltan ' : ''}
+                {(window.getXPRequired(state.level) - state.xp).toLocaleString(lang === 'es' ? 'es-ES' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {lang === 'es' ? ` XP para nivel ${state.level + 1}` : ` XP missing for level ${state.level + 1}`}
+              </div>
+            </>
+          ) : globalTooltip.type === 'generic' ? (
+            <>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.data.title}</div>
+              <div style={{ opacity: 0.8, fontSize: 11 }}>{globalTooltip.data.desc}</div>
+            </>
           ) : (
             <>
               <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.unlocked ? (globalTooltip.data[lang] || globalTooltip.data.es) : '???'}</div>
@@ -1899,17 +2148,40 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
 
       {contextMenu && (
         <div style={{ position: 'fixed', left: contextMenu.x, top: contextMenu.y, minWidth: 260, background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', boxShadow: 'var(--elevation-20)', padding: 6, zIndex: 10000, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <window.MenuItem icon={soundOn ? 'fa-volume-high' : 'fa-volume-xmark'} label={soundOn ? t.soundOn : t.soundOff} onClick={toggleSound} />
-          <window.MenuItem icon="fa-language" label={lang === 'es' ? 'Español' : 'English'} trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'EN →' : 'ES →'}</span>} onClick={toggleLang} />
-          <window.MenuItem icon="fa-hashtag" label={lang === 'es' ? 'Formato numérico' : 'Number format'} trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{{ short: '1.2M', long: lang === 'es' ? 'millón' : 'million', engineering: '1.2e6', scientific: '10^6' }[numFormat]} →</span>} onClick={cycleNumFormat} />
-          <window.MenuItem icon="fa-circle-info" label={lang === 'es' ? 'Acerca de' : 'About'} onClick={() => setShowAbout(true)} />
-          <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => setShowFeedbackModal(true)} />
+          <window.MenuItem icon={soundOn ? 'fa-volume-high' : 'fa-volume-xmark'} label={soundOn ? t.soundOn : t.soundOff} onClick={() => { window.playClickSound && window.playClickSound(); toggleSound(); }} />
+          <window.MenuItem icon="fa-language" label={lang === 'es' ? 'Español' : 'English'} trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'EN →' : 'ES →'}</span>} onClick={() => { window.playClickSound && window.playClickSound(); toggleLang(); }} />
+          <window.MenuItem icon="fa-hashtag" label={lang === 'es' ? 'Formato numérico' : 'Number format'} trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{{ short: '1.2M', long: lang === 'es' ? 'millón' : 'million', engineering: '1.2e6', scientific: '10^6' }[numFormat]} →</span>} onClick={() => { window.playClickSound && window.playClickSound(); cycleNumFormat(); }} />
+          <window.MenuItem icon="fa-circle-info" label={lang === 'es' ? 'Acerca de' : 'About'} onClick={() => { window.playClickSound && window.playClickSound(); setShowAbout(true); }} />
+          <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => { window.playClickSound && window.playClickSound(); setShowFeedbackModal(true); }} />
           <window.MenuDivider />
-          <window.MenuItem icon="fa-question" label="¡Te sientes curioso?" onClick={() => setShowCuriosityModal(true)} />
+          <window.MenuItem icon="fa-question" label="¡Te sientes curioso?" onClick={() => { window.playClickSound && window.playClickSound(); setShowCuriosityModal(true); }} />
           <window.MenuDivider />
-          <window.MenuItem icon="fa-right-from-bracket" label={t.logout} onClick={() => {try {persistUserSave(username, stateRef.current);} catch (e) {}try {const s = stateRef.current;if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0 });} catch (e) {}onLogout && onLogout();}} />
-          <window.MenuItem icon="fa-trash" label={t.reset} danger onClick={() => setShowResetConfirm(true)} />
+          <window.MenuItem icon="fa-right-from-bracket" label={t.logout} onClick={() => { window.playClickSound && window.playClickSound(); try {persistUserSave(username, stateRef.current);} catch (e) {}try {const s = stateRef.current;if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, prestigeCount: s.prestigeCount || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0, clinicName: s.clinicName });} catch (e) {}onLogout && onLogout();}} />
+          <window.MenuItem icon="fa-trash" label={t.reset} danger onClick={() => { window.playClickSound && window.playClickSound(); setShowResetConfirm(true); }} />
         </div>
+      )}
+
+      {showLevelUpModal && (
+        <window.Modal onClose={() => setShowLevelUpModal(false)} maxWidth={380}>
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🎊</div>
+            <div className="t-heading-m" style={{ color: 'var(--primary-i100)' }}>{lang === 'es' ? '¡Nuevo Nivel!' : 'Level Up!'}</div>
+            <div className="t-body-m" style={{ marginTop: 8, color: 'var(--fg-2)' }}>
+              {lang === 'es' ? `¡Felicidades! Has alcanzado el nivel ${justLeveledTo}.` : `Congratulations! You've reached level ${justLeveledTo}.`}
+            </div>
+            <div style={{ marginTop: 24, padding: '12px', background: 'var(--primary-i005)', borderRadius: 12, border: '1px solid var(--primary-i020)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary-i130)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                {lang === 'es' ? 'Próximo Objetivo' : 'Next Goal'}
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-1)' }}>
+                {fmt(window.getXPRequired(justLeveledTo))} XP
+              </div>
+            </div>
+            <button onClick={() => setShowLevelUpModal(false)} style={{ ...primaryBtnStyle, marginTop: 24, width: '100%' }}>
+              {lang === 'es' ? '¡Excelente!' : 'Awesome!'}
+            </button>
+          </div>
+        </window.Modal>
       )}
 
       {showCuriosityModal && (
@@ -2325,7 +2597,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
             { id: 'messages', label: 'Mensajes', icon: 'fa-bullhorn' },
             { id: 'danger', label: lang === 'es' ? 'Zona Peligrosa' : 'Danger Zone', icon: 'fa-triangle-exclamation' },
           ].map(t => (
-            <button key={t.id} onClick={() => setAdminTab(t.id)} className="app-btn" style={{
+            <button key={t.id} onClick={() => { window.playClickSound && window.playClickSound(); setAdminTab(t.id); }} className="app-btn" style={{
               ...btn, flex: 1, padding: '8px 12px', fontSize: 11, borderRadius: 10,
               background: adminTab === t.id ? (t.id === 'danger' ? '#e11d24' : '#1a8fff') : 'transparent',
               color: adminTab === t.id ? '#fff' : (t.id === 'danger' ? '#e11d24' : '#4a6a8a'),
@@ -2986,7 +3258,7 @@ function App() {
   }, []);
 
   const handleAdminEnterGame = useCallback((name) => {
-    if (checkBan(name)) return;
+    if (name !== 'James' && checkBan(name)) return;
     setUsername(name);
     setScreen('game');
   }, [checkBan]);

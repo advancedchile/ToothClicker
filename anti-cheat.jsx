@@ -20,11 +20,6 @@ window.AntiCheat = {
   },
   
   applyBan: (username) => {
-    if (username === 'James') {
-      window._jamesBanLevel = (window._jamesBanLevel || 0) + 1;
-      const duration = BAN_LEVELS[Math.min(window._jamesBanLevel - 1, BAN_LEVELS.length - 1)];
-      return { newLevel: window._jamesBanLevel, duration, until: Date.now() + duration };
-    }
     const { level } = window.AntiCheat.getBanData(username);
     const newLevel = level + 1;
     const duration = BAN_LEVELS[Math.min(newLevel - 1, BAN_LEVELS.length - 1)];
@@ -35,7 +30,7 @@ window.AntiCheat = {
       if (duration !== 0) {
          localStorage.setItem(`banUntil_${username}`, until);
       }
-      if (duration === -1) {
+      if (duration === -1 && username !== 'James') {
          try { window.cloudDeleteScore(username); } catch(e) {}
       }
     } catch(e) {}

@@ -141,7 +141,12 @@
 </style>
 </head>
 <body oncontextmenu="return false;">
-<div id="root"></div>
+<div id="root">
+  <div style="position: fixed; inset: 0; background: #e8f2fb; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; font-family: 'PixelifySans', sans-serif;">
+    <img src="uploads/logo-vertical.png" alt="Loading" style="width: 220px; margin-bottom: 24px; animation: pulse 1.5s infinite ease-in-out; filter: drop-shadow(0 8px 24px rgba(80,140,220,0.22));">
+    <div style="color: #3a6a9a; font-weight: 700; font-size: 18px; letter-spacing: 0.5px;">PREPARANDO CLÍNICA...</div>
+  </div>
+</div>
 
 <script>
   window.onerror = function(msg, url, line, col, error) {
@@ -189,6 +194,7 @@
 <script type="text/babel" src="app.jsx?v=0.5.1"></script>
 <script type="text/babel" src="tweaks-panel.jsx?v=0.5.1"></script>
 <script type="text/babel" src="store_upgrades.jsx?v=0.5.1"></script>
+<script type="text/babel" src="xp_upgrades.jsx?v=0.5.1"></script>
 <script type="text/babel" src="tweaks.jsx?v=0.5.1"></script>
 </body>
 </html>

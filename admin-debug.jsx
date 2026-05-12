@@ -1,15 +1,11 @@
 // Admin Debug Tools
 const { useState, useEffect } = React;
 
-window.AdminAutoClicker = function AdminAutoClicker({ onSimulateClick, lang, isMainMouseDown, isBlocked }) {
+window.AdminAutoClicker = function AdminAutoClicker({ onSimulateClick, lang, isMainMouseDown }) {
   const [cpsRate, setCpsRate] = useState(0); // 0 = Normal, 5, 10, 15, 20
   
   useEffect(() => {
-    if (isBlocked) setCpsRate(0);
-  }, [isBlocked]);
-
-  useEffect(() => {
-    if (cpsRate === 0 || !isMainMouseDown || isBlocked) return;
+    if (cpsRate === 0 || !isMainMouseDown) return;
     
     const intervalTime = 1000 / cpsRate;
     const interval = setInterval(() => {
@@ -19,7 +15,7 @@ window.AdminAutoClicker = function AdminAutoClicker({ onSimulateClick, lang, isM
     }, intervalTime);
     
     return () => clearInterval(interval);
-  }, [cpsRate, isMainMouseDown, isBlocked, onSimulateClick]);
+  }, [cpsRate, isMainMouseDown, onSimulateClick]);
 
   return (
     <div style={{ position: 'fixed', bottom: 20, left: 20, zIndex: 1000, background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', padding: 8, display: 'flex', alignItems: 'center', gap: 8, boxShadow: 'var(--elevation-20)' }}>
