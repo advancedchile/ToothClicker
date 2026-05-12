@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+      console.log('GLOBAL_ERROR:', msg, error);
+      return false;
+    };
+    console.error = (function(old) {
+      return function() {
+        console.log('CONSOLE_ERROR:', ...arguments);
+        old.apply(this, arguments);
+      };
+    })(console.error);
+  </script>
+  <script type="text/babel" src="content.jsx?v=0.5.1"></script>
+  <script type="text/babel" src="game.jsx?v=0.5.1"></script>
+  <script type="text/babel" src="cloud.jsx?v=0.5.1"></script>
+  <script type="text/babel" src="components.jsx?v=0.5.1"></script>
+  <script type="text/babel" src="gate.jsx?v=0.5.1"></script>
+  <script type="text/babel" src="anti-cheat.jsx?v=0.5.1"></script>
+  <script type="text/babel" src="admin-debug.jsx?v=0.5.1"></script>
+  <script type="text/babel" src="app.jsx?v=0.5.1"></script>
+</body>
+</html>

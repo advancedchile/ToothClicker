@@ -2936,11 +2936,26 @@ function App() {
   // Keep window.__lang in sync (used by UserPill)
   useEffect(() => {window.__lang = lang;}, [lang]);
 
+  const [banErrorMsg, setBanErrorMsg] = useState(null);
+
+  const checkBan = useCallback((name) => {
+    const status = window.AntiCheat.checkBanStatus(name);
+    if (status && status.isBanned) {
+      const msg = status.indefinite 
+        ? (lang === 'es' ? 'Esta cuenta ha sido baneada permanentemente por uso de macros. Todo tu progreso ha sido eliminado.' : 'This account is permanently banned for macro usage. Your progress has been wiped.')
+        : (lang === 'es' ? `Esta cuenta está suspendida hasta el ${new Date(status.until).toLocaleString()}.` : `This account is suspended until ${new Date(status.until).toLocaleString()}.`);
+      setBanErrorMsg(msg);
+      return true;
+    }
+    return false;
+  }, [lang]);
+
   const refreshUsers = useCallback(() => setUsers(loadUsers()), []);
 
   const handleCreateUser = useCallback((name) => {
     const cleaned = name.trim().slice(0, 24);
     if (!cleaned) return;
+    if (checkBan(cleaned)) return;
     const updated = [...loadUsers(), cleaned];
     saveUsers(updated);
     localStorage.setItem(DEVICE_USER_KEY, cleaned);
