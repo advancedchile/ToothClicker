@@ -866,7 +866,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
       const now = Date.now();
       clickTimesRef.current = [...clickTimesRef.current.filter(t => now - t < 1000), now];
       const cps = clickTimesRef.current.length;
-      if (cps >= 20 && cheatLevel === 0 && username !== 'James') {
+      if (cps >= 20 && cheatLevel === 0) {
         const banResult = window.AntiCheat.applyBan(username);
         if (banResult) setCheatLevel(banResult.newLevel);
       }
@@ -1834,7 +1834,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           level={cheatLevel} 
           lang={lang} 
           onAcknowledge={() => {
-            if (cheatLevel > 1) {
+            if (cheatLevel > 1 && username !== 'James') {
               // Kick user
               onLogout();
             } else {
