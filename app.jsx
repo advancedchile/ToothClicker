@@ -580,7 +580,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   // Boss marquee
   const [bossMsg, setBossMsg] = useState(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [showCheaterModal, setShowCheaterModal] = useState(false);
+  const [cheatLevel, setCheatLevel] = useState(0);
   const clickTimesRef = useRef([]);
   const [shownMilestones, setShownMilestones] = useState(() => {
     const saved = loadUserSave(username);
@@ -866,7 +866,10 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
       const now = Date.now();
       clickTimesRef.current = [...clickTimesRef.current.filter(t => now - t < 1000), now];
       const cps = clickTimesRef.current.length;
-      if (cps >= 20 && !showCheaterModal) setShowCheaterModal(true);
+      if (cps >= 20 && cheatLevel === 0 && username !== 'James') {
+        const banResult = window.AntiCheat.applyBan(username);
+        if (banResult) setCheatLevel(banResult.newLevel);
+      }
       return { ...s, teeth: s.teeth + gain, totalEarned: s.totalEarned + gain, totalClicks: s.totalClicks + 1, maxCPS: Math.max(s.maxCPS || 0, cps) };
     });
     setFloats([{ id: Math.random(), x, y, gain, born: Date.now(), tx: (Math.random() - 0.5) * 80 }]);
@@ -1826,29 +1829,26 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           }}
         />
       )}
-      {showCheaterModal && (
-        <window.Modal onClose={() => setShowCheaterModal(false)}>
-          <div style={{ textAlign: 'center', padding: '10px 0' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🤨</div>
-            <h2 className="t-heading-m" style={{ marginBottom: 12 }}>
-              {lang === 'es' ? '¿20 clicks por segundo?' : '20 clicks per second?'}
-            </h2>
-            <p className="t-body-m" style={{ color: 'var(--fg-2)', lineHeight: 1.5, marginBottom: 20 }}>
-              {lang === 'es' 
-                ? 'Vaya, parece que tienes un dedo biónico o un software muy amigable ayudándote. No juzgamos... solo estamos impresionados de que tu mouse siga vivo.' 
-                : 'Wow, looks like you have a bionic finger or some very friendly software helping you out. We don\'t judge... we\'re just impressed your mouse is still alive.'}
-            </p>
-            <button 
-              onClick={() => setShowCheaterModal(false)}
-              className="t-heading-xs"
-              style={{ all: 'unset', background: 'var(--primary-i100)', color: '#fff', padding: '12px 24px', borderRadius: 8, cursor: 'pointer', transition: 'transform 100ms' }}
-              onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'}
-              onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              {lang === 'es' ? 'Lo admito, soy una máquina' : 'I admit it, I am a machine'}
-            </button>
-          </div>
-        </window.Modal>
+      {cheatLevel > 0 && (
+        <window.AntiCheatModal 
+          level={cheatLevel} 
+          lang={lang} 
+          onAcknowledge={() => {
+            if (cheatLevel > 1) {
+              // Kick user
+              onLogout();
+            } else {
+              setCheatLevel(0);
+            }
+          }} 
+        />
+      )}
+      {username === 'James' && (
+        <window.AdminAutoClicker 
+          lang={lang} 
+          isMainMouseDown={isMainMouseDown} 
+          onSimulateClick={performClick} 
+        />
       )}
       {bossMsg && <BossMarquee msg={bossMsg} lang={lang} danger={bossMsg.danger} onDismiss={() => setBossMsg(null)} />}
       
@@ -2951,9 +2951,10 @@ function App() {
   }, []);
 
   const handleSelectUser = useCallback((name) => {
+    if (checkBan(name)) return;
     setUsername(name);
     setScreen('game');
-  }, []);
+  }, [checkBan]);
 
   const handleAdminAccess = useCallback(() => {
     const session = { expiresAt: Date.now() + 30 * 60 * 1000 };
@@ -2967,9 +2968,10 @@ function App() {
   }, []);
 
   const handleAdminEnterGame = useCallback((name) => {
+    if (checkBan(name)) return;
     setUsername(name);
     setScreen('game');
-  }, []);
+  }, [checkBan]);
 
   const handleLogout = useCallback(() => {
     setUsername(null);
@@ -3031,16 +3033,40 @@ function App() {
   }
 
   return (
-    <window.Gate
-      lang={lang}
-      onLangChange={handleLangChange}
-      onSelectUser={handleSelectUser}
-      onCreateUser={handleCreateUser}
-      onAdminAccess={handleAdminAccess}
-      users={users}
-      deviceUser={deviceUser}
-      soundOn={soundOn}
-      onSoundToggle={handleSoundToggle} />);
+    <>
+      <window.Gate
+        lang={lang}
+        onLangChange={handleLangChange}
+        onSelectUser={handleSelectUser}
+        onCreateUser={handleCreateUser}
+        onAdminAccess={handleAdminAccess}
+        users={users}
+        deviceUser={deviceUser}
+        soundOn={soundOn}
+        onSoundToggle={handleSoundToggle} />
+        
+      {banErrorMsg && (
+        <window.Modal onClose={() => setBanErrorMsg(null)}>
+          <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>⛔</div>
+            <h2 className="t-heading-m" style={{ color: 'var(--negative-i100)', marginBottom: 12 }}>
+              {lang === 'es' ? 'Acceso Denegado' : 'Access Denied'}
+            </h2>
+            <p className="t-body-m" style={{ color: 'var(--fg-2)', lineHeight: 1.5, marginBottom: 20 }}>
+              {banErrorMsg}
+            </p>
+            <button 
+              onClick={() => setBanErrorMsg(null)}
+              className="t-heading-xs"
+              style={{ all: 'unset', background: 'var(--bg-3)', color: 'var(--fg-1)', padding: '10px 24px', borderRadius: 8, cursor: 'pointer' }}
+            >
+              {lang === 'es' ? 'Volver' : 'Back'}
+            </button>
+          </div>
+        </window.Modal>
+      )}
+    </>
+  );
 }
 
 Object.assign(window, { Modal, MenuItem, MenuDivider, deleteUserSave, ADMIN_NAME });
