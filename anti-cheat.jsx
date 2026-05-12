@@ -78,7 +78,7 @@ window.AntiCheatModal = function AntiCheatModal({ level, lang, onAcknowledge }) 
     return lang === 'es' ? 'Has sido baneado indefinidamente. Tu progreso ha sido eliminado.' : 'You have been banned indefinitely. Your progress has been deleted.';
   };
 
-  const btnLabel = level === 1 ? (lang === 'es' ? 'Lo entiendo' : 'I understand') : (lang === 'es' ? 'Salir' : 'Exit');
+  const btnLabel = level === 1 ? (lang === 'es' ? '¡Entendido!' : 'I understand!') : (lang === 'es' ? 'Salir' : 'Exit');
 
   return (
     <window.Modal onClose={() => {}}>

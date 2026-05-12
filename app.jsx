@@ -1834,6 +1834,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           level={cheatLevel} 
           lang={lang} 
           onAcknowledge={() => {
+            clickTimesRef.current = [];
             if (cheatLevel > 1 && username !== 'James') {
               // Kick user
               onLogout();
