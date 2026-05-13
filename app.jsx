@@ -2556,6 +2556,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [newAdminName, setNewAdminName] = useState('');
   const [nameErr, setNameErr] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [restoreTarget, setRestoreTarget] = useState(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetDone, setResetDone] = useState(false);
@@ -2923,16 +2924,21 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                         {u.banStatus.isBanned && (
-                          <button onClick={() => {
-                            if (confirm(lang === 'es' ? `¿Restaurar a ${u.name}?` : `Restore ${u.name}?`)) {
-                              window.AntiCheat.unban(u.name);
-                              setGlobalUsers(prev => [...prev]); // force re-render
-                            }
-                          }} className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(76,175,80,0.1)', color: '#388e3c', fontSize: 12, border: '1px solid rgba(76,175,80,0.25)', borderRadius: 8 }}>
+                          <button 
+                            onClick={() => setRestoreTarget(u.name)}
+                            onMouseEnter={e => setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'Restaurar jugador' : 'Restore player', pos: { x: e.clientX, y: e.clientY } })}
+                            onMouseLeave={() => setGlobalTooltip(null)}
+                            className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(76,175,80,0.1)', color: '#388e3c', fontSize: 12, border: '1px solid rgba(76,175,80,0.25)', borderRadius: 8 }}
+                          >
                             <i className="fa-solid fa-user-check"></i>
                           </button>
                         )}
-                        <button onClick={() => setDeleteTarget({ name: u.name, type: 'global' })} className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.25)', borderRadius: 8 }}>
+                        <button 
+                          onClick={() => setDeleteTarget({ name: u.name, type: 'global' })}
+                          onMouseEnter={e => setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'Eliminar jugador' : 'Delete player', pos: { x: e.clientX, y: e.clientY } })}
+                          onMouseLeave={() => setGlobalTooltip(null)}
+                          className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.25)', borderRadius: 8 }}
+                        >
                           <i className="fa-solid fa-user-slash"></i>
                         </button>
                       </div>
@@ -3384,6 +3390,31 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
               </button>
               <button onClick={() => handleDelete(deleteTarget)} className="app-btn" style={{ ...btn, flex: 1, height: 44, background: '#e53e3e', color: '#fff' }}>
                 {lang === 'es' ? 'Eliminar' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Restore Player Confirmation */}
+      {restoreTarget && (
+        <Modal onClose={() => setRestoreTarget(null)}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '10px 0' }}>
+            <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#f0fdf4', color: '#388e3c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+              <i className="fa-solid fa-user-check"></i>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a', marginBottom: 6 }}>{lang === 'es' ? `Restaurar "${restoreTarget}"` : `Restore "${restoreTarget}"`}</div>
+              <div style={{ fontSize: 14, color: '#718096', lineHeight: 1.6 }}>
+                {lang === 'es' ? 'Se eliminará el ban del jugador y podrá volver a jugar normalmente.' : 'The player ban will be lifted and they will be able to play normally again.'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
+              <button onClick={() => setRestoreTarget(null)} className="app-btn" style={{ ...btn, flex: 1, height: 44, background: '#f1f5f9', color: '#64748b' }}>
+                {lang === 'es' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button onClick={() => { window.AntiCheat.unban(restoreTarget); setGlobalUsers(prev => [...prev]); setRestoreTarget(null); }} className="app-btn" style={{ ...btn, flex: 1, height: 44, background: '#388e3c', color: '#fff' }}>
+                {lang === 'es' ? 'Restaurar' : 'Restore'}
               </button>
             </div>
           </div>
