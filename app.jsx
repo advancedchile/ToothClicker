@@ -2931,7 +2931,10 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                         {u.banStatus.isBanned && (
                           <button 
                             onClick={() => setRestoreTarget(u.name)}
-                            onMouseEnter={e => setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'Restaurar jugador' : 'Restore player', pos: { x: e.clientX, y: e.clientY } })}
+                            onMouseEnter={e => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'Restaurar jugador' : 'Restore player', pos: { x: rect.left + rect.width / 2, y: rect.top } });
+                            }}
                             onMouseLeave={() => setGlobalTooltip(null)}
                             className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(76,175,80,0.1)', color: '#388e3c', fontSize: 12, border: '1px solid rgba(76,175,80,0.25)', borderRadius: 8 }}
                           >
@@ -2940,7 +2943,10 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                         )}
                         <button 
                           onClick={() => setDeleteTarget({ name: u.name, type: 'global' })}
-                          onMouseEnter={e => setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'Eliminar jugador' : 'Delete player', pos: { x: e.clientX, y: e.clientY } })}
+                          onMouseEnter={e => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'Eliminar jugador' : 'Delete player', pos: { x: rect.left + rect.width / 2, y: rect.top } });
+                          }}
                           onMouseLeave={() => setGlobalTooltip(null)}
                           className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.25)', borderRadius: 8 }}
                         >
@@ -3458,14 +3464,14 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
         <div style={{
           position: 'fixed', 
           left: Math.max(110, Math.min(window.innerWidth - 110, globalTooltip.pos.x)), 
-          top: globalTooltip.pos.y + (globalTooltip.direction === 'down' ? 8 : -8),
+          top: globalTooltip.pos.y + (globalTooltip.direction === 'down' ? 12 : -15),
           transform: globalTooltip.direction === 'down' ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-100%)',
           background: 'var(--fg-1)', color: 'var(--bg-1)',
           padding: '8px 14px', borderRadius: 10,
           fontSize: 12, lineHeight: 1.4,
           zIndex: 10000, pointerEvents: 'none',
           boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-          width: 200, whiteSpace: 'normal', textAlign: 'center',
+          width: 'max-content', maxWidth: 250, whiteSpace: 'normal', textAlign: 'center',
           animation: 'fadeIn 150ms ease-out',
           border: '1px solid rgba(255,255,255,0.1)'
         }}>
