@@ -422,6 +422,14 @@ function MusicPlayerModal({
   const isShuffle = playMode.includes('shuffle');
   const isLoop = playMode.includes('loop');
   const isStop = playMode === 'stop';
+  const trackListRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (trackListRef.current && currentTrack) {
+      const el = trackListRef.current.querySelector(`[data-track-id="${currentTrack.id}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
 
   return (
     <Modal onClose={onClose} maxWidth={400}>
@@ -467,11 +475,11 @@ function MusicPlayerModal({
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto', paddingRight: 4 }}>
+      <div ref={trackListRef} style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto', paddingRight: 4 }}>
         {tracks.map(t => {
           const isCurrent = currentTrack?.id === t.id;
           return (
-            <div key={t.id} 
+            <div key={t.id} data-track-id={t.id}
               onClick={() => { if (!isCurrent) onSelectTrack(t); }}
               style={{ background: isCurrent ? 'var(--primary-i005)' : 'transparent', border: `1px solid ${isCurrent ? 'var(--primary-i020)' : 'var(--border-subtle)'}`, borderRadius: 10, padding: '12px 14px', cursor: isCurrent ? 'default' : 'pointer', transition: 'all 150ms' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isCurrent ? 8 : 0 }}>
@@ -832,7 +840,13 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   useEffect(() => {
     const handleContextMenu = (e) => {
       e.preventDefault();
-      setContextMenu({ x: e.clientX, y: e.clientY });
+      const menuW = 270, menuH = 320;
+      let x = e.clientX, y = e.clientY;
+      if (x + menuW > window.innerWidth) x = window.innerWidth - menuW - 8;
+      if (y + menuH > window.innerHeight) y = window.innerHeight - menuH - 8;
+      if (x < 8) x = 8;
+      if (y < 8) y = 8;
+      setContextMenu({ x, y });
     };
     const handleClickOutside = () => setContextMenu(null);
     window.addEventListener('contextmenu', handleContextMenu);
@@ -1424,10 +1438,12 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           <button 
             id="manual-tour-trigger"
             onClick={() => setCurrentTourStep(0)}
-            style={{ ...topBtnStyle, padding: '4px 8px', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ all: 'unset', boxSizing: 'border-box', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--primary-i010)', border: '1px solid var(--primary-i030)', color: 'var(--primary-i100)', transition: 'all 150ms' }}
             title={lang === 'es' ? 'Tour guiado' : 'Guided tour'}
+            onMouseOver={e => { e.currentTarget.style.background = 'var(--primary-i100)'; e.currentTarget.style.color = '#fff'; }}
+            onMouseOut={e => { e.currentTarget.style.background = 'var(--primary-i010)'; e.currentTarget.style.color = 'var(--primary-i100)'; }}
           >
-            <i className="fa-solid fa-question" style={{ fontSize: 14 }}></i>
+            <i className="fa-solid fa-question" style={{ fontSize: 10 }}></i>
           </button>
         </div>
         <div style={{ flex: 1 }} />
@@ -1983,7 +1999,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
 
       {initialLoading && (
         <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10000, animation: 'fadeOut 0.3s ease 1.2s forwards' }}>
-          <img src="uploads/logo.png" alt="Logo" style={{ width: 120, marginBottom: 20, animation: 'pulse 1s infinite ease-in-out', objectFit: 'contain' }} />
+          <img src="uploads/logo-vertical.png" alt="Logo" style={{ width: 220, marginBottom: 24, animation: 'pulse 1.5s infinite ease-in-out', objectFit: 'contain', filter: 'drop-shadow(0 8px 24px rgba(80,140,220,0.22))' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--primary-i100)', fontWeight: 600, fontSize: 16 }}>
             <i className="fa-solid fa-circle-notch fa-spin"></i>
             {initialLang === 'es' ? 'Cargando clínica dental...' : 'Loading dental clinic...'}
