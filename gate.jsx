@@ -269,8 +269,10 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, u
   const nameExists = useMemoG(() => {
     const t = name.trim().toLowerCase();
     if (!t) return false;
-    return users.some(u => u.toLowerCase() === t);
-  }, [users, name]);
+    const local = users.some(u => u.toLowerCase() === t);
+    if (local) return true;
+    return (lb.scores || []).some(s => s.name.toLowerCase() === t);
+  }, [users, name, lb.scores]);
 
   const nameReserved = useMemoG(() => name.trim().toLowerCase() === RESERVED, [name]);
   const canCreate = name.trim().length > 0 && !nameExists && !nameReserved && !deviceUser;
