@@ -17,7 +17,9 @@ function _getCloudConfig() {
 
 async function _cloudGet() {
   const cfg = _getCloudConfig();
-  const res = await fetch(cfg.latestUrl, { method: 'GET', headers: { ...cfg.headers, [_0x4f2a('Y.Cjo.Nfub')]: 'false' } });
+  // Add cache-buster to ensure we get the latest record
+  const url = cfg.latestUrl + (cfg.latestUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+  const res = await fetch(url, { method: 'GET', headers: { ...cfg.headers, [_0x4f2a('Y.Cjo.Nfub')]: 'false' } });
   if (!res.ok) throw new Error('GET ' + res.status);
   const data = await res.json();
   return data && data.record !== undefined ? data.record : data;
@@ -66,19 +68,20 @@ async function cloudSubmitScore(entry) {
       let scores = Array.isArray(record.scores) ? [...record.scores] : [];
       const lower = entry.name.toLowerCase();
       const idx = scores.findIndex(s => (s.name || '').toLowerCase() === lower);
+      const old = idx >= 0 ? scores[idx] : {};
       const merged = {
         name: entry.name,
-        totalEarned: Math.max(entry.totalEarned || 0, idx >= 0 ? (scores[idx].totalEarned || 0) : 0),
-        prestige:    Math.max(entry.prestige    || 0, idx >= 0 ? (scores[idx].prestige    || 0) : 0),
-        prestigeCount: Math.max(entry.prestigeCount || 0, idx >= 0 ? (scores[idx].prestigeCount || 0) : 0),
-        timePlayed:  Math.max(entry.timePlayed  || 0, idx >= 0 ? (scores[idx].timePlayed  || 0) : 0),
-        clinicName: entry.clinicName || (idx >= 0 ? scores[idx].clinicName : null),
-        level: Math.max(entry.level || 0, idx >= 0 ? (scores[idx].level || 0) : 0),
-        teeth: entry.teeth || 0, 
+        totalEarned: Math.max(entry.totalEarned || 0, old.totalEarned || 0),
+        prestige:    Math.max(entry.prestige    || 0, old.prestige    || 0),
+        prestigeCount: Math.max(entry.prestigeCount || 0, old.prestigeCount || 0),
+        timePlayed:  Math.max(entry.timePlayed  || 0, old.timePlayed  || 0),
+        clinicName: entry.clinicName !== undefined ? entry.clinicName : (old.clinicName || null),
+        level: Math.max(entry.level || 0, old.level || 0),
+        teeth: entry.teeth !== undefined ? entry.teeth : (old.teeth || 0), 
         updatedAt: Date.now(),
         // Persist ban status in cloud
-        banUntil: entry.banUntil !== undefined ? entry.banUntil : (idx >= 0 ? scores[idx].banUntil : 0),
-        banIndefinite: entry.banIndefinite !== undefined ? entry.banIndefinite : (idx >= 0 ? scores[idx].banIndefinite : false)
+        banUntil: entry.banUntil !== undefined ? entry.banUntil : (old.banUntil || 0),
+        banIndefinite: entry.banIndefinite !== undefined ? entry.banIndefinite : (old.banIndefinite || false)
       };
       if (idx >= 0) scores[idx] = merged; else scores.push(merged);
       // Priority: PrestigeCount > Level > TotalEarned
