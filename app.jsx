@@ -2789,8 +2789,6 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
           }
         </div>
 
-        </div>
-
         {/* CPS Threshold Config */}
         <div style={card}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
