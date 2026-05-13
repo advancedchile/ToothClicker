@@ -260,27 +260,55 @@ function AdminPasswordModal({ lang, onSuccess, onClose }) {
 // ── Gate ─────────────────────────────────────────────────────────────────────
 function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, users, deviceUser }) {
   const [name, setName] = useStateG('');
+  const [password, setPassword] = useStateG('');
+  const [showPassword, setShowPassword] = useStateG(false);
+  const [error, setError] = useStateG('');
+  const [loading, setLoading] = useStateG(false);
   const [showLb, setShowLb] = useStateG(false);
   const [showAdminPw, setShowAdminPw] = useStateG(false);
   const lb = useCloudLeaderboard({ pollMs: 15000 });
 
   const RESERVED = (window.ADMIN_NAME || 'James').toLowerCase();
 
-  const nameExists = useMemoG(() => {
+  const cloudUser = useMemoG(() => {
     const t = name.trim().toLowerCase();
-    if (!t) return false;
-    const local = users.some(u => u.toLowerCase() === t);
-    if (local) return true;
-    return (lb.scores || []).some(s => s.name.toLowerCase() === t);
-  }, [users, name, lb.scores]);
+    if (!t) return null;
+    return (lb.scores || []).find(s => s.name.toLowerCase() === t);
+  }, [name, lb.scores]);
 
   const nameReserved = useMemoG(() => name.trim().toLowerCase() === RESERVED, [name]);
-  const canCreate = name.trim().length > 0 && !nameExists && !nameReserved && !deviceUser;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e && e.preventDefault();
-    if (!canCreate) return;
-    onCreateUser(name.trim());
+    const cleanName = name.trim();
+    if (!cleanName || nameReserved || loading) return;
+
+    setLoading(true);
+    setError('');
+
+    if (cloudUser) {
+      // Intentar Logear/Continuar
+      if (!showPassword) {
+        setShowPassword(true);
+        setLoading(false);
+        return;
+      }
+      const res = await window.cloudAuthenticate(cleanName, password);
+      if (res.ok) {
+        onSelectUser(cleanName, res.player, password);
+      } else {
+        setError(lang === 'es' ? 'Contraseña incorrecta' : 'Invalid password');
+      }
+    } else {
+      // Intentar Registrar
+      if (!showPassword) {
+        setShowPassword(true);
+        setLoading(false);
+        return;
+      }
+      onCreateUser(cleanName, password);
+    }
+    setLoading(false);
   };
 
   // Lock icon click counter — 3 quick taps to open admin (subtle UX)
@@ -305,44 +333,77 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, u
 
         <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 220, objectFit: 'contain', marginBottom: 24, filter: 'drop-shadow(0 8px 24px rgba(80,140,220,0.22))', animation: 'pulse 1.5s infinite ease-in-out' }} />
 
-        {/* Registration — only if this device hasn't registered yet */}
+        {/* Registration/Login — only if this device hasn't registered yet */}
         {!deviceUser && (
-          <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             <div style={{ position: 'relative', width: '100%' }}>
               <input
                 autoFocus
                 value={name}
-                onChange={e => setName(e.target.value)}
+                onChange={e => { setName(e.target.value); setError(''); }}
                 maxLength={24}
                 placeholder={lang === 'es' ? 'Tu nombre...' : 'Your name...'}
                 style={{
                   width: '100%', boxSizing: 'border-box',
-                  padding: '13px 52px 13px 22px',
+                  padding: '13px 22px',
                   fontSize: 16, fontFamily: "'PixelifySans', var(--font-sans)",
-                  border: `2px solid ${(nameExists || nameReserved) ? '#e55' : 'rgba(100,160,230,0.5)'}`,
+                  border: `2px solid ${error ? '#e55' : 'rgba(100,160,230,0.5)'}`,
                   borderRadius: 999, background: 'rgba(255,255,255,0.88)', color: '#334',
                   outline: 'none', backdropFilter: 'blur(4px)',
                   boxShadow: '0 2px 12px rgba(80,140,220,0.10)', transition: 'border 150ms',
                 }}
               />
-              <button type="submit" disabled={!canCreate} className="app-btn" style={{
-                all: 'unset', boxSizing: 'border-box',
-                position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                width: 36, height: 36, borderRadius: 999,
-                background: canCreate ? '#1a8fff' : 'rgba(100,140,180,0.2)',
-                color: canCreate ? '#fff' : 'rgba(100,140,180,0.5)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: canCreate ? 'pointer' : 'not-allowed',
-              }}>
-                <i className="fa-solid fa-arrow-right-to-bracket" style={{ fontSize: 14 }}></i>
-              </button>
             </div>
-            <div style={{ fontSize: 12, color: (nameExists || nameReserved) ? '#c33' : 'rgba(80,110,150,0.7)', fontFamily: 'var(--font-sans)', textAlign: 'center' }}>
-              {nameReserved
+
+            {showPassword && (
+              <div style={{ position: 'relative', width: '100%', animation: 'modalIn 0.3s ease' }}>
+                <input
+                  autoFocus
+                  type="password"
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setError(''); }}
+                  placeholder={cloudUser ? (lang === 'es' ? 'Contraseña para continuar' : 'Password to continue') : (lang === 'es' ? 'Crea una contraseña' : 'Create a password')}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    padding: '13px 22px',
+                    fontSize: 15, fontFamily: 'var(--font-sans)',
+                    border: `2px solid ${error ? '#e55' : 'rgba(100,160,230,0.5)'}`,
+                    borderRadius: 999, background: 'rgba(255,255,255,0.88)', color: '#334',
+                    outline: 'none', backdropFilter: 'blur(4px)',
+                    boxShadow: '0 2px 12px rgba(80,140,220,0.10)',
+                  }}
+                />
+              </div>
+            )}
+
+            <button 
+              type="submit" 
+              disabled={loading || !name.trim()} 
+              className="app-btn" 
+              style={{
+                all: 'unset', boxSizing: 'border-box',
+                width: '100%', padding: '12px', borderRadius: 999,
+                background: (loading || !name.trim()) ? 'rgba(100,140,180,0.2)' : '#1a8fff',
+                color: '#fff', fontSize: 16, fontWeight: 600,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                cursor: (loading || !name.trim()) ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {loading ? <i className="fa-solid fa-circle-notch fa-spin"></i> : (
+                <>
+                  <i className={cloudUser ? "fa-solid fa-cloud-arrow-down" : "fa-solid fa-user-plus"}></i>
+                  {cloudUser ? (lang === 'es' ? 'Continuar Partida' : 'Continue Game') : (lang === 'es' ? 'Empezar a Jugar' : 'Start Playing')}
+                </>
+              )}
+            </button>
+
+            <div style={{ fontSize: 12, color: error ? '#c33' : 'rgba(80,110,150,0.7)', fontFamily: 'var(--font-sans)', textAlign: 'center' }}>
+              {error || (nameReserved
                 ? (lang === 'es' ? '⚠ Ese nombre está reservado' : '⚠ That name is reserved')
-                : nameExists
-                  ? (lang === 'es' ? '⚠ Ese nombre ya existe' : '⚠ That name already exists')
-                  : (lang === 'es' ? 'Regístrate con tu nombre para jugar' : 'Register with your name to play')}
+                : cloudUser 
+                  ? (lang === 'es' ? 'Jugador encontrado en la nube' : 'Player found in cloud')
+                  : (lang === 'es' ? 'Elige un nombre y contraseña para guardar tu progreso' : 'Pick a name and password to save your progress'))}
             </div>
           </form>
         )}

@@ -38,8 +38,8 @@ window.STORE_UPGRADES = (() => {
         cost: cost,
         milestone: m,
         icon: gen.icon.replace('fa-solid ', ''),
-        es: `${gen.es} mejorado (${m} unidades)`,
-        en: `${gen.en} upgraded (${m} units)`,
+        es: `${gen.es} mejorado`,
+        en: `${gen.en} upgraded`,
         desc_es: `La producción de ${gen.es} se duplica.`,
         desc_en: `The production of ${gen.en} is doubled.`,
         color: '#ffc220'

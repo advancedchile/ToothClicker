@@ -145,7 +145,7 @@ function formatNumWithMode(n, mode = 'short', lang = 'es', keepDecimals = false)
   if (n === null || n === undefined || !isFinite(n)) return '0';
   if (n < 0) return '-' + formatNumWithMode(-n, mode, lang, keepDecimals);
   if (n < 1000) {
-    if (keepDecimals && n % 1 !== 0) return n.toLocaleString(lang === 'es' ? 'es-AR' : 'en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+    if (keepDecimals) return n.toLocaleString(lang === 'es' ? 'es-AR' : 'en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
     return Math.floor(n).toLocaleString(lang === 'es' ? 'es-AR' : 'en-US');
   }
   if (mode === 'scientific') {
