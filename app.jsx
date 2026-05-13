@@ -2725,6 +2725,15 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
       setCustomMessages(msgs);
       setMessagesLoading(false);
     });
+    // 5. Settings (CPS Threshold, etc.)
+    window.cloudFetchSettings().then(res => {
+      if (res.ok && res.settings) {
+        if (res.settings.cpsThreshold) {
+          setCpsThreshold(res.settings.cpsThreshold);
+          try { localStorage.setItem('admin_cps_threshold', res.settings.cpsThreshold); } catch(e) {}
+        }
+      }
+    });
   }, []);
 
   const saveMessagesToCloud = (updatedList) => {
@@ -2929,6 +2938,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 const v = parseInt(e.target.value);
                 setCpsThreshold(v);
                 try { localStorage.setItem('admin_cps_threshold', v); } catch(e) {}
+                window.cloudSaveSettings({ cpsThreshold: v });
               }}
               style={{ flex: 1, cursor: 'pointer' }}
             />
@@ -2953,7 +2963,21 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 {lang === 'es' ? 'Todos los Jugadores' : 'All Players'}
                 <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({globalUsers.filter(u => u.name.toLowerCase() !== 'james').length})</span>
               </span>
-              {globalLoading && <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 12, color: 'var(--primary-i050)', marginLeft: 'auto' }}></i>}
+              <button 
+                onClick={() => {
+                  setGlobalLoading(true);
+                  window.cloudFetchLeaderboard().then(res => {
+                    if (res.ok) setGlobalUsers(res.scores || []);
+                    setGlobalLoading(false);
+                  });
+                }}
+                disabled={globalLoading}
+                className="app-btn"
+                style={{ ...btn, padding: '4px 10px', background: 'rgba(26,143,255,0.1)', color: '#1a8fff', fontSize: 11, border: '1px solid rgba(26,143,255,0.2)', borderRadius: 8, marginLeft: 'auto' }}
+              >
+                <i className={`fa-solid ${globalLoading ? 'fa-circle-notch fa-spin' : 'fa-arrows-rotate'}`} style={{ marginRight: 6 }}></i>
+                {lang === 'es' ? 'Actualizar' : 'Refresh'}
+              </button>
             </div>
 
             {/* Filters & Sort */}
@@ -3611,47 +3635,36 @@ function App() {
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem(SOUND_KEY) !== '0');
   const [numFormat, setNumFormat] = useState(() => localStorage.getItem(NUMFMT_KEY) || 'short');
 
-  // Global reset check
+  // Global reset check and settings sync
   useEffect(() => {
-    const checkReset = async () => {
+    const syncData = async () => {
       try {
         const res = await window.cloudFetchLeaderboard();
         if (res.ok && res.lastResetAt) {
           const localReset = parseInt(localStorage.getItem(LAST_RESET_KEY) || '0');
           if (res.lastResetAt > localReset) {
             console.log("Global reset detected. Wiping local progress...", res.lastResetAt);
-            
-            // 1. Mark this reset as handled LOCALLY first to prevent reload loops
             localStorage.setItem(LAST_RESET_KEY, res.lastResetAt.toString());
-            
-            // 2. Clear sensitive game data but keep non-game settings if possible 
-            // (or just clear all for maximum safety as per plan)
             const keysToClear = [SAVES_KEY, USERS_KEY, DEVICE_USER_KEY, CURRENT_USER_KEY, ADMIN_AUTH_KEY];
             keysToClear.forEach(k => localStorage.removeItem(k));
-            
-            // 3. Force state update and reload
-            if (username) {
-              setUsername(null);
-              setScreen('gate');
-            }
-            
-            // Short delay to ensure localStorage is written before reload
+            if (username) { setUsername(null); setScreen('gate'); }
             setTimeout(() => window.location.reload(), 100);
           }
         }
-      } catch (e) {
-        console.error("Reset check failed", e);
-      }
+      } catch (e) {}
+
+      try {
+        const setRes = await window.cloudFetchSettings();
+        if (setRes.ok && setRes.settings && setRes.settings.cpsThreshold) {
+          localStorage.setItem('admin_cps_threshold', setRes.settings.cpsThreshold.toString());
+        }
+      } catch (e) {}
     };
     
-    // Initial check
-    checkReset();
-    
-    // Periodic check every 45s (slightly faster than 60s)
-    const id = setInterval(checkReset, 45000);
+    syncData();
+    const id = setInterval(syncData, 60000);
     return () => clearInterval(id);
   }, [username]);
-
   // Keep window.__lang in sync (used by UserPill)
   useEffect(() => {window.__lang = lang;}, [lang]);
 

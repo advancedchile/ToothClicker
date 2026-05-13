@@ -234,14 +234,34 @@ async function cloudSaveCustomMessages(messages) {
   });
 }
 
+// ── Global Settings (CPS Threshold, etc.) ──────────────────────────────────
+async function cloudFetchSettings() {
+  try {
+    const record = await _cloudGet();
+    return { ok: true, settings: record.settings || { cpsThreshold: 20 } };
+  } catch (e) { return { ok: false, error: e.message || 'network', settings: { cpsThreshold: 20 } }; }
+}
+
+async function cloudSaveSettings(settings) {
+  return _enqueue(async () => {
+    try {
+      const record = await _cloudGet();
+      await _cloudPut({ ...record, settings });
+      return { ok: true };
+    } catch (e) { return { ok: false, error: e.message || 'network' }; }
+  });
+}
+
 async function cloudClearAllPlayers() {
   return _enqueue(async () => {
     try {
+      const record = await _cloudGet();
       const cleanRecord = {
         adminAccounts: ['James'],
         scores: [],
         feedback: [],
-        customMessages: []
+        customMessages: [],
+        settings: record.settings || { cpsThreshold: 20 }
       };
       await _cloudPut(cleanRecord);
       return { ok: true };
@@ -260,5 +280,7 @@ Object.assign(window, {
   cloudClearAllFeedback,
   cloudLoadCustomMessages,
   cloudSaveCustomMessages,
-  cloudClearAllPlayers
+  cloudClearAllPlayers,
+  cloudFetchSettings,
+  cloudSaveSettings
 });
