@@ -524,14 +524,13 @@ const primaryBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '10px 
 const secondaryBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '10px 18px', background: 'var(--bg-3)', color: 'var(--fg-1)', borderRadius: 'var(--radius-s)', fontWeight: 500, fontSize: 14, cursor: 'pointer', flex: 1, textAlign: 'center', fontFamily: 'var(--font-sans)' };
 const debugBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '4px 8px', fontSize: 10, fontWeight: 700, background: 'var(--bg-2)', border: '1px solid var(--border-subtle)', borderRadius: 4, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--fg-2)', transition: 'all 100ms' };
 
-function Modal({ children, onClose, maxWidth }) {
+function Modal({ children, onClose, maxWidth, persistent }) {
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, animation: 'fadeIn 150ms ease' }}>
+    <div onClick={() => !persistent && onClose && onClose()} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, animation: 'fadeIn 150ms ease' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-1)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-m)', boxShadow: 'var(--elevation-30)', maxWidth: maxWidth || 420, width: '92%', animation: 'modalIn 200ms ease', maxHeight: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {children}
       </div>
     </div>);
-
 }
 
 function MenuItem({ icon, label, onClick, danger, trailing }) {
@@ -2445,7 +2444,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
       )}
 
       {showLevelUpModal && (
-        <window.Modal onClose={() => setShowLevelUpModal(false)} maxWidth={380}>
+        <window.Modal onClose={() => setShowLevelUpModal(false)} maxWidth={380} persistent>
           <div style={{ textAlign: 'center', padding: '10px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🎊</div>
             <div className="t-heading-m" style={{ color: 'var(--primary-i100)' }}>{lang === 'es' ? '¡Nuevo Nivel!' : 'Level Up!'}</div>
