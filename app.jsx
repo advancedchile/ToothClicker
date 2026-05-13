@@ -2573,6 +2573,8 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [cpsThreshold, setCpsThreshold] = useState(() => {
     try { return parseInt(localStorage.getItem('admin_cps_threshold')) || 20; } catch(e) { return 20; }
   });
+  const [globalTooltip, setGlobalTooltip] = useState(null);
+  const fmt = window.formatNum;
 
   const [newMsgName, setNewMsgName] = useState('');
   const [newMsgText, setNewMsgText] = useState('');
@@ -2909,7 +2911,10 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                           <div style={{ fontSize: 14, color: '#1a3a5a', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
                           {u.banStatus.isBanned && <span style={{ fontSize: 9, padding: '1px 6px', background: '#e55', color: '#fff', borderRadius: 4, fontWeight: 700 }}>BAN</span>}
                         </div>
-                        {u.clinicName && <div style={{ fontSize: 10, color: '#7a9abf', fontWeight: 500, marginTop: 1 }}><i className="fa-solid fa-hospital" style={{ marginRight: 4, fontSize: 8 }}></i>{u.clinicName}</div>}
+                        <div style={{ fontSize: 10, color: '#7a9abf', fontWeight: 500, marginTop: 1 }}>
+                          <i className="fa-solid fa-hospital" style={{ marginRight: 4, fontSize: 8 }}></i>
+                          {u.clinicName || (lang === 'es' ? `Clínica de ${u.name}` : `${u.name}'s Clinic`)}
+                        </div>
                         <div style={{ fontSize: 10, color: '#5a8aaa', fontWeight: 600, marginTop: 2 }}>
                           {window.formatNum(u.totalEarned)} {lang === 'es' ? 'dientes' : 'teeth'} · {lang === 'es' ? 'Prestigio' : 'Prestige'} {u.prestigeCount || u.prestige || 0} · Lv.{u.level || 0}
                         </div>
@@ -2926,7 +2931,8 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                         {u.banStatus.isBanned && (
                           <button 
                             onClick={() => setRestoreTarget(u.name)}
-                            title={lang === 'es' ? 'Restaurar jugador' : 'Restore player'}
+                            onMouseEnter={e => setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'Restaurar jugador' : 'Restore player', pos: { x: e.clientX, y: e.clientY } })}
+                            onMouseLeave={() => setGlobalTooltip(null)}
                             className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(76,175,80,0.1)', color: '#388e3c', fontSize: 12, border: '1px solid rgba(76,175,80,0.25)', borderRadius: 8 }}
                           >
                             <i className="fa-solid fa-user-check"></i>
@@ -2934,7 +2940,8 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                         )}
                         <button 
                           onClick={() => setDeleteTarget({ name: u.name, type: 'global' })}
-                          title={lang === 'es' ? 'Eliminar jugador' : 'Delete player'}
+                          onMouseEnter={e => setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'Eliminar jugador' : 'Delete player', pos: { x: e.clientX, y: e.clientY } })}
+                          onMouseLeave={() => setGlobalTooltip(null)}
                           className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.25)', borderRadius: 8 }}
                         >
                           <i className="fa-solid fa-user-slash"></i>
@@ -3445,6 +3452,35 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
       )}
       {previewMsg && (
         <BossMarquee msg={previewMsg} lang={lang} danger={false} onDismiss={() => setPreviewMsg(null)} />
+      )}
+
+      {globalTooltip && (
+        <div style={{
+          position: 'fixed', 
+          left: Math.max(110, Math.min(window.innerWidth - 110, globalTooltip.pos.x)), 
+          top: globalTooltip.pos.y + (globalTooltip.direction === 'down' ? 8 : -8),
+          transform: globalTooltip.direction === 'down' ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-100%)',
+          background: 'var(--fg-1)', color: 'var(--bg-1)',
+          padding: '8px 14px', borderRadius: 10,
+          fontSize: 12, lineHeight: 1.4,
+          zIndex: 10000, pointerEvents: 'none',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
+          width: 200, whiteSpace: 'normal', textAlign: 'center',
+          animation: 'fadeIn 150ms ease-out',
+          border: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          {globalTooltip.type === 'shop' ? (
+            <>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.data[lang] || globalTooltip.data.es}</div>
+              <div style={{ fontSize: 11, color: '#FFC220', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                <i className="fa-solid fa-tooth"></i> {fmt(globalTooltip.data.cost)}
+              </div>
+              <div style={{ fontSize: 10, opacity: 0.9 }}>{globalTooltip.data.desc[lang] || globalTooltip.data.desc.es}</div>
+            </>
+          ) : (
+            <div style={{ fontWeight: 600 }}>{globalTooltip.text}</div>
+          )}
+        </div>
       )}
     </div>
   );
