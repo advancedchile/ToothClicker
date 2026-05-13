@@ -964,7 +964,27 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
 
   // Autosave
   const doManualSave = useCallback(() => {
-    try {persistUserSave(username, stateRef.current);setSaveFlash(true);setTimeout(() => setSaveFlash(false), 1500);const s = stateRef.current;if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, prestigeCount: s.prestigeCount || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0, clinicName: s.clinicName, level: s.level || 0 });} catch (e) {}
+    try {
+      persistUserSave(username, stateRef.current);
+      setSaveFlash(true);
+      setTimeout(() => setSaveFlash(false), 1500);
+      const s = stateRef.current;
+      if (s) {
+        const ban = window.AntiCheat.getBanData(username);
+        window.cloudSubmitScore({ 
+          name: username, 
+          totalEarned: s.totalEarned || 0, 
+          prestige: s.prestige || 0, 
+          prestigeCount: s.prestigeCount || 0, 
+          timePlayed: s.timePlayed || 0, 
+          teeth: s.teeth || 0, 
+          clinicName: s.clinicName, 
+          level: s.level || 0,
+          banUntil: ban.until,
+          banIndefinite: ban.until === -1
+        });
+      }
+    } catch (e) {}
   }, [username]);
 
   useEffect(() => {
@@ -983,7 +1003,23 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   }, [hasSeenTour, state.totalEarned, currentTourStep]);
 
   useEffect(() => {
-    const pushScore = () => {const s = stateRef.current;if (!s) return;window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, prestigeCount: s.prestigeCount || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0, clinicName: s.clinicName, level: s.level || 0 });};
+    const pushScore = () => {
+      const s = stateRef.current;
+      if (!s) return;
+      const ban = window.AntiCheat.getBanData(username);
+      window.cloudSubmitScore({ 
+        name: username, 
+        totalEarned: s.totalEarned || 0, 
+        prestige: s.prestige || 0, 
+        prestigeCount: s.prestigeCount || 0, 
+        timePlayed: s.timePlayed || 0, 
+        teeth: s.teeth || 0, 
+        clinicName: s.clinicName, 
+        level: s.level || 0,
+        banUntil: ban.until,
+        banIndefinite: ban.until === -1
+      });
+    };
     const first = setTimeout(pushScore, 10000);
     const id = setInterval(pushScore, 30000);
     window.addEventListener('beforeunload', pushScore);
@@ -1549,7 +1585,29 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
               <window.MenuItem icon="fa-circle-info" label={lang === 'es' ? 'Acerca de' : 'About'} onClick={() => {setMenuOpen(false);setShowAbout(true);}} />
               <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => {setMenuOpen(false);setShowFeedbackModal(true);}} />
               <window.MenuDivider />
-              <window.MenuItem icon="fa-right-from-bracket" label={t.logout} onClick={() => {setMenuOpen(false);try {persistUserSave(username, stateRef.current);} catch (e) {}try {const s = stateRef.current;if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, prestigeCount: s.prestigeCount || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0, clinicName: s.clinicName, level: s.level || 0 });} catch (e) {}onLogout && onLogout();}} />
+              <window.MenuItem icon="fa-right-from-bracket" label={t.logout} onClick={() => {
+                setMenuOpen(false);
+                try {persistUserSave(username, stateRef.current);} catch (e) {}
+                try {
+                  const s = stateRef.current;
+                  if (s) {
+                    const ban = window.AntiCheat.getBanData(username);
+                    window.cloudSubmitScore({ 
+                      name: username, 
+                      totalEarned: s.totalEarned || 0, 
+                      prestige: s.prestige || 0, 
+                      prestigeCount: s.prestigeCount || 0, 
+                      timePlayed: s.timePlayed || 0, 
+                      teeth: s.teeth || 0, 
+                      clinicName: s.clinicName, 
+                      level: s.level || 0,
+                      banUntil: ban.until,
+                      banIndefinite: ban.until === -1
+                    });
+                  }
+                } catch (e) {}
+                onLogout && onLogout();
+              }} />
               <window.MenuItem icon="fa-trash" label={t.reset} danger onClick={() => {setMenuOpen(false);setShowResetConfirm(true);}} />
             </div>
           }
@@ -1623,7 +1681,21 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                       // Immediately sync clinic name to cloud
                       setTimeout(() => {
                         const s = stateRef.current;
-                        if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, prestigeCount: s.prestigeCount || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0, clinicName: final || null, level: s.level || 0 });
+                        if (s) {
+                          const ban = window.AntiCheat.getBanData(username);
+                          window.cloudSubmitScore({ 
+                            name: username, 
+                            totalEarned: s.totalEarned || 0, 
+                            prestige: s.prestige || 0, 
+                            prestigeCount: s.prestigeCount || 0, 
+                            timePlayed: s.timePlayed || 0, 
+                            teeth: s.teeth || 0, 
+                            clinicName: final || null, 
+                            level: s.level || 0,
+                            banUntil: ban.until,
+                            banIndefinite: ban.until === -1
+                          });
+                        }
                       }, 100);
                     }
                   }}
@@ -2331,7 +2403,28 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           <window.MenuDivider />
           <window.MenuItem icon="fa-question" label="¡Te sientes curioso?" onClick={() => { window.playClickSound && window.playClickSound(); setShowCuriosityModal(true); }} />
           <window.MenuDivider />
-          <window.MenuItem icon="fa-right-from-bracket" label={t.logout} onClick={() => { window.playClickSound && window.playClickSound(); try {persistUserSave(username, stateRef.current);} catch (e) {}try {const s = stateRef.current;if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, prestigeCount: s.prestigeCount || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0, clinicName: s.clinicName });} catch (e) {}onLogout && onLogout();}} />
+          <window.MenuItem icon="fa-right-from-bracket" label={t.logout} onClick={() => { 
+            window.playClickSound && window.playClickSound(); 
+            try {persistUserSave(username, stateRef.current);} catch (e) {}
+            try {
+              const s = stateRef.current;
+              if (s) {
+                const ban = window.AntiCheat.getBanData(username);
+                window.cloudSubmitScore({ 
+                  name: username, 
+                  totalEarned: s.totalEarned || 0, 
+                  prestige: s.prestige || 0, 
+                  prestigeCount: s.prestigeCount || 0, 
+                  timePlayed: s.timePlayed || 0, 
+                  teeth: s.teeth || 0, 
+                  clinicName: s.clinicName,
+                  banUntil: ban.until,
+                  banIndefinite: ban.until === -1
+                });
+              }
+            } catch (e) {}
+            onLogout && onLogout();
+          }} />
           <window.MenuItem icon="fa-trash" label={t.reset} danger onClick={() => { window.playClickSound && window.playClickSound(); setShowResetConfirm(true); }} />
         </div>
       )}
@@ -2883,8 +2976,11 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
             
             {(() => {
               let players = globalUsers.filter(u => u.name.toLowerCase() !== 'james').map(u => {
-                const banStatus = window.AntiCheat.checkBanStatus(u.name);
-                return { ...u, banStatus };
+                const localBan = window.AntiCheat.checkBanStatus(u.name);
+                const isBanned = localBan.isBanned || (u.banIndefinite === true) || (u.banUntil && u.banUntil > Date.now());
+                const indefinite = localBan.indefinite || (u.banIndefinite === true);
+                const until = localBan.until || u.banUntil || 0;
+                return { ...u, banStatus: { isBanned, indefinite, until } };
               });
               if (playerFilter === 'banned') players = players.filter(u => u.banStatus.isBanned);
               players.sort((a, b) => {
@@ -3424,7 +3520,11 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
               <button onClick={() => setRestoreTarget(null)} className="app-btn" style={{ ...btn, flex: 1, height: 44, background: '#f1f5f9', color: '#64748b' }}>
                 {lang === 'es' ? 'Cancelar' : 'Cancel'}
               </button>
-              <button onClick={() => { window.AntiCheat.unban(restoreTarget); setGlobalUsers(prev => [...prev]); setRestoreTarget(null); }} className="app-btn" style={{ ...btn, flex: 1, height: 44, background: '#388e3c', color: '#fff' }}>
+              <button onClick={() => { 
+                window.AntiCheat.unban(restoreTarget); 
+                setGlobalUsers(prev => prev.map(u => u.name === restoreTarget ? { ...u, banUntil: 0, banIndefinite: false } : u));
+                setRestoreTarget(null); 
+              }} className="app-btn" style={{ ...btn, flex: 1, height: 44, background: '#388e3c', color: '#fff' }}>
                 {lang === 'es' ? 'Restaurar' : 'Restore'}
               </button>
             </div>

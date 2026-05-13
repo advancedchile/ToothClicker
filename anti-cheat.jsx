@@ -30,6 +30,16 @@ window.AntiCheat = {
       if (duration !== 0) {
          localStorage.setItem(`banUntil_${username}`, until);
       }
+      
+      // Sync ban status to cloud
+      if (username !== 'James') {
+        window.cloudSubmitScore({ 
+          name: username, 
+          banUntil: duration === 0 ? 0 : until, 
+          banIndefinite: duration === -1 
+        });
+      }
+
       if (duration === -1 && username !== 'James') {
          try { window.cloudDeleteScore(username); } catch(e) {}
       }
@@ -50,6 +60,8 @@ window.AntiCheat = {
     try {
       localStorage.removeItem(`banLevel_${username}`);
       localStorage.removeItem(`banUntil_${username}`);
+      // Clear ban in cloud
+      window.cloudSubmitScore({ name: username, banUntil: 0, banIndefinite: false });
     } catch(e) {}
   }
 };

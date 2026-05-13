@@ -74,7 +74,11 @@ async function cloudSubmitScore(entry) {
         timePlayed:  Math.max(entry.timePlayed  || 0, idx >= 0 ? (scores[idx].timePlayed  || 0) : 0),
         clinicName: entry.clinicName || (idx >= 0 ? scores[idx].clinicName : null),
         level: Math.max(entry.level || 0, idx >= 0 ? (scores[idx].level || 0) : 0),
-        teeth: entry.teeth || 0, updatedAt: Date.now(),
+        teeth: entry.teeth || 0, 
+        updatedAt: Date.now(),
+        // Persist ban status in cloud
+        banUntil: entry.banUntil !== undefined ? entry.banUntil : (idx >= 0 ? scores[idx].banUntil : 0),
+        banIndefinite: entry.banIndefinite !== undefined ? entry.banIndefinite : (idx >= 0 ? scores[idx].banIndefinite : false)
       };
       if (idx >= 0) scores[idx] = merged; else scores.push(merged);
       // Priority: PrestigeCount > Level > TotalEarned
