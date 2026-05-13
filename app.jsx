@@ -634,6 +634,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   };
 
   const handleStop = () => {
+    userPausedMusic.current = true;
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -740,7 +741,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const userPausedMusic = useRef(false);
 
   useEffect(() => {
-    if (audioRef.current && !isMusicPlaying && !musicAttempted.current) {
+    if (audioRef.current && !isMusicPlaying && !musicAttempted.current && !userPausedMusic.current) {
       musicAttempted.current = true;
       audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(e => console.warn('Autoplay blocked:', e));
     }
@@ -748,14 +749,15 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
 
   useEffect(() => {
     const handleFirstClick = () => {
-      if (!userPausedMusic.current && !isMusicPlaying && audioRef.current && audioRef.current.paused) {
+      if (!userPausedMusic.current && !isMusicPlaying && audioRef.current && audioRef.current.paused && !musicAttempted.current) {
+        musicAttempted.current = true;
         audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(e => {});
       }
       window.removeEventListener('click', handleFirstClick);
     };
     window.addEventListener('click', handleFirstClick);
     return () => window.removeEventListener('click', handleFirstClick);
-  }, [isMusicPlaying]);
+  }, []);
   const [isMainMouseDown, setIsMainMouseDown] = useState(false);
   const [goldHoldProgress, setGoldHoldProgress] = useState(0); // 0–1
   const goldHoldRef = useRef({ interval: null, clicks: 0 });
@@ -2013,9 +2015,9 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           onClose={() => setMusicModalOpen(false)}
           tracks={tracks}
           currentTrack={currentTrack}
-          onSelectTrack={(t) => { setCurrentTrack(t); setIsMusicPlaying(true); }}
+          onSelectTrack={(t) => { userPausedMusic.current = false; setCurrentTrack(t); setIsMusicPlaying(true); }}
           isPlaying={isMusicPlaying}
-          onTogglePlay={() => setIsMusicPlaying(!isMusicPlaying)}
+          onTogglePlay={() => { userPausedMusic.current = isMusicPlaying; setIsMusicPlaying(!isMusicPlaying); }}
           onStop={handleStop}
           volume={musicVolume}
           onChangeVolume={setMusicVolume}
