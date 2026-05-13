@@ -4,19 +4,19 @@
  */
 function generateXPUpgrades() {
   const upgrades = [];
-  const namesES = ["Seminario", "Taller", "Simposio", "Masterclass", "Diplomado", "Especialidad", "Doctorado", "Certificación", "Convención", "Foro"];
-  const namesEN = ["Seminar", "Workshop", "Symposium", "Masterclass", "Diploma", "Specialty", "PhD", "Certification", "Convention", "Forum"];
-  const topicsES = ["Higiene", "Endodoncia", "Periodoncia", "Ortodoncia", "Estética", "Cirugía", "Implantes", "Radiología", "Odontopediatría", "Geriatría"];
-  const topicsEN = ["Hygiene", "Endodontics", "Periodontics", "Orthodontics", "Aesthetics", "Surgery", "Implants", "Radiology", "Pediatric", "Geriatric"];
+  const namesES = ["Seminario", "Taller", "Simposio", "Masterclass", "Diplomado", "Especialidad", "Doctorado", "Certificación", "Convención", "Foro", "Cumbre", "Encuentro", "Laboratorio", "Cátedra", "Mesa Redonda", "Retiro"];
+  const namesEN = ["Seminar", "Workshop", "Symposium", "Masterclass", "Diploma", "Specialty", "PhD", "Certification", "Convention", "Forum", "Summit", "Encounter", "Lab", "Chair", "Roundtable", "Retreat"];
+  const topicsES = ["Higiene", "Endodoncia", "Periodoncia", "Ortodoncia", "Estética", "Cirugía", "Implantes", "Radiología", "Odontopediatría", "Geriatría", "Blanqueamiento", "Esmalte", "Microbiología", "Bioética", "Marketing", "Gestión"];
+  const topicsEN = ["Hygiene", "Endodontics", "Periodontics", "Orthodontics", "Aesthetics", "Surgery", "Implants", "Radiology", "Pediatric", "Geriatric", "Whitening", "Enamel", "Microbiology", "Bioethics", "Marketing", "Management"];
 
   for (let i = 1; i <= 350; i++) {
-    const nIdx = (i - 1) % 10;
-    const tIdx = Math.floor((i - 1) / 35) % 10;
+    const nIdx = (i - 1) % namesES.length;
+    const tIdx = Math.floor((i - 1) / namesES.length) % topicsES.length;
     const tier = Math.floor((i - 1) / 10) + 1;
     
     // Cost formula: base * growth ^ level
     // We also consider prestige count to unlock/adjust
-    const baseCost = 5000 * Math.pow(1.35, tier);
+    const baseCost = 7500 * Math.pow(1.35, tier); // Increased by 50% (original 5000 * 1.5)
     
     upgrades.push({
       id: `xp_up_${i}`,

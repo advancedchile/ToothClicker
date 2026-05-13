@@ -919,7 +919,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const achUnlockedCount = Object.values(state.achievements || {}).filter(Boolean).length;
   const prestigeReq = useMemo(() => {
     const count = state.prestigeCount || 0;
-    return 5_000_000_000_000 * Math.pow(1.25, count);
+    return 12_500_000_000_000 * Math.pow(1.25, count); // Increased by 150% (original 5e12 * 2.5)
   }, [state.prestigeCount]);
   const prestigeGain = state.totalEarned >= prestigeReq ? 1 : 0;
 
@@ -1408,7 +1408,22 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     const newCount = oldCount + 1;
     // Find newly unlocked stages based on prestige COUNT
     const newlyUnlocked = window.TOOTH_STAGES.filter((s) => s.prestige > 0 && s.prestige > oldCount && s.prestige <= newCount);
-    setState((s) => ({ ...defaultState(), prestige: newPrestige, prestigeCount: newCount, selectedTooth: s.selectedTooth || 0, achievements: s.achievements, startedAt: s.startedAt, timePlayed: s.timePlayed, totalClicks: s.totalClicks, goldenClicks: s.goldenClicks, lastTick: Date.now() }));
+    setState((s) => ({ 
+      ...defaultState(), 
+      prestige: newPrestige, 
+      prestigeCount: newCount, 
+      selectedTooth: s.selectedTooth || 0, 
+      achievements: s.achievements, 
+      startedAt: s.startedAt, 
+      timePlayed: s.timePlayed, 
+      totalClicks: s.totalClicks, 
+      goldenClicks: s.goldenClicks, 
+      lastTick: Date.now(),
+      // Persist Level and Academy progress
+      level: s.level,
+      xp: s.xp,
+      xpUpgrades: s.xpUpgrades
+    }));
     if (soundRef.current) [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => window.playTone(f, 0.15, 'triangle', 0.06), i * 80));
     if (newlyUnlocked.length > 0) {
       const latestUnlocked = newlyUnlocked[newlyUnlocked.length - 1];

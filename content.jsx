@@ -260,7 +260,7 @@ const GEN_TIERS = [
 
 function buildGenerators() {
   const out = [];
-  let baseCost = 15;
+  let baseCost = 33.75; // Increased by 125% (original 15 * 2.25)
   let baseProduction = 0.1;
   for (let tier = 0; tier < GEN_TIERS.length; tier++) {
     const items = GEN_TIERS[tier].base;
@@ -339,7 +339,7 @@ const UPGRADE_ICONS = {
 
 function buildClickUpgrades() {
   const out = [];
-  let cost = 500;
+  let cost = 1125; // Increased by 125% (original 500 * 2.25)
   const MULT = 4.2;
   const types = ['flat','flat','flat','mult','perGen','flat','perAch','flat','perSec','flat','mult','perGen','timeBonus','flat'];
   let flatVal = 1;

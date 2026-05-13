@@ -8,7 +8,7 @@ window.STORE_UPGRADES = (() => {
   
   // 1. CLICK UPGRADES (approx 50)
   for (let i = 1; i <= 50; i++) {
-    const cost = Math.floor(1000 * Math.pow(3.5, i));
+    const cost = Math.floor(2250 * Math.pow(3.5, i)); // 1000 * 2.25
     upgrades.push({
       id: `click_up_${i}`,
       type: 'click',
@@ -29,7 +29,7 @@ window.STORE_UPGRADES = (() => {
   gens.forEach((gen, gIdx) => {
     milestones.forEach((m, mIdx) => {
       // Scale cost based on milestone and generator base cost
-      const cost = Math.floor(gen.baseCost * 15 * Math.pow(m, 1.2) * (mIdx + 1));
+      const cost = Math.floor(gen.baseCost * 33.75 * Math.pow(m, 1.2) * (mIdx + 1)); // 15 * 2.25 = 33.75
       upgrades.push({
         id: `gen_up_${gen.id}_${m}`,
         type: 'generator',
@@ -49,7 +49,7 @@ window.STORE_UPGRADES = (() => {
 
   // 3. GLOBAL UPGRADES (approx 50)
   for (let i = 1; i <= 50; i++) {
-    const cost = Math.floor(50000000 * Math.pow(15, i));
+    const cost = Math.floor(112500000 * Math.pow(15, i)); // 50000000 * 2.25
     upgrades.push({
       id: `global_up_${i}`,
       type: 'global',
