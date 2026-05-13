@@ -37,10 +37,11 @@ function formatTime(secs) {
     return `${minsTotal} min`;
   } else {
     const hours = Math.floor(minsTotal / 60);
+    const mins = minsTotal % 60;
     if (lang === 'es') {
-      return `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+      return `${hours} ${hours === 1 ? 'hora' : 'horas'}${mins > 0 ? ` ${mins} min` : ''}`;
     } else {
-      return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'}${mins > 0 ? ` ${mins} min` : ''}`;
     }
   }
 }
@@ -778,6 +779,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [cheatLevel, setCheatLevel] = useState(0);
   const clickTimesRef = useRef([]);
+  const [liveCPS, setLiveCPS] = useState(0);
   const [isEditingClinic, setIsEditingClinic] = useState(false);
   const [tempClinicName, setTempClinicName] = useState(state.clinicName || '');
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
@@ -788,6 +790,17 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   });
   const [customMessages, setCustomMessages] = useState([]);
   const customLastShownRef = useRef({}); // { msgId: timestamp }
+
+  // Live CPS tracker — updates every 200ms for smooth feedback
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      const recent = clickTimesRef.current.filter(t => now - t < 1000);
+      setLiveCPS(recent.length);
+    }, 200);
+    return () => clearInterval(id);
+  }, []);
+
   const [currentTourStep, setCurrentTourStep] = useState(null);
   const [dontShowTourAgain, setDontShowTourAgain] = useState(() => {
     const saved = loadUserSave(username);
@@ -1607,6 +1620,11 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                     const final = tempClinicName.trim();
                     if (final !== state.clinicName) {
                       setState(s => ({ ...s, clinicName: final || null }));
+                      // Immediately sync clinic name to cloud
+                      setTimeout(() => {
+                        const s = stateRef.current;
+                        if (s) window.cloudSubmitScore({ name: username, totalEarned: s.totalEarned || 0, prestige: s.prestige || 0, prestigeCount: s.prestigeCount || 0, timePlayed: s.timePlayed || 0, teeth: s.teeth || 0, clinicName: final || null, level: s.level || 0 });
+                      }, 100);
                     }
                   }}
                   onKeyDown={e => {
@@ -1675,7 +1693,13 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
               </div>
               </div>
             <div style={{ textAlign: 'center' }}>
-              <div className="t-heading-m">{t.clickMe}</div>
+              <div className="t-heading-m" style={{ 
+                color: liveCPS >= 30 ? '#e53935' : liveCPS >= 25 ? '#f57c00' : liveCPS > 0 ? '#43a047' : 'var(--fg-1)',
+                transition: 'color 0.5s ease',
+                animation: liveCPS >= 30 ? 'shake 0.08s linear infinite' : liveCPS >= 25 ? 'shake 0.15s linear infinite' : 'none'
+              }}>
+                {liveCPS > 0 ? `${liveCPS} CPS` : t.clickMe}
+              </div>
               <div className="t-body-m" style={{ color: 'var(--fg-3)', marginTop: 4 }}>+{fmt(perClick)} {t.teeth} / click</div>
             </div>
           </div>
