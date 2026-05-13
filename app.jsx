@@ -2926,8 +2926,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                         {u.banStatus.isBanned && (
                           <button 
                             onClick={() => setRestoreTarget(u.name)}
-                            onMouseEnter={e => setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'Restaurar jugador' : 'Restore player', pos: { x: e.clientX, y: e.clientY } })}
-                            onMouseLeave={() => setGlobalTooltip(null)}
+                            title={lang === 'es' ? 'Restaurar jugador' : 'Restore player'}
                             className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(76,175,80,0.1)', color: '#388e3c', fontSize: 12, border: '1px solid rgba(76,175,80,0.25)', borderRadius: 8 }}
                           >
                             <i className="fa-solid fa-user-check"></i>
@@ -2935,8 +2934,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                         )}
                         <button 
                           onClick={() => setDeleteTarget({ name: u.name, type: 'global' })}
-                          onMouseEnter={e => setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'Eliminar jugador' : 'Delete player', pos: { x: e.clientX, y: e.clientY } })}
-                          onMouseLeave={() => setGlobalTooltip(null)}
+                          title={lang === 'es' ? 'Eliminar jugador' : 'Delete player'}
                           className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.25)', borderRadius: 8 }}
                         >
                           <i className="fa-solid fa-user-slash"></i>
