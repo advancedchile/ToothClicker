@@ -44,6 +44,13 @@ window.AntiCheat = {
     if (data.until === -1) return { isBanned: true, indefinite: true };
     if (data.until > Date.now()) return { isBanned: true, indefinite: false, until: data.until };
     return { isBanned: false };
+  },
+
+  unban: (username) => {
+    try {
+      localStorage.removeItem(`banLevel_${username}`);
+      localStorage.removeItem(`banUntil_${username}`);
+    } catch(e) {}
   }
 };
 

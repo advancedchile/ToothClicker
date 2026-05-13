@@ -1112,7 +1112,8 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
       const now = Date.now();
       clickTimesRef.current = [...clickTimesRef.current.filter(t => now - t < 1000), now];
       const cps = clickTimesRef.current.length;
-      if (cps >= 20 && cheatLevel === 0) {
+      const maxCPS = (() => { try { return parseInt(localStorage.getItem('admin_cps_threshold')) || 20; } catch(e) { return 20; } })();
+      if (cps >= maxCPS && cheatLevel === 0) {
         const banResult = window.AntiCheat.applyBan(username);
         if (banResult) {
           setCheatLevel(banResult.newLevel);
@@ -2542,6 +2543,11 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [messagesLoading, setMessagesLoading] = useState(true);
   const [isSavingMessages, setIsSavingMessages] = useState(false);
   const [adminTab, setAdminTab] = useState('accounts'); // 'accounts', 'leaderboard', 'feedback', 'messages'
+  const [playerSort, setPlayerSort] = useState('prestige'); // 'prestige', 'level', 'teeth'
+  const [playerFilter, setPlayerFilter] = useState('all'); // 'all', 'banned'
+  const [cpsThreshold, setCpsThreshold] = useState(() => {
+    try { return parseInt(localStorage.getItem('admin_cps_threshold')) || 20; } catch(e) { return 20; }
+  });
 
   const [newMsgName, setNewMsgName] = useState('');
   const [newMsgText, setNewMsgText] = useState('');
@@ -2741,8 +2747,8 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
         {/* Sub Tabs */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 20, background: 'rgba(255,255,255,0.5)', padding: 4, borderRadius: 12, border: '1px solid rgba(100,160,230,0.2)' }}>
           {[
-            { id: 'accounts', label: lang === 'es' ? 'Cuentas' : 'Accounts', icon: 'fa-users' },
-            { id: 'leaderboard', label: 'Ranking', icon: 'fa-trophy' },
+            { id: 'accounts', label: 'Admin', icon: 'fa-user-shield' },
+            { id: 'leaderboard', label: lang === 'es' ? 'Jugadores' : 'Players', icon: 'fa-users' },
             { id: 'feedback', label: 'Feedback', icon: 'fa-comments' },
             { id: 'messages', label: 'Mensajes', icon: 'fa-bullhorn' },
             { id: 'danger', label: lang === 'es' ? 'Zona Peligrosa' : 'Danger Zone', icon: 'fa-triangle-exclamation' },
@@ -2783,41 +2789,136 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
           }
         </div>
 
+        </div>
+
+        {/* CPS Threshold Config */}
+        <div style={card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <i className="fa-solid fa-gauge-high" style={{ color: '#ff9800', fontSize: 15 }}></i>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
+              {lang === 'es' ? 'Límite de CPS (Clicks por Segundo)' : 'CPS Limit (Clicks per Second)'}
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: '#5a8aaa', marginBottom: 12, lineHeight: 1.5 }}>
+            {lang === 'es' 
+              ? `Cuando un jugador alcance ${cpsThreshold} CPS, se activará la advertencia o ban por uso de macros.`
+              : `When a player reaches ${cpsThreshold} CPS, the macro warning or ban will be triggered.`}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <input 
+              type="range" min="5" max="50" step="1" value={cpsThreshold}
+              onChange={e => {
+                const v = parseInt(e.target.value);
+                setCpsThreshold(v);
+                try { localStorage.setItem('admin_cps_threshold', v); } catch(e) {}
+              }}
+              style={{ flex: 1, cursor: 'pointer' }}
+            />
+            <div style={{ minWidth: 60, textAlign: 'center', padding: '6px 12px', background: cpsThreshold <= 10 ? 'rgba(220,50,50,0.1)' : cpsThreshold <= 25 ? 'rgba(255,152,0,0.1)' : 'rgba(76,175,80,0.1)', border: `1px solid ${cpsThreshold <= 10 ? 'rgba(220,50,50,0.3)' : cpsThreshold <= 25 ? 'rgba(255,152,0,0.3)' : 'rgba(76,175,80,0.3)'}`, borderRadius: 8, fontWeight: 700, fontSize: 16, color: cpsThreshold <= 10 ? '#c33' : cpsThreshold <= 25 ? '#e68a00' : '#388e3c' }}>
+              {cpsThreshold}
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#8aaacc', marginTop: 6 }}>
+            <span>{lang === 'es' ? 'Más estricto' : 'Stricter'}</span>
+            <span>{lang === 'es' ? 'Más permisivo' : 'More permissive'}</span>
+          </div>
+        </div>
+
           </>
         )}
 
         {adminTab === 'leaderboard' && (
           <div style={card}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <i className="fa-solid fa-cloud" style={{ color: 'var(--primary-i100)', fontSize: 15 }}></i>
+              <i className="fa-solid fa-users" style={{ color: 'var(--primary-i100)', fontSize: 15 }}></i>
               <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
-                {lang === 'es' ? 'Ranking Global (DB)' : 'Global Leaderboard (DB)'}
-                <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({globalUsers.length})</span>
+                {lang === 'es' ? 'Todos los Jugadores' : 'All Players'}
+                <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({globalUsers.filter(u => u.name.toLowerCase() !== 'james').length})</span>
               </span>
               {globalLoading && <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 12, color: 'var(--primary-i050)', marginLeft: 'auto' }}></i>}
             </div>
-            
-            {globalUsers.length === 0 ?
-              <div style={{ textAlign: 'center', padding: '12px 0', color: '#8aaacc', fontFamily: 'var(--font-sans)', fontSize: 13 }}>
-                {globalLoading ? (lang === 'es' ? 'Cargando base de datos...' : 'Loading database...') : (lang === 'es' ? 'No hay jugadores en el ranking' : 'No players in leaderboard')}
-              </div> :
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
-                {globalUsers.filter(u => u.name.toLowerCase() !== 'james').map((u) => (
-                  <div key={'global-' + u.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f0f7ff', borderRadius: 10, border: '1px solid rgba(0,118,219,0.15)' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary-i100)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
-                      {(u.name[0] || '?').toUpperCase()}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, color: '#1a3a5a', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
-                      <div style={{ fontSize: 10, color: '#5a8aaa', fontWeight: 600 }}>{window.formatNum(u.totalEarned)} dientes · Prestigio {u.prestige || 0}</div>
-                    </div>
-                    <button onClick={() => setDeleteTarget({ name: u.name, type: 'global' })} className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.25)', borderRadius: 8 }}>
-                      <i className="fa-solid fa-user-slash"></i>
-                    </button>
-                  </div>
+
+            {/* Filters & Sort */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.6)', padding: 3, borderRadius: 8, border: '1px solid rgba(100,160,230,0.15)' }}>
+                {[{ id: 'all', label: lang === 'es' ? 'Todos' : 'All' }, { id: 'banned', label: lang === 'es' ? 'Banneados' : 'Banned' }].map(f => (
+                  <button key={f.id} onClick={() => setPlayerFilter(f.id)} className="app-btn" style={{ ...btn, padding: '4px 10px', fontSize: 10, borderRadius: 6, background: playerFilter === f.id ? '#1a8fff' : 'transparent', color: playerFilter === f.id ? '#fff' : '#4a6a8a', border: 'none' }}>
+                    {f.label}
+                  </button>
                 ))}
               </div>
-            }
+              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.6)', padding: 3, borderRadius: 8, border: '1px solid rgba(100,160,230,0.15)' }}>
+                {[{ id: 'prestige', label: lang === 'es' ? 'Prestigio' : 'Prestige' }, { id: 'level', label: lang === 'es' ? 'Nivel' : 'Level' }, { id: 'teeth', label: lang === 'es' ? 'Dientes' : 'Teeth' }].map(s => (
+                  <button key={s.id} onClick={() => setPlayerSort(s.id)} className="app-btn" style={{ ...btn, padding: '4px 10px', fontSize: 10, borderRadius: 6, background: playerSort === s.id ? '#1a8fff' : 'transparent', color: playerSort === s.id ? '#fff' : '#4a6a8a', border: 'none' }}>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {(() => {
+              let players = globalUsers.filter(u => u.name.toLowerCase() !== 'james').map(u => {
+                const banStatus = window.AntiCheat.checkBanStatus(u.name);
+                return { ...u, banStatus };
+              });
+              if (playerFilter === 'banned') players = players.filter(u => u.banStatus.isBanned);
+              players.sort((a, b) => {
+                if (playerSort === 'level') return (b.level || 0) - (a.level || 0);
+                if (playerSort === 'teeth') return (b.totalEarned || 0) - (a.totalEarned || 0);
+                return (b.prestigeCount || b.prestige || 0) - (a.prestigeCount || a.prestige || 0);
+              });
+              
+              if (players.length === 0) return (
+                <div style={{ textAlign: 'center', padding: '12px 0', color: '#8aaacc', fontFamily: 'var(--font-sans)', fontSize: 13 }}>
+                  {globalLoading ? (lang === 'es' ? 'Cargando base de datos...' : 'Loading database...') : (playerFilter === 'banned' ? (lang === 'es' ? 'No hay jugadores banneados' : 'No banned players') : (lang === 'es' ? 'No hay jugadores en el ranking' : 'No players in leaderboard'))}
+                </div>
+              );
+              
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
+                  {players.map((u) => (
+                    <div key={'global-' + u.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: u.banStatus.isBanned ? 'rgba(220,50,50,0.06)' : '#f0f7ff', borderRadius: 10, border: `1px solid ${u.banStatus.isBanned ? 'rgba(220,50,50,0.2)' : 'rgba(0,118,219,0.15)'}` }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: u.banStatus.isBanned ? '#e55' : 'var(--primary-i100)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+                        {(u.name[0] || '?').toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ fontSize: 14, color: '#1a3a5a', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
+                          {u.banStatus.isBanned && <span style={{ fontSize: 9, padding: '1px 6px', background: '#e55', color: '#fff', borderRadius: 4, fontWeight: 700 }}>BAN</span>}
+                        </div>
+                        {u.clinicName && <div style={{ fontSize: 10, color: '#7a9abf', fontWeight: 500, marginTop: 1 }}><i className="fa-solid fa-hospital" style={{ marginRight: 4, fontSize: 8 }}></i>{u.clinicName}</div>}
+                        <div style={{ fontSize: 10, color: '#5a8aaa', fontWeight: 600, marginTop: 2 }}>
+                          {window.formatNum(u.totalEarned)} {lang === 'es' ? 'dientes' : 'teeth'} · {lang === 'es' ? 'Prestigio' : 'Prestige'} {u.prestigeCount || u.prestige || 0} · Lv.{u.level || 0}
+                        </div>
+                        {u.banStatus.isBanned && (
+                          <div style={{ fontSize: 10, color: '#c33', fontWeight: 600, marginTop: 2 }}>
+                            <i className="fa-solid fa-clock" style={{ marginRight: 4 }}></i>
+                            {u.banStatus.indefinite 
+                              ? (lang === 'es' ? 'Ban permanente' : 'Permanent ban')
+                              : (lang === 'es' ? `Baneado hasta ${new Date(u.banStatus.until).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}` : `Banned until ${new Date(u.banStatus.until).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}`)}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        {u.banStatus.isBanned && (
+                          <button onClick={() => {
+                            if (confirm(lang === 'es' ? `¿Restaurar a ${u.name}?` : `Restore ${u.name}?`)) {
+                              window.AntiCheat.unban(u.name);
+                              setGlobalUsers(prev => [...prev]); // force re-render
+                            }
+                          }} className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(76,175,80,0.1)', color: '#388e3c', fontSize: 12, border: '1px solid rgba(76,175,80,0.25)', borderRadius: 8 }}>
+                            <i className="fa-solid fa-user-check"></i>
+                          </button>
+                        )}
+                        <button onClick={() => setDeleteTarget({ name: u.name, type: 'global' })} className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.25)', borderRadius: 8 }}>
+                          <i className="fa-solid fa-user-slash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
 
