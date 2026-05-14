@@ -520,10 +520,12 @@ function buildAchievements() {
       desc_es: `Desbloquea ${v} logros`, desc_en: `Unlock ${v} achievements`, cat: 'meta' });
   });
 
-  const speedMs = [5, 7, 10, 15, 20];
+  const speedMs = [5, 7, 10, 12, 15, 16, 20, 25, 35, 50, 75, 100];
   const speedTitles = [
     ['Dedo veloz','Fast finger'],['Ritmo de ametralladora','Machine gun rhythm'],['Superviviente del click','Click survivor'],
-    ['Velocidad sónica','Sonic speed'],['¿Humano o máquina?','Human or machine?'],
+    ['Reflejos relámpago','Lightning reflexes'],['Velocidad sónica','Sonic speed'],['Tormenta de clicks','Click storm'],
+    ['¿Humano o máquina?','Human or machine?'],['Procesador biológico','Biological processor'],['Súper Computadora','Super Computer'],
+    ['Dios del Click','Click God'],['Velocidad de la Luz','Light Speed'],['Singularidad del Diente','Tooth Singularity']
   ];
   speedMs.forEach((v, i) => {
     const [es, en] = speedTitles[i];

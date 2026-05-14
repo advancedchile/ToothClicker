@@ -1591,7 +1591,8 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
             { label: t.currentTeeth, value: fmt(state.teeth), strong: true },
             { label: t.perSecond, value: fmt(perSecond, true), color: 'var(--positive-i100)' },
             { label: t.perClick, value: fmt(perClick, true), color: 'var(--alternative-i100)' },
-            { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: `x${fmt(Math.floor(globalMult * 100) / 100)}`, color: 'var(--warning-i130)' }]
+            { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: `x${fmt(Math.floor(globalMult * 100) / 100)}`, color: 'var(--warning-i130)' },
+            { label: lang === 'es' ? 'Récord CPS' : 'CPS Record', value: fmt(state.maxCPS || 0), color: 'var(--positive-i100)' }]
             } />
               <window.StatsGroup title={lang === 'es' ? 'Progreso' : 'Progress'} icon="fa-solid fa-chart-line" accent="var(--positive-i100)" rows={[
             { label: t.totalTeeth, value: fmt(state.totalEarned), strong: true },
