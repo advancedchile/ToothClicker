@@ -71,7 +71,7 @@ function ToothbrushRing({ count }) {
                 left: -25,
                 top: -25,
                 filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
-                animation: 'brushWave 60s infinite ease-in-out',
+                animation: 'brushWave 5s infinite ease-in-out',
                 animationDelay: `${i * 0.1}s`
               }}
             />
