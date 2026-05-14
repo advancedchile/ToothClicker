@@ -44,7 +44,7 @@ function ToothbrushRing({ count }) {
 
   const delayStep = 0.1; // 100ms between brushes
   const pulseTime = 1;   // 1s pulse duration
-  const cycleTime = (displayCount * delayStep) + pulseTime;
+  const cycleTime = Math.max(pulseTime, displayCount * delayStep);
   const peakPercent = (pulseTime / 2 / cycleTime) * 100;
   const endPercent = (pulseTime / cycleTime) * 100;
 
