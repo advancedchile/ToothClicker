@@ -407,6 +407,14 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     return 12_500_000_000_000 * Math.pow(1.25, count); // Increased by 150% (original 5e12 * 2.5)
   }, [state.prestigeCount]);
   const prestigeGain = state.totalEarned >= prestigeReq ? 1 : 0;
+  
+  const auroraOpacity = useMemo(() => {
+    const t = state.teeth || 0;
+    if (t < 1e12) return 0;
+    if (t < 5e14) return ((t - 1e12) / (5e14 - 1e12)) * 0.15;
+    if (t < 2.5e16) return 0.15 + ((t - 5e14) / (2.5e16 - 5e14)) * 0.25;
+    return Math.min(0.65, 0.4 + ((t - 2.5e16) / 1e18) * 0.25);
+  }, [state.teeth]);
 
   // Game tick
   useEffect(() => {
@@ -1232,7 +1240,8 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                 </div>
               )}
             </div>
-            <div style={{ position: 'relative', width: '100%', height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'relative', width: '100%', height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <div className="aurora-container" style={{ '--aurora-opacity': auroraOpacity }} />
                 <div style={{
                   position: 'absolute', top: '50%', left: '50%', width: 1200, height: 1200,
                   pointerEvents: 'none', zIndex: 0,
