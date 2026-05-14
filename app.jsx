@@ -264,6 +264,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const [isEditingClinic, setIsEditingClinic] = useState(false);
   const [tempClinicName, setTempClinicName] = useState(state.clinicName || '');
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
+  const [academyFilter, setAcademyFilter] = useState('all');
   const [justLeveledTo, setJustLeveledTo] = useState(0);
   const [shownMilestones, setShownMilestones] = useState(() => {
     const saved = loadUserSave(username);
@@ -299,7 +300,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   const buyXpUpgrade = (id) => {
     const up = (window.XP_UPGRADES || []).find(u => u.id === id);
     if (!up || state.xpUpgrades[id]) return;
-    const cost = up.baseCost * Math.pow(1.5, state.prestigeCount || 0);
+    const cost = up.baseCost;
     if (state.teeth < cost) return;
     
     window.playClickSound && window.playClickSound();
@@ -373,6 +374,9 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
 
   const prestigeMult = 1 + 0.05 * (state.prestige || 0);
   const achMult = 1 + 0.01 * Object.values(state.achievements || {}).filter(Boolean).length;
+  const academyGpsMult = useMemo(() => {
+    return 1 + (window.XP_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades[up.id] ? (up.gpsBonus || 0) : 0), 0);
+  }, [state.xpUpgrades]);
   const perSecondRaw = useMemo(() => {
     let v = 0;
     for (const g of window.GENERATORS) {
@@ -383,9 +387,8 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     return v;
   }, [state.generators, storeMults]);
   const clickBase = useMemo(() => window.computeClickPower(state, perSecondRaw).total, [state.clickUpgrades, state.generators, state.achievements, state.timePlayed, perSecondRaw]);
-  const goldenMult = goldenActiveUntil > Date.now() ? 7 : 1;
   const crystalMult = crystalFrenzyUntil > Date.now() ? 5 : 1;
-  const globalMult = prestigeMult * achMult * goldenMult * crystalMult * storeMults.global;
+  const globalMult = prestigeMult * achMult * goldenMult * crystalMult * storeMults.global * academyGpsMult;
   const perClick = clickBase * storeMults.click * globalMult;
   perClickRef.current = perClick;
   // Displayed tooth: player-selected if unlocked, else auto (highest unlocked)
@@ -1245,8 +1248,9 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                   onMouseLeave={() => setIsMainMouseDown(false)}
                   onTouchStart={(e) => { handleClick(e); setIsMainMouseDown(true); }}
                   onTouchEnd={() => setIsMainMouseDown(false)}
-                  style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', zIndex: 1 }} key={clickPulse}>
-                  <img src={currentToothImg} alt="tooth" style={{ width: 260, height: 260, objectFit: 'contain', filter: holdBonusUntil > Date.now() ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : goldenMult > 1 ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : crystalMult > 1 ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))', animation: 'toothClick 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' }} />
+                  style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }} key={clickPulse}>
+                  <window.ToothbrushRing count={state.generators.brush} />
+                  <img src={currentToothImg} alt="tooth" style={{ width: 260, height: 260, objectFit: 'contain', filter: holdBonusUntil > Date.now() ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : goldenMult > 1 ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : crystalMult > 1 ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))', animation: 'toothClick 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)', position: 'relative', zIndex: 2 }} />
                   {floats.map((f) =>
                   <div key={f.id} style={{ position: 'absolute', left: f.x, top: f.y, pointerEvents: 'none', color: '#000000', fontWeight: 900, fontSize: 18, textShadow: '-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 2px 4px rgba(0,0,0,0.2)', animation: 'clickPop 600ms ease-out forwards', fontVariantNumeric: 'tabular-nums', '--tx': `${f.tx}px`, zIndex: 100 }}>+{fmt(f.gain, true)}</div>
                   )}
@@ -1487,32 +1491,85 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           }
           {tab === 'skills' &&
             <div>
-              <div style={{ marginBottom: 'var(--spacing-4)' }}>
-                <div className="t-heading-m">{lang === 'es' ? 'Academia Dental' : 'Dental Academy'}</div>
-                <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Mejora tus conocimientos para subir de nivel más rápido.' : 'Improve your knowledge to level up faster.'}</div>
+              <div style={{ marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <div>
+                  <div className="t-heading-m">{lang === 'es' ? 'Academia Dental' : 'Dental Academy'}</div>
+                  <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Mejora tus conocimientos para optimizar tu clínica.' : 'Improve your knowledge to optimize your practice.'}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 4, background: 'var(--bg-3)', padding: 3, borderRadius: 8 }}>
+                  {['all', 'locked', 'disabled'].map(f => (
+                    <button key={f} onClick={() => setAcademyFilter(f)} style={{
+                      all: 'unset', boxSizing: 'border-box', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                      background: academyFilter === f ? 'var(--primary-i100)' : 'transparent',
+                      color: academyFilter === f ? '#fff' : 'var(--fg-2)', transition: 'all 150ms'
+                    }}>
+                      {f === 'all' ? (lang === 'es' ? 'Todas' : 'All') : 
+                       f === 'locked' ? (lang === 'es' ? 'Bloqueadas' : 'Locked') : 
+                       (lang === 'es' ? 'Deshabilitadas' : 'Disabled')}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {(window.XP_UPGRADES || []).filter(up => (state.prestigeCount || 0) >= up.prestigeReq).slice(0, 50).map(up => {
-                  const purchased = state.xpUpgrades[up.id];
-                  const cost = up.baseCost * Math.pow(1.5, state.prestigeCount || 0);
+                {(window.XP_UPGRADES || []).filter(up => {
+                  const purchased = !!state.xpUpgrades[up.id];
+                  const isLocked = state.level < up.levelReq || state.totalEarned < up.teethReq;
+                  const canAfford = state.teeth >= up.baseCost;
+                  
+                  if (academyFilter === 'locked') return isLocked && !purchased;
+                  if (academyFilter === 'disabled') return !isLocked && !purchased && !canAfford;
+                  
+                  return true; 
+                })
+                .filter(up => {
+                  const purchased = !!state.xpUpgrades[up.id];
+                  const isLocked = state.level < up.levelReq || state.totalEarned < up.teethReq;
+                  if (academyFilter === 'all') {
+                    // Show purchased, unlocked, and the next 5 locked ones
+                    if (purchased || !isLocked) return true;
+                    const firstLockedIdx = (window.XP_UPGRADES || []).findIndex(u => state.level < u.levelReq || state.totalEarned < u.teethReq);
+                    const myIdx = (window.XP_UPGRADES || []).indexOf(up);
+                    return myIdx >= firstLockedIdx && myIdx < firstLockedIdx + 10;
+                  }
+                  return true;
+                })
+                .map(up => {
+                  const purchased = !!state.xpUpgrades[up.id];
+                  const isLocked = state.level < up.levelReq || state.totalEarned < up.teethReq;
+                  const cost = up.baseCost;
                   const canAfford = state.teeth >= cost;
+                  
                   return (
-                    <div key={up.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: purchased ? 'var(--primary-i005)' : 'var(--bg-2)', border: purchased ? '1px solid var(--primary-i020)' : '1px solid var(--border-subtle)', borderRadius: 10, opacity: !purchased && !canAfford ? 0.7 : 1 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: purchased ? 'var(--primary-i100)' : 'var(--fg-1)' }}>{up.name[lang]}</div>
-                        <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>{up.desc[lang]}</div>
+                    <div key={up.id} style={{ 
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', 
+                      background: purchased ? 'var(--positive-i005)' : (isLocked ? 'var(--bg-3)' : 'var(--bg-1)'), 
+                      border: purchased ? '1px solid var(--positive-i020)' : (isLocked ? '1px solid var(--border-subtle)' : '1px solid var(--primary-i020)'), 
+                      borderRadius: 12, opacity: isLocked ? 0.6 : 1,
+                      transition: 'all 200ms'
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: purchased ? 'var(--positive-i100)' : (isLocked ? 'var(--fg-3)' : 'var(--fg-1)'), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {isLocked ? '???' : up.name[lang]}
+                          </div>
+                          {!purchased && isLocked && <i className="fa-solid fa-lock" style={{ fontSize: 10, color: 'var(--fg-4)' }}></i>}
+                        </div>
+                        <div style={{ fontSize: 11, color: isLocked ? 'var(--fg-4)' : 'var(--fg-3)', marginTop: 2, lineHeight: 1.3 }}>
+                          {isLocked ? (lang === 'es' ? `Requiere Nivel ${up.levelReq}` : `Requires Level ${up.levelReq}`) : up.desc[lang]}
+                        </div>
                       </div>
                       <button 
-                        disabled={purchased || !canAfford}
+                        disabled={purchased || !canAfford || isLocked}
                         onClick={() => buyXpUpgrade(up.id)}
                         style={{
-                          all: 'unset', boxSizing: 'border-box', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: (purchased || !canAfford) ? 'not-allowed' : 'pointer',
-                          background: purchased ? 'var(--positive-i100)' : (canAfford ? 'var(--primary-i100)' : 'var(--bg-3)'),
-                          color: (purchased || canAfford) ? '#fff' : 'var(--fg-3)',
-                          minWidth: 80, textAlign: 'center'
+                          all: 'unset', boxSizing: 'border-box', padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, 
+                          cursor: (purchased || !canAfford || isLocked) ? 'not-allowed' : 'pointer',
+                          background: purchased ? 'var(--positive-i100)' : (isLocked ? 'var(--bg-2)' : (canAfford ? 'var(--primary-i100)' : 'var(--bg-3)')),
+                          color: (purchased || (canAfford && !isLocked)) ? '#fff' : 'var(--fg-3)',
+                          minWidth: 90, textAlign: 'center', transition: 'all 150ms'
                         }}
                       >
-                        {purchased ? (lang === 'es' ? 'Comprado' : 'Purchased') : fmt(cost)}
+                        {purchased ? (lang === 'es' ? 'Completado' : 'Completed') : (isLocked ? (lang === 'es' ? 'Bloqueado' : 'Locked') : fmt(cost))}
                       </button>
                     </div>
                   );

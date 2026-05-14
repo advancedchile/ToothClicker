@@ -31,6 +31,50 @@ function ToothIcon({ size = 220, golden = false }) {
 
 }
 
+/**
+ * Renders a ring of toothbrushes around the main tooth.
+ * Each purchase of "brush" adds one toothbrush (max 100).
+ */
+function ToothbrushRing({ count }) {
+  const max = 100;
+  const displayCount = Math.min(count || 0, max);
+  const radius = 175; // Distance from center
+  
+  if (displayCount <= 0) return null;
+
+  return (
+    <div style={{
+      position: 'absolute',
+      width: 0,
+      height: 0,
+      zIndex: 0,
+      animation: 'rotateSun 60s linear infinite', // Reusing rotateSun if it exists, or will add rotateClockwise
+      pointerEvents: 'none'
+    }}>
+      {Array.from({ length: displayCount }).map((_, i) => {
+        const angle = (i / displayCount) * 360;
+        return (
+          <img
+            key={i}
+            src="assets/tooth_wash/tooth_wash_1.png"
+            alt=""
+            style={{
+              position: 'absolute',
+              width: 50,
+              height: 50,
+              objectFit: 'contain',
+              left: -25,
+              top: -25,
+              transform: `rotate(${angle}deg) translateY(-${radius}px) rotate(180deg)`,
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function StatTile({ label, value, sub, icon, accent, onHelpEnter, onHelpLeave }) {
   return (
     <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-m)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)', padding: "12px 14px" }}>
@@ -688,4 +732,4 @@ function GameTour({ step, lang, onNext, onPrev, onClose, dontShowAgain, onToggle
   );
 }
 
-Object.assign(window, { AboutModal, VersionLogModal, GameTour, StatTile, StatsGroup, TabBar, GeneratorRow, ClickUpgradeRow, AchievementCard, Toast, StoreUpgradeIcon, ToothIcon, primaryBtnStyle, secondaryBtnStyle });
+Object.assign(window, { ToothbrushRing, AboutModal, VersionLogModal, GameTour, StatTile, StatsGroup, TabBar, GeneratorRow, ClickUpgradeRow, AchievementCard, Toast, StoreUpgradeIcon, ToothIcon, primaryBtnStyle, secondaryBtnStyle });

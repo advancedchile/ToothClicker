@@ -260,21 +260,20 @@ const GEN_TIERS = [
 
 function buildGenerators() {
   const out = [];
-  let baseCost = 33.75; // Increased by 125% (original 15 * 2.25)
-  let baseProduction = 0.1;
+  let baseCost = 33.75;
+  let baseProduction = 0.2;
   for (let tier = 0; tier < GEN_TIERS.length; tier++) {
     const items = GEN_TIERS[tier].base;
-    let idx = out.length;
     for (const it of items) {
+      const idx = out.length;
       const cost = Math.round(baseCost);
-      const prod = baseProduction;
+      const prod = idx === 0 ? baseProduction : Math.round(baseProduction);
       const unlock = idx === 0 ? 0 : Math.round(cost * 0.55);
       out.push({
         id: it.id, baseCost: cost, baseProduction: prod, unlockAt: unlock,
         icon: 'fa-solid ' + it.icon, es: it.es, en: it.en,
         desc_es: it.desc_es, desc_en: it.desc_en, tier,
       });
-      idx++;
       baseCost *= 7.5;
       baseProduction *= 6.6;
     }
@@ -358,36 +357,36 @@ function buildClickUpgrades() {
       up.en = enName + ' ' + romanize(Math.floor(i / 14) + 1);
       up.desc_es = `+${formatNumWithMode(up.value, 'short')} dientes por click`;
       up.desc_en = `+${formatNumWithMode(up.value, 'short')} teeth per click`;
-      flatVal *= 5;
+      flatVal *= 4.5;
     } else if (type === 'mult') {
-      up.value = 2;
+      up.value = 1.75;
       up.es = esName + ' ' + romanize(Math.floor(i / 14) + 1);
       up.en = enName + ' ' + romanize(Math.floor(i / 14) + 1);
-      up.desc_es = `×2 poder de click`;
-      up.desc_en = `×2 click power`;
+      up.desc_es = `×1.75 poder de click`;
+      up.desc_en = `×1.75 click power`;
     } else if (type === 'perGen') {
       const genIdx = Math.min(GENERATORS.length - 1, Math.floor(i / 14) * 4);
       const gen = GENERATORS[genIdx];
-      up.ref = gen.id; up.refName = { es: gen.es, en: gen.en }; up.value = 1;
+      up.ref = gen.id; up.refName = { es: gen.es, en: gen.en }; up.value = 0.5;
       up.es = esName.replace('{gen}', gen.es.toLowerCase());
       up.en = enName.replace('{gen}', gen.en.toLowerCase());
-      up.desc_es = `+1 % al click por cada ${gen.es.toLowerCase()}`;
-      up.desc_en = `+1 % to click per ${gen.en.toLowerCase()} owned`;
+      up.desc_es = `+0.5 % al click por cada ${gen.es.toLowerCase()}`;
+      up.desc_en = `+0.5 % to click per ${gen.en.toLowerCase()} owned`;
     } else if (type === 'perAch') {
-      up.value = 2; up.es = esName; up.en = enName;
-      up.desc_es = `+2 % al click por cada logro desbloqueado`;
-      up.desc_en = `+2 % to click per achievement unlocked`;
+      up.value = 1.5; up.es = esName; up.en = enName;
+      up.desc_es = `+1.5 % al click por cada logro desbloqueado`;
+      up.desc_en = `+1.5 % to click per achievement unlocked`;
     } else if (type === 'perSec') {
-      up.value = 1; up.es = esName; up.en = enName;
-      up.desc_es = `+1 % de la producción por segundo se suma al click`;
-      up.desc_en = `+1 % of per-second output added to click power`;
+      up.value = 0.5; up.es = esName; up.en = enName;
+      up.desc_es = `+0.5 % de la producción por segundo se suma al click`;
+      up.desc_en = `+0.5 % of per-second output added to click power`;
     } else if (type === 'timeBonus') {
-      up.threshold = 3600 * (Math.floor(i / 14) + 1); up.value = 25;
+      up.threshold = 3600 * (Math.floor(i / 14) + 1); up.value = 20;
       up.es = esName + ' ' + romanize(Math.floor(i / 14) + 1);
       up.en = enName + ' ' + romanize(Math.floor(i / 14) + 1);
       const hrs = up.threshold / 3600;
-      up.desc_es = `+25 % al click tras ${hrs} h de juego`;
-      up.desc_en = `+25 % to click after ${hrs} h played`;
+      up.desc_es = `+20 % al click tras ${hrs} h de juego`;
+      up.desc_en = `+20 % to click after ${hrs} h played`;
     }
     out.push(up);
     cost *= MULT;

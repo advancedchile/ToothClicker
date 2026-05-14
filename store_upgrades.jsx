@@ -12,14 +12,14 @@ window.STORE_UPGRADES = (() => {
     upgrades.push({
       id: `click_up_${i}`,
       type: 'click',
-      multiplier: 2,
+      multiplier: 1.5,
       cost: cost,
       requirement: Math.floor(cost * 0.65),
       icon: 'fa-hand-pointer',
       es: `Click de Diamante Nivel ${i}`,
       en: `Diamond Click Level ${i}`,
-      desc_es: 'Tus clicks son el doble de potentes.',
-      desc_en: 'Your clicks are twice as powerful.',
+      desc_es: 'Tus clicks son un 50% más potentes.',
+      desc_en: 'Your clicks are 50% more powerful.',
       color: '#00d2ff'
     });
   }
@@ -53,14 +53,14 @@ window.STORE_UPGRADES = (() => {
     upgrades.push({
       id: `global_up_${i}`,
       type: 'global',
-      multiplier: 1.1,
+      multiplier: 1.05,
       cost: cost,
       requirement: Math.floor(cost * 0.65),
       icon: 'fa-globe',
       es: `Eficiencia Global Nivel ${i}`,
       en: `Global Efficiency Level ${i}`,
-      desc_es: 'Toda tu producción aumenta un 10%.',
-      desc_en: 'All your production increases by 10%.',
+      desc_es: 'Toda tu producción aumenta un 5%.',
+      desc_en: 'All your production increases by 5%.',
       color: '#ff4b2b'
     });
   }
