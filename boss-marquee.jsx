@@ -1,3 +1,6 @@
+const { useState, useEffect, useRef, useMemo } = React;
+const NAME_COLORS = ['oklch(0.6 0.22 25)', 'oklch(0.55 0.25 295)', 'oklch(0.6 0.2 250)'];
+
 function BossMarquee({ msg, lang, danger, onDismiss }) {
   const [shown, setShown] = useState('');
   const [containerReady, setContainerReady] = useState(false);
@@ -127,3 +130,5 @@ function BossMarquee({ msg, lang, danger, onDismiss }) {
     </div>
   );
 }
+
+window.BossMarquee = BossMarquee;

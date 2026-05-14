@@ -1,3 +1,9 @@
+const { useState, useEffect } = React;
+const { 
+  Modal, loadUsers, saveUsers, deleteUserSave, resetAllProgress, 
+  ADMIN_NAME, formatNum 
+} = window;
+
 // ── Admin Panel ───────────────────────────────────────────────────────────────
 function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [adminUsers, setAdminUsers] = useState([ADMIN_NAME]);
@@ -974,3 +980,5 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
     </div>
   );
 }
+
+window.AdminPanel = AdminPanel;

@@ -1,3 +1,5 @@
+const { useState, useEffect, useRef } = React;
+
 function FallingTeethSimulation({ totalGenerators, clickPulse, toothImg }) {
   const containerRef = useRef(null);
   const [particles, setParticles] = useState([]);
@@ -120,3 +122,5 @@ function FallingTeethSimulation({ totalGenerators, clickPulse, toothImg }) {
     </div>
   );
 }
+
+window.FallingTeethSimulation = FallingTeethSimulation;

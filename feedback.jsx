@@ -1,3 +1,5 @@
+const { useState } = React;
+
 function FeedbackModal({ onClose, lang, username, onSuccess, state, setState }) {
   const [text, setText] = useState('');
   const [error, setError] = useState('');
@@ -135,3 +137,5 @@ function FeedbackModal({ onClose, lang, username, onSuccess, state, setState }) 
     </window.Modal>
   );
 }
+
+window.FeedbackModal = FeedbackModal;

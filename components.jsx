@@ -72,32 +72,80 @@ function StatsGroup({ title, icon, accent, rows }) {
 
 function TabBar({ tabs, active, onChange, id }) {
   return (
-    <div id={id} style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--border-subtle)', marginBottom: 'var(--spacing-5)', overflowX: 'auto' }}>
+    <div id={id} style={{ 
+      display: 'flex', 
+      gap: 6, 
+      background: 'rgba(255,255,255,0.5)', 
+      padding: 4, 
+      borderRadius: 12, 
+      border: '1px solid rgba(100,160,230,0.2)',
+      marginBottom: 'var(--spacing-5)', 
+      overflowX: 'auto' 
+    }}>
       {tabs.map((t) => {
         const isActive = active === t.id;
         return (
-          <button key={t.id} id={`tab-${t.id}`} onClick={() => { window.playClickSound && window.playClickSound(); onChange(t.id); }} style={{
-            position: 'relative',
-            background: 'none', border: 'none', borderBottom: isActive ? '2px solid var(--primary-i100)' : '2px solid transparent',
-            padding: 'var(--spacing-3) var(--spacing-4)', color: isActive ? 'var(--primary-i100)' : 'var(--fg-2)',
-            fontWeight: isActive ? 600 : 500, fontSize: 14, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)',
-            transition: 'color 150ms ease', whiteSpace: 'nowrap', flexShrink: 0
-          }}>
-            <i className={t.icon} style={{ fontSize: 13 }}></i>
+          <button 
+            key={t.id} 
+            id={`tab-${t.id}`} 
+            onClick={() => { window.playClickSound && window.playClickSound(); onChange(t.id); }} 
+            style={{
+              position: 'relative',
+              all: 'unset',
+              boxSizing: 'border-box',
+              flex: 1,
+              background: isActive ? '#1a8fff' : 'transparent', 
+              padding: '8px 12px', 
+              color: isActive ? '#fff' : '#4a6a8a',
+              borderRadius: 10,
+              fontWeight: 600, 
+              fontSize: 12, 
+              cursor: 'pointer',
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: 8, 
+              fontFamily: 'var(--font-sans)',
+              transition: 'all 140ms ease', 
+              whiteSpace: 'nowrap', 
+              flexShrink: 0,
+              boxShadow: isActive ? '0 4px 12px rgba(26,143,255,0.25)' : 'none'
+            }}
+          >
+            <i className={t.icon} style={{ fontSize: 11 }}></i>
             {t.label}
             {t.badge != null &&
-            <span style={{ fontSize: 10, fontWeight: 600, background: isActive ? 'var(--primary-i010)' : 'var(--bg-3)', color: isActive ? 'var(--primary-i100)' : 'var(--fg-3)', padding: '2px 6px', borderRadius: 999, minWidth: 18, textAlign: 'center' }}>{t.badge}</span>
+              <span style={{ 
+                fontSize: 9, 
+                fontWeight: 700, 
+                background: isActive ? 'rgba(255,255,255,0.2)' : 'rgba(100,140,220,0.1)', 
+                color: isActive ? '#fff' : '#4a6a8a', 
+                padding: '2px 6px', 
+                borderRadius: 999, 
+                minWidth: 16, 
+                textAlign: 'center' 
+              }}>{t.badge}</span>
             }
             {t.dot && (
-              <span style={{ position: 'absolute', top: 8, right: 4, width: 8, height: 8, borderRadius: '50%', background: 'var(--negative-i100)', border: '2px solid var(--bg-1)' }}></span>
+              <span style={{ 
+                position: 'absolute', 
+                top: 6, 
+                right: 6, 
+                width: 7, 
+                height: 7, 
+                borderRadius: '50%', 
+                background: '#e11d24', 
+                border: '1.5px solid #fff',
+                boxShadow: '0 0 0 2px rgba(225,29,36,0.1)'
+              }}></span>
             )}
-          </button>);
-
+          </button>
+        );
       })}
-    </div>);
-
+    </div>
+  );
 }
+
 
 function GeneratorRow({ gen, owned, cost, canAfford, unlocked, revealed, onBuy, lang, totalTeeth, production, nextProduction, buyQty, actualQty }) {
   const t = window.STRINGS[lang];

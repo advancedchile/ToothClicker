@@ -6,6 +6,14 @@
 // FeedbackModal → feedback.jsx
 // AdminPanel → admin.jsx
 
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+const { 
+  loadUsers, saveUsers, loadUserSave, persistUserSave, deleteUserSave, 
+  resetAllProgress, defaultState, 
+  SAVES_KEY, USERS_KEY, DEVICE_USER_KEY, CURRENT_USER_KEY, LAST_RESET_KEY, ADMIN_AUTH_KEY, ADMIN_NAME, ADMIN_USERS_KEY, LANG_KEY, SOUND_KEY, NUMFMT_KEY
+} = window;
+
+
 function Modal({ children, onClose, maxWidth, persistent }) {
   return (
     <div onClick={() => !persistent && onClose && onClose()} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, animation: 'fadeIn 150ms ease' }}>
@@ -132,6 +140,14 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     setIsMusicPlaying(false);
   };
 
+  const handlePlayRandom = () => {
+    if (tracks.length === 0) return;
+    const random = tracks[Math.floor(Math.random() * tracks.length)];
+    setCurrentTrack(random);
+    setIsMusicPlaying(true);
+  };
+
+
   useEffect(() => {
     if (sessionStartMinutes.current === null && state.timePlayed > 0) {
       sessionStartMinutes.current = state.timePlayed / 60;
@@ -230,24 +246,8 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
 
   const userPausedMusic = useRef(false);
 
-  useEffect(() => {
-    if (audioRef.current && !isMusicPlaying && !musicAttempted.current && !userPausedMusic.current) {
-      musicAttempted.current = true;
-      audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(e => console.warn('Autoplay blocked:', e));
-    }
-  }, []);
+  // Music auto-play is disabled per user request
 
-  useEffect(() => {
-    const handleFirstClick = () => {
-      if (!userPausedMusic.current && !isMusicPlaying && audioRef.current && audioRef.current.paused && !musicAttempted.current) {
-        musicAttempted.current = true;
-        audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(e => {});
-      }
-      window.removeEventListener('click', handleFirstClick);
-    };
-    window.addEventListener('click', handleFirstClick);
-    return () => window.removeEventListener('click', handleFirstClick);
-  }, []);
   const [isMainMouseDown, setIsMainMouseDown] = useState(false);
   const [goldHoldProgress, setGoldHoldProgress] = useState(0); // 0–1
   const goldHoldRef = useRef({ interval: null, clicks: 0 });
@@ -1626,6 +1626,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           tracks={tracks}
           currentTrack={currentTrack}
           onSelectTrack={(t) => { userPausedMusic.current = false; setCurrentTrack(t); setIsMusicPlaying(true); }}
+          onPlayRandom={handlePlayRandom}
           isPlaying={isMusicPlaying}
           onTogglePlay={() => { userPausedMusic.current = isMusicPlaying; setIsMusicPlaying(!isMusicPlaying); }}
           onStop={handleStop}
@@ -1635,13 +1636,13 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
           onToggleMute={() => setMusicMuted(!musicMuted)}
           playMode={playMode}
           onChangePlayMode={handlePlayModeChange}
-          audioRef={audioRef}
           currentTime={musicTime}
           duration={musicDuration}
           onSeek={(t) => { if (audioRef.current) audioRef.current.currentTime = t; }}
           soundOn={soundOn}
           toggleSound={toggleSound}
         />
+
       )}
 
       {/* Golden tooth */}
@@ -2202,7 +2203,13 @@ function App() {
     setNumFormat(m);try {localStorage.setItem(NUMFMT_KEY, m);} catch (e) {}
   }, []);
 
+  const handleLogoutDeviceUser = useCallback(() => {
+    localStorage.removeItem(DEVICE_USER_KEY);
+    setDeviceUser(null);
+  }, []);
+
   if (screen === 'admin') {
+
     return (
       <AdminPanel
         lang={lang}
@@ -2226,8 +2233,10 @@ function App() {
         onSelectUser={handleSelectUser}
         onCreateUser={handleCreateUser}
         onAdminAccess={handleAdminAccess}
+        onLogoutDeviceUser={handleLogoutDeviceUser}
         users={users}
         deviceUser={deviceUser}
+
         soundOn={soundOn}
         onSoundToggle={handleSoundToggle} />
         

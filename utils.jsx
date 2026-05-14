@@ -89,3 +89,13 @@ const topBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '8px 12px'
 const primaryBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '10px 18px', background: 'var(--primary-i100)', color: '#fff', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 14, cursor: 'pointer', flex: 1, textAlign: 'center', fontFamily: 'var(--font-sans)' };
 const secondaryBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '10px 18px', background: 'var(--bg-3)', color: 'var(--fg-1)', borderRadius: 'var(--radius-s)', fontWeight: 500, fontSize: 14, cursor: 'pointer', flex: 1, textAlign: 'center', fontFamily: 'var(--font-sans)' };
 const debugBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '4px 8px', fontSize: 10, fontWeight: 700, background: 'var(--bg-2)', border: '1px solid var(--border-subtle)', borderRadius: 4, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--fg-2)', transition: 'all 100ms' };
+
+// Global exports
+Object.assign(window, { 
+  formatMusicTime, formatTime, 
+  loadAllSaves, saveAllSaves, loadUserSave, persistUserSave, deleteUserSave, 
+  loadUsers, saveUsers, resetAllProgress, defaultState, 
+  topBtnStyle, primaryBtnStyle, secondaryBtnStyle, debugBtnStyle,
+  SAVES_KEY, CURRENT_USER_KEY, LANG_KEY, SOUND_KEY, NUMFMT_KEY, USERS_KEY, DEVICE_USER_KEY, ADMIN_USERS_KEY, LAST_RESET_KEY, ADMIN_AUTH_KEY, ADMIN_NAME, MUSIC_TRACKS
+});
+

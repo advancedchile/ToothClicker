@@ -162,7 +162,7 @@ function MiniStat({ label, value, icon, color }) {
 }
 
 // ── User pill ───────────────────────────────────────────────────────────────
-function UserPill({ name, onSelect, isOwn }) {
+function UserPill({ name, onSelect, isOwn, onLogout }) {
   const [hov, setHov] = useStateG(false);
   return (
     <button
@@ -184,9 +184,23 @@ function UserPill({ name, onSelect, isOwn }) {
         {(name[0] || '?').toUpperCase()}
       </div>
       <span style={{ fontSize: 16, fontWeight: 600, color: '#334455', flex: 1, transition: 'color 140ms' }}>{name}</span>
-      {isOwn && <span style={{ fontSize: 10, fontWeight: 600, color: '#1a8fff', background: 'rgba(26,143,255,0.12)', padding: '3px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
-        {window.__lang === 'en' ? 'YOU' : 'TÚ'}
-      </span>}
+      {isOwn && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#1a8fff', background: 'rgba(26,143,255,0.12)', padding: '3px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
+            {window.__lang === 'en' ? 'YOU' : 'TÚ'}
+          </span>
+          <button 
+            onClick={(e) => { e.stopPropagation(); window.playClickSound && window.playClickSound(); onLogout(); }}
+            title={window.__lang === 'en' ? 'Logout / Clear session' : 'Cerrar sesión / Limpiar perfil'}
+            style={{ all: 'unset', width: 28, height: 28, borderRadius: '50%', background: 'rgba(220,50,50,0.08)', color: '#c33', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid rgba(220,50,50,0.1)' }}
+            onMouseOver={e => { e.currentTarget.style.background = 'rgba(220,50,50,0.15)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+            onMouseOut={e => { e.currentTarget.style.background = 'rgba(220,50,50,0.08)'; e.currentTarget.style.transform = 'scale(1)'; }}
+          >
+            <i className="fa-solid fa-right-from-bracket" style={{ fontSize: 11 }}></i>
+          </button>
+        </div>
+      )}
+
       <i className="fa-solid fa-arrow-right" style={{ fontSize: 12, color: 'rgba(100,160,200,0.5)', transition: 'color 140ms' }}></i>
     </button>
   );
@@ -258,7 +272,7 @@ function AdminPasswordModal({ lang, onSuccess, onClose }) {
 }
 
 // ── Gate ─────────────────────────────────────────────────────────────────────
-function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, users, deviceUser }) {
+function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, onLogoutDeviceUser, users, deviceUser }) {
   const [name, setName] = useStateG('');
   const [password, setPassword] = useStateG('');
   const [showPassword, setShowPassword] = useStateG(false);
@@ -409,7 +423,8 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, u
         )}
 
         {/* Public user pills */}
-        {users.length > 0 && (
+        {deviceUser && users.length > 0 && (
+
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
             {deviceUser && (
               <div style={{ fontSize: 12, color: 'rgba(80,110,150,0.65)', fontFamily: 'var(--font-sans)', textAlign: 'center', marginBottom: 2 }}>
@@ -417,7 +432,14 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, u
               </div>
             )}
             {users.map(u => (
-              <UserPill key={u} name={u} onSelect={onSelectUser} isOwn={u === deviceUser} />
+              <UserPill 
+                key={u} 
+                name={u} 
+                onSelect={onSelectUser} 
+                isOwn={u === deviceUser} 
+                onLogout={onLogoutDeviceUser}
+              />
+
             ))}
           </div>
         )}
