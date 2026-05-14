@@ -2030,21 +2030,19 @@ function App() {
           const cloudNames = new Set(res.scores.map(s => s.name.toLowerCase()));
           const localUsers = loadUsers();
           let needsUpdate = false;
-          
           const filtered = localUsers.filter(u => {
             const low = u.toLowerCase();
-            if (low === 'james') return true; // Always keep admin
-            
-            // If user is NOT in cloud, they were likely deleted or we did a wipe
-            if (!cloudNames.has(low)) {
-              console.log(`User ${u} not found in cloud. Clearing locally.`);
+            if (low === 'james') return true;
+            if (cloudNames.has(low)) return true;
+            const save = loadUserSave(u);
+            if (save && (save.totalEarned > 1000000 || (save.prestigeCount || 0) > 0)) {
+              console.log(`User ${u} deleted from cloud. Clearing locally.`);
               deleteUserSave(u);
               needsUpdate = true;
               return false;
             }
             return true;
           });
-
           if (needsUpdate) {
             saveUsers(filtered);
             setUsers(filtered);
@@ -2060,7 +2058,6 @@ function App() {
             }
           }
         }
-
       } catch (e) { console.error("Sync error:", e); }
 
       try {
