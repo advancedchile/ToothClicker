@@ -119,7 +119,8 @@ function LeaderboardBody({ lb, lang, currentUser }) {
             <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
               {window.TOOTH_STAGES && <img src={window.getToothStage(r.prestigeCount || 0).img} alt="" style={{ width: 40, height: 40, objectFit: 'contain', flexShrink: 0 }} />}
               <div style={{ minWidth: 0 }}>
-                <div className="t-heading-xs" style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div className="t-heading-xs" style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: (Date.now() - r.updatedAt) < 120000 ? '#22C55E' : '#94A3B8', boxShadow: (Date.now() - r.updatedAt) < 120000 ? '0 0 6px #22C55E' : 'none', flexShrink: 0 }} />
                   {r.name}
                   {isCurrent && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: 'var(--primary-i100)', color: '#fff', padding: '2px 6px', borderRadius: 999 }}>{t.lbYou}</span>}
                 </div>
@@ -162,7 +163,7 @@ function MiniStat({ label, value, icon, color }) {
 }
 
 // ── User pill ───────────────────────────────────────────────────────────────
-function UserPill({ name, onSelect, isOwn, onLogout }) {
+function UserPill({ name, onSelect, isOwn, onLogout, isOnline }) {
   const [hov, setHov] = useStateG(false);
   return (
     <button
@@ -183,7 +184,10 @@ function UserPill({ name, onSelect, isOwn, onLogout }) {
       <div style={{ width: 34, height: 34, borderRadius: '50%', background: isOwn ? 'rgba(26,143,255,0.2)' : 'rgba(100,160,230,0.2)', color: '#3a6a9a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, flexShrink: 0, transition: 'all 140ms' }}>
         {(name[0] || '?').toUpperCase()}
       </div>
-      <span style={{ fontSize: 16, fontWeight: 600, color: '#334455', flex: 1, transition: 'color 140ms' }}>{name}</span>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: isOnline ? '#22C55E' : '#94A3B8', boxShadow: isOnline ? '0 0 6px #22C55E' : 'none', flexShrink: 0 }} />
+        <span style={{ fontSize: 16, fontWeight: 600, color: '#334455', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+      </div>
       {isOwn && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: '#1a8fff', background: 'rgba(26,143,255,0.12)', padding: '3px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
@@ -438,6 +442,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
                 onSelect={onSelectUser} 
                 isOwn={u === deviceUser} 
                 onLogout={onLogoutDeviceUser}
+                isOnline={(lb.scores || []).some(s => s.name === u && (Date.now() - s.updatedAt) < 120000)}
               />
 
             ))}
