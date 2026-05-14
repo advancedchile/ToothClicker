@@ -38,7 +38,7 @@ function ToothIcon({ size = 220, golden = false }) {
 function ToothbrushRing({ count }) {
   const max = 100;
   const displayCount = Math.min(count || 0, max);
-  const radius = 175; // Distance from center
+  const radius = 160; // Distance from center
   
   if (displayCount <= 0) return null;
 
