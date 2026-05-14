@@ -1242,6 +1242,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                   transition: 'opacity 1.2s ease-out',
                   animation: 'rotateSun 40s linear infinite'
                 }} />
+                <window.ToothbrushRing count={state.generators.brush} />
                 <div 
                   id="main-tooth-target"
                   onMouseDown={(e) => { handleClick(e); setIsMainMouseDown(true); }}
@@ -1250,7 +1251,6 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                   onTouchStart={(e) => { handleClick(e); setIsMainMouseDown(true); }}
                   onTouchEnd={() => setIsMainMouseDown(false)}
                   style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }} key={clickPulse}>
-                  <window.ToothbrushRing count={state.generators.brush} />
                   <img src={currentToothImg} alt="tooth" style={{ width: 260, height: 260, objectFit: 'contain', filter: holdBonusUntil > Date.now() ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : goldenMult > 1 ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : crystalMult > 1 ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))', animation: 'toothClick 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)', position: 'relative', zIndex: 2 }} />
                   {floats.map((f) =>
                   <div key={f.id} style={{ position: 'absolute', left: f.x, top: f.y, pointerEvents: 'none', color: '#000000', fontWeight: 900, fontSize: 18, textShadow: '-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 2px 4px rgba(0,0,0,0.2)', animation: 'clickPop 600ms ease-out forwards', fontVariantNumeric: 'tabular-nums', '--tx': `${f.tx}px`, zIndex: 100 }}>+{fmt(f.gain, true)}</div>
