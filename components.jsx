@@ -54,23 +54,28 @@ function ToothbrushRing({ count }) {
       {Array.from({ length: displayCount }).map((_, i) => {
         const angle = (i / displayCount) * 360;
         return (
-          <img
-            key={i}
-            src="assets/tooth_wash/tooth_wash_1.png"
-            alt=""
-            style={{
-              position: 'absolute',
-              width: 50,
-              height: 50,
-              objectFit: 'contain',
-              left: -25,
-              top: -25,
-              transform: `rotate(${angle}deg) translateY(-${radius}px) rotate(180deg)`,
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
-              animation: 'brushWave 5s infinite ease-in-out',
-              animationDelay: `${i * 0.1}s`
-            }}
-          />
+          <div key={i} style={{
+            position: 'absolute',
+            width: 0,
+            height: 0,
+            transform: `rotate(${angle}deg) translateY(-${radius}px) rotate(180deg)`
+          }}>
+            <img
+              src="assets/tooth_wash/tooth_wash_1.png"
+              alt=""
+              style={{
+                position: 'absolute',
+                width: 50,
+                height: 50,
+                objectFit: 'contain',
+                left: -25,
+                top: -25,
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+                animation: 'brushWave 5s infinite ease-in-out',
+                animationDelay: `${i * 0.1}s`
+              }}
+            />
+          </div>
         );
       })}
     </div>
