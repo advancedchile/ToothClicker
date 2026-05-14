@@ -66,7 +66,9 @@ function ToothbrushRing({ count }) {
               left: -25,
               top: -25,
               transform: `rotate(${angle}deg) translateY(-${radius}px) rotate(180deg)`,
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+              animation: 'brushWave 5s infinite ease-in-out',
+              animationDelay: `${i * 0.25}s`
             }}
           />
         );
