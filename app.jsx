@@ -1240,8 +1240,8 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
                 </div>
               )}
             </div>
-            <div style={{ position: 'relative', width: '100%', height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                <div className="aurora-container" style={{ '--aurora-opacity': auroraOpacity }} />
+            <div style={{ position: 'relative', width: '100%', height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
+                <div className="aurora-container" style={{ '--aurora-opacity': auroraOpacity, zIndex: -1, mixBlendMode: 'soft-light' }} />
                 <div style={{
                   position: 'absolute', top: '50%', left: '50%', width: 1200, height: 1200,
                   pointerEvents: 'none', zIndex: 0,
