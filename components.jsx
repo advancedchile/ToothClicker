@@ -178,7 +178,7 @@ function GeneratorRow({ gen, owned, cost, canAfford, unlocked, revealed, onBuy, 
       opacity: canAfford ? 1 : 0.75, transition: 'all 150ms ease', boxSizing: 'border-box'
     }}>
       
-      <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--primary-i010)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-i100)', flexShrink: 0 }}>
+      <div style={{ width: 32, height: 32, borderRadius: 6, background: canAfford ? 'var(--primary-i010)' : 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: canAfford ? 'var(--primary-i100)' : 'var(--fg-3)', flexShrink: 0, transition: 'all 150ms ease' }}>
         <i className={gen.icon} style={{ fontSize: 14 }}></i>
       </div>
       <div style={{ minWidth: 0 }}>

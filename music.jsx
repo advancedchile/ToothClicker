@@ -162,14 +162,14 @@ function MusicPlayerModal({
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
 
-        <button onClick={() => onChangePlayMode('shuffle')} style={{ flex: 1, padding: '8px', background: isShuffle ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${isShuffle ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: isShuffle ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 150ms' }}>
-          <i className="fa-solid fa-shuffle"></i> {lang === 'es' ? 'Aleatorio' : 'Shuffle'}
+        <button onClick={() => onChangePlayMode('shuffle')} style={{ flex: 1, padding: '5px 8px', background: isShuffle ? 'var(--primary-i010)' : 'var(--bg-1)', border: `1px solid ${isShuffle ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: isShuffle ? 'var(--primary-i100)' : 'var(--fg-3)', cursor: 'pointer', fontSize: 10.5, fontWeight: 500, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5, transition: 'all 150ms', opacity: isShuffle ? 1 : 0.8 }}>
+          <i className="fa-solid fa-shuffle" style={{ fontSize: 11 }}></i> {lang === 'es' ? 'Aleatorio' : 'Shuffle'}
         </button>
-        <button onClick={() => onChangePlayMode('loop')} style={{ flex: 1, padding: '8px', background: isLoop ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${isLoop ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: isLoop ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 150ms' }}>
-          <i className="fa-solid fa-repeat"></i> {lang === 'es' ? 'Bucle' : 'Loop'}
+        <button onClick={() => onChangePlayMode('loop')} style={{ flex: 1, padding: '5px 8px', background: isLoop ? 'var(--primary-i010)' : 'var(--bg-1)', border: `1px solid ${isLoop ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: isLoop ? 'var(--primary-i100)' : 'var(--fg-3)', cursor: 'pointer', fontSize: 10.5, fontWeight: 500, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5, transition: 'all 150ms', opacity: isLoop ? 1 : 0.8 }}>
+          <i className="fa-solid fa-repeat" style={{ fontSize: 11 }}></i> {lang === 'es' ? 'Bucle' : 'Loop'}
         </button>
-        <button onClick={() => onChangePlayMode('stop')} style={{ flex: 1, padding: '8px', background: isStop ? 'var(--primary-i010)' : 'var(--bg-2)', border: `1px solid ${isStop ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: isStop ? 'var(--primary-i100)' : 'var(--fg-2)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, transition: 'all 150ms' }}>
-          <i className="fa-solid fa-ban"></i> {lang === 'es' ? 'Fin' : 'End'}
+        <button onClick={() => onChangePlayMode('stop')} style={{ flex: 1, padding: '5px 8px', background: isStop ? 'var(--primary-i010)' : 'var(--bg-1)', border: `1px solid ${isStop ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 6, color: isStop ? 'var(--primary-i100)' : 'var(--fg-3)', cursor: 'pointer', fontSize: 10.5, fontWeight: 500, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5, transition: 'all 150ms', opacity: isStop ? 1 : 0.8 }}>
+          <i className="fa-solid fa-ban" style={{ fontSize: 11 }}></i> {lang === 'es' ? 'Fin' : 'End'}
         </button>
       </div>
 
