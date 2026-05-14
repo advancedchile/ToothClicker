@@ -42,15 +42,28 @@ function ToothbrushRing({ count }) {
   
   if (displayCount <= 0) return null;
 
+  const delayStep = 0.1; // 100ms between brushes
+  const pulseTime = 1;   // 1s pulse duration
+  const cycleTime = (displayCount * delayStep) + pulseTime;
+  const peakPercent = (pulseTime / 2 / cycleTime) * 100;
+  const endPercent = (pulseTime / cycleTime) * 100;
+
   return (
     <div style={{
       position: 'absolute',
       width: 0,
       height: 0,
       zIndex: 0,
-      animation: 'rotateSun 60s linear infinite', // Reusing rotateSun if it exists, or will add rotateClockwise
+      animation: 'rotateSun 60s linear infinite',
       pointerEvents: 'none'
     }}>
+      <style>{`
+        @keyframes brushWaveDynamic {
+          0% { opacity: 1; transform: translateY(0); }
+          ${peakPercent}% { opacity: 0.3; transform: translateY(-3px); }
+          ${endPercent}%, 100% { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
       {Array.from({ length: displayCount }).map((_, i) => {
         const angle = (i / displayCount) * 360;
         return (
@@ -71,8 +84,8 @@ function ToothbrushRing({ count }) {
                 left: -25,
                 top: -25,
                 filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
-                animation: 'brushWave 60s infinite ease-in-out',
-                animationDelay: `${i * 0.1}s`
+                animation: `brushWaveDynamic ${cycleTime}s infinite ease-in-out`,
+                animationDelay: `${i * delayStep}s`
               }}
             />
           </div>
