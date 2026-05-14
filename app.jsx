@@ -388,6 +388,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
   }, [state.generators, storeMults]);
   const clickBase = useMemo(() => window.computeClickPower(state, perSecondRaw).total, [state.clickUpgrades, state.generators, state.achievements, state.timePlayed, perSecondRaw]);
   const crystalMult = crystalFrenzyUntil > Date.now() ? 5 : 1;
+  const goldenMult = goldenActiveUntil > Date.now() ? 7 : 1;
   const globalMult = prestigeMult * achMult * goldenMult * crystalMult * storeMults.global * academyGpsMult;
   const perClick = clickBase * storeMults.click * globalMult;
   perClickRef.current = perClick;
