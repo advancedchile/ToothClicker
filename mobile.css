@@ -51,9 +51,18 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #ebf4fc;
+    background: var(--primary-i010);
     padding: 6px 12px 6px 6px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid transparent;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 118, 219, 0.05);
+  }
+
+  .mobile-player-pill:active {
+    background: var(--primary-i020);
+    border-color: var(--primary-i050);
+    transform: scale(0.96);
   }
 
   .mobile-avatar {
