@@ -134,7 +134,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   // Special bonus teeth — only one shown at a time
   const [specialTooth, setSpecialTooth] = useState(null); // { type:'gold'|'diamond'|'crystal', x, y, id }
   const specialToothRef = useRef(null);
-  const specialNextRef = useRef(Date.now() + 30000); // first spawn after 30s
+  const getNextBonusTime = (min, max) => Date.now() + (min + Math.random() * (max - min)) * 60000;
+  const specialNextRef = useRef(getNextBonusTime(5, 10)); // first spawn after 5-10 min
   const [crystalFrenzyUntil, setCrystalFrenzyUntil] = useState(0);
   const [holdBonusUntil, setHoldBonusUntil] = useState(0);
   
@@ -715,7 +716,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         if (specialToothRef.current?.id === id) {
           specialToothRef.current = null;
           setSpecialTooth(null);
-          specialNextRef.current = Date.now() + 300000; // 5-min cooldown on timeout
+          specialNextRef.current = getNextBonusTime(8, 15); // 8-15 min cooldown on timeout
         }
       }, 7000); // 7s duration
     }, 3000);
@@ -812,7 +813,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     setCrystalFrenzyUntil(0);
     setHoldBonusUntil(0);
     setGoldenActiveUntil(now + 13000);
-    specialNextRef.current = now + 300000; // 5-min cooldown
+    specialNextRef.current = getNextBonusTime(8, 15); // 8-15 min cooldown
     setState((s) => ({ ...s, goldenClicks: s.goldenClicks + 1 }));
     if (soundRef.current) {window.playTone(880, 0.1, 'triangle', 0.08);setTimeout(() => window.playTone(1320, 0.15, 'triangle', 0.08), 80);}
   }, []);
@@ -822,7 +823,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     if (specialToothRef.current?.id === id) {
       specialToothRef.current = null;
       setSpecialTooth(null);
-      specialNextRef.current = Date.now() + 300000; // 5-min cooldown
+      specialNextRef.current = getNextBonusTime(8, 15); // 8-15 min cooldown
     }
   }, []);
 
@@ -844,6 +845,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     setGoldenActiveUntil(0);
     setCrystalFrenzyUntil(0);
     setHoldBonusUntil(Date.now() + 20000);
+    setState(s => ({ ...s, specialGoldClicks: (s.specialGoldClicks || 0) + 1 }));
     setToast({ id: '__gold_hold', es: '¡Bonus de click mantenido activo (20s)!', en: 'Hold-to-click bonus active (20s)!' });
     setTimeout(() => setToast(null), 3000);
     if (soundRef.current) [660, 880, 1320].forEach((f, i) => setTimeout(() => window.playTone(f, 0.1, 'triangle', 0.08), i * 100));
@@ -908,7 +910,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     const pMult = 1 + 0.05 * (s.prestige || 0);
     const aMult = 1 + 0.01 * Object.values(s.achievements || {}).filter(Boolean).length;
     const bonus = passive * pMult * aMult * 7200; // 2 h
-    setState((st) => ({ ...st, teeth: st.teeth + bonus, totalEarned: st.totalEarned + bonus }));
+    setState((st) => ({ ...st, teeth: st.teeth + bonus, totalEarned: st.totalEarned + bonus, diamondClicks: (st.diamondClicks || 0) + 1 }));
     setToast({ id: '__diamond', es: `+${fmt(Math.floor(bonus))} dientes (2h de producción)`, en: `+${fmt(Math.floor(bonus))} teeth (2h production)` });
     setTimeout(() => setToast(null), 4500);
     if (soundRef.current) [1047, 1319, 1568, 2093].forEach((f, i) => setTimeout(() => window.playTone(f, 0.14, 'triangle', 0.07), i * 65));
@@ -921,6 +923,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     setGoldenActiveUntil(0);
     setHoldBonusUntil(0);
     setCrystalFrenzyUntil(Date.now() + 45000);
+    setState(s => ({ ...s, crystalClicks: (s.crystalClicks || 0) + 1 }));
     setToast({ id: '__crystal', es: '¡Frenesí de cristal! x5 clicks durante 45 s', en: 'Crystal frenzy! x5 clicks for 45 s' });
     setTimeout(() => setToast(null), 4000);
     if (soundRef.current) [440, 554, 659, 880, 1100].forEach((f, i) => setTimeout(() => window.playTone(f, 0.12, 'triangle', 0.06), i * 75));

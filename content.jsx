@@ -456,16 +456,36 @@ function buildAchievements() {
       desc_es: `Acumula ${v} sonrisas doradas`, desc_en: `Collect ${v} golden smiles`, cat: 'prestige' });
   });
 
-  const goldMs = [10, 50, 250, 1000, 5000, 10000, 25000, 50000, 100000, 1000000];
+  const goldMs = [10, 50, 100, 250, 500, 1000, 5000, 10000, 25000, 50000, 100000, 1000000];
   const goldTitles = [
-    ['Diez destellos','Ten sparkles'],['Medio centenar','Half hundred'],['Cuarto de millar','Quarter thousand'],
-    ['Mil relámpagos','Thousand lightning'],['Cinco mil','Five thousand'],['Diez mil destellos','Ten thousand sparkles'],
+    ['Diez destellos','Ten sparkles'],['Medio centenar','Half hundred'],['Centenario dorado','Golden centennial'],['Cuarto de millar','Quarter thousand'],
+    ['Medio millar','Half thousand'],['Mil relámpagos','Thousand lightning'],['Cinco mil','Five thousand'],['Diez mil destellos','Ten thousand sparkles'],
     ['Cazador legendario','Legendary hunter'],['Cincuenta mil','Fifty thousand'],['Cien mil','Hundred thousand'],['Dorado absoluto','Absolute gold'],
   ];
   goldMs.forEach((v, i) => {
     const [es, en] = goldTitles[i];
     out.push({ id: 'gold_' + i, check: (s) => (s.goldenClicks || 0) >= v, es, en,
       desc_es: `Atrapa ${v} diente${v===1?'':'s'} dorado${v===1?'':'s'}`, desc_en: `Catch ${v} golden t${v===1?'ooth':'eeth'}`, cat: 'golden' });
+  });
+
+  const bonusTypes = [
+    { key: 'specialGoldClicks', es: 'Diente de oro especial', en: 'Special gold tooth', cat: 'gold_special' },
+    { key: 'diamondClicks', es: 'Diente de diamante', en: 'Diamond tooth', cat: 'diamond' },
+    { key: 'crystalClicks', es: 'Diente de cristal', en: 'Crystal tooth', cat: 'crystal' }
+  ];
+  const bonusMs = [100, 250, 500, 1000];
+  bonusTypes.forEach(bt => {
+    bonusMs.forEach(v => {
+      out.push({
+        id: bt.key + '_' + v,
+        check: (s) => (s[bt.key] || 0) >= v,
+        es: `${bt.es} x${v}`,
+        en: `${bt.en} x${v}`,
+        desc_es: `Atrapa ${v} ${bt.es.toLowerCase()}s`,
+        desc_en: `Catch ${v} ${bt.en.toLowerCase()}s`,
+        cat: bt.cat
+      });
+    });
   });
 
   const timeMs = [3600, 3600*12, 86400, 86400*3, 86400*7, 86400*30, 86400*90, 86400*180, 86400*365, 86400*1000];
