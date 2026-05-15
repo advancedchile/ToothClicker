@@ -497,30 +497,32 @@ function Game({ username, sessionId, lang: initialLang, onLangChange, onLogout, 
     }
   }, [hasSeenTour, state.totalEarned, currentTourStep]);
 
-  useEffect(() => {
-    const pushScore = () => {
-      const s = stateRef.current;
-      if (!s) return;
-      const ban = window.AntiCheat.getBanData(username);
-      window.cloudSubmitScore({ 
-        name: username, 
-        sessionId, // Include current session ID
-        totalEarned: s.totalEarned || 0, 
-        prestige: s.prestige || 0, 
-        prestigeCount: s.prestigeCount || 0, 
-        timePlayed: s.timePlayed || 0, 
-        teeth: s.teeth || 0, 
-        clinicName: s.clinicName, 
-        level: s.level || 0,
-        banUntil: ban.until,
-        banIndefinite: ban.until === -1
-      });
-    };
-    const first = setTimeout(pushScore, 10000);
-    const id = setInterval(pushScore, 30000);
-    window.addEventListener('beforeunload', pushScore);
-    return () => {clearTimeout(first);clearInterval(id);window.removeEventListener('beforeunload', pushScore);pushScore();};
+  const pushScore = useCallback(() => {
+    const s = stateRef.current;
+    if (!s) return;
+    const ban = window.AntiCheat.getBanData(username);
+    window.cloudSubmitScore({ 
+      name: username, 
+      sessionId,
+      totalEarned: s.totalEarned || 0, 
+      prestige: s.prestige || 0, 
+      prestigeCount: s.prestigeCount || 0, 
+      timePlayed: s.timePlayed || 0, 
+      teeth: s.teeth || 0, 
+      clinicName: s.clinicName, 
+      level: s.level || 0,
+      banUntil: ban.until,
+      banIndefinite: ban.until === -1
+    });
   }, [username, sessionId]);
+
+  useEffect(() => {
+    window.forcePushScore = pushScore;
+    const first = setTimeout(pushScore, 1500);
+    const id = setInterval(pushScore, 15000);
+    window.addEventListener('beforeunload', pushScore);
+    return () => {delete window.forcePushScore; clearTimeout(first);clearInterval(id);window.removeEventListener('beforeunload', pushScore);pushScore();};
+  }, [pushScore]);
 
   // Achievement checker
   useEffect(() => {
@@ -1219,24 +1221,7 @@ function Game({ username, sessionId, lang: initialLang, onLangChange, onLogout, 
                     if (final !== state.clinicName) {
                       setState(s => ({ ...s, clinicName: final || null }));
                       // Immediately sync clinic name to cloud
-                      setTimeout(() => {
-                        const s = stateRef.current;
-                        if (s) {
-                          const ban = window.AntiCheat.getBanData(username);
-                          window.cloudSubmitScore({ 
-                            name: username, 
-                            totalEarned: s.totalEarned || 0, 
-                            prestige: s.prestige || 0, 
-                            prestigeCount: s.prestigeCount || 0, 
-                            timePlayed: s.timePlayed || 0, 
-                            teeth: s.teeth || 0, 
-                            clinicName: final || null, 
-                            level: s.level || 0,
-                            banUntil: ban.until,
-                            banIndefinite: ban.until === -1
-                          });
-                        }
-                      }, 100);
+                      setTimeout(pushScore, 100);
                     }
                   }}
                   onKeyDown={e => {

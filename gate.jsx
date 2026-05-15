@@ -144,7 +144,26 @@ function LeaderboardBody({ lb, lang, currentUser }) {
 
 function LeaderboardPanel({ username, lang }) {
   const lb = useCloudLeaderboard({ pollMs: 15000 });
-  return <div><LeaderboardHeader lb={lb} lang={lang} /><LeaderboardBody lb={lb} lang={lang} currentUser={username} /></div>;
+  
+  // Force sync when opening the panel
+  useEffectG(() => {
+    if (window.forcePushScore) {
+       window.forcePushScore();
+       // Wait a bit for the push to complete before refreshing
+       setTimeout(() => lb.refresh(), 1500);
+    }
+  }, []);
+
+  const handleRefresh = async () => {
+    if (window.forcePushScore) {
+      window.forcePushScore();
+      // Wait a bit to ensure the server has the latest data
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    await lb.refresh();
+  };
+
+  return <div><LeaderboardHeader lb={{...lb, refresh: handleRefresh}} lang={lang} /><LeaderboardBody lb={lb} lang={lang} currentUser={username} /></div>;
 }
 
 function MiniStat({ label, value, icon, color }) {
