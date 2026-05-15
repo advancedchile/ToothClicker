@@ -935,12 +935,14 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
       // Immediate local persistence
       persistUserSave(username, next);
-      
-      // Immediate cloud sync
-      pushScore(next);
-
       return next;
     });
+
+    // Immediate cloud sync
+    setTimeout(() => {
+      const s = stateRef.current;
+      if (s) pushScore(s);
+    }, 100);
 
     if (soundRef.current) [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => window.playTone(f, 0.15, 'triangle', 0.06), i * 80));
     if (newlyUnlocked.length > 0) {
@@ -1210,11 +1212,10 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                     setIsEditingClinic(false);
                     const final = tempClinicName.trim();
                     if (final !== state.clinicName) {
-                      setState(s => {
-                        const next = { ...s, clinicName: final || null };
-                        pushScore(next);
-                        return next;
-                      });
+                      const nextClinic = final || null;
+                      setState(s => ({ ...s, clinicName: nextClinic }));
+                      // Push immediately with the new value
+                      pushScore({ ...stateRef.current, clinicName: nextClinic });
                     }
                   }}
                   onKeyDown={e => {
