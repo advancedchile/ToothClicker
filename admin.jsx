@@ -322,125 +322,80 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
 
         {adminTab === 'leaderboard' && (
           <div style={card}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <i className="fa-solid fa-users" style={{ color: 'var(--primary-i100)', fontSize: 15 }}></i>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
-                {lang === 'es' ? 'Todos los Jugadores' : 'All Players'}
-                <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({globalUsers.filter(u => u.name.toLowerCase() !== 'james').length})</span>
-              </span>
-              <button 
-                onClick={() => {
+            {(() => {
+              const lbState = { 
+                scores: globalUsers, 
+                loading: globalLoading, 
+                error: null, 
+                refresh: () => {
                   setGlobalLoading(true);
                   window.cloudFetchLeaderboard().then(res => {
                     if (res.ok) setGlobalUsers(res.scores || []);
                     setGlobalLoading(false);
                   });
-                }}
-                disabled={globalLoading}
-                className="app-btn"
-                style={{ ...btn, padding: '4px 10px', background: 'rgba(26,143,255,0.1)', color: '#1a8fff', fontSize: 11, border: '1px solid rgba(26,143,255,0.2)', borderRadius: 8, marginLeft: 'auto' }}
-              >
-                <i className={`fa-solid ${globalLoading ? 'fa-circle-notch fa-spin' : 'fa-arrows-rotate'}`} style={{ marginRight: 6 }}></i>
-                {lang === 'es' ? 'Actualizar' : 'Refresh'}
-              </button>
-            </div>
+                }
+              };
 
-            {/* Filters & Sort */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.6)', padding: 3, borderRadius: 8, border: '1px solid rgba(100,160,230,0.15)' }}>
-                {[{ id: 'all', label: lang === 'es' ? 'Todos' : 'All' }, { id: 'banned', label: lang === 'es' ? 'Banneados' : 'Banned' }].map(f => (
-                  <button key={f.id} onClick={() => setPlayerFilter(f.id)} className="app-btn" style={{ ...btn, padding: '4px 10px', fontSize: 10, borderRadius: 6, background: playerFilter === f.id ? '#1a8fff' : 'transparent', color: playerFilter === f.id ? '#fff' : '#4a6a8a', border: 'none' }}>
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.6)', padding: 3, borderRadius: 8, border: '1px solid rgba(100,160,230,0.15)' }}>
-                {[{ id: 'prestige', label: lang === 'es' ? 'Prestigio' : 'Prestige' }, { id: 'level', label: lang === 'es' ? 'Nivel' : 'Level' }, { id: 'teeth', label: lang === 'es' ? 'Dientes' : 'Teeth' }].map(s => (
-                  <button key={s.id} onClick={() => setPlayerSort(s.id)} className="app-btn" style={{ ...btn, padding: '4px 10px', fontSize: 10, borderRadius: 6, background: playerSort === s.id ? '#1a8fff' : 'transparent', color: playerSort === s.id ? '#fff' : '#4a6a8a', border: 'none' }}>
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            {(() => {
-              let players = globalUsers.filter(u => u.name.toLowerCase() !== 'james').map(u => {
+              const renderAdminActions = (u) => {
                 const localBan = window.AntiCheat.checkBanStatus(u.name);
                 const isBanned = localBan.isBanned || (u.banIndefinite === true) || (u.banUntil && u.banUntil > Date.now());
-                const indefinite = localBan.indefinite || (u.banIndefinite === true);
-                const until = localBan.until || u.banUntil || 0;
-                return { ...u, banStatus: { isBanned, indefinite, until } };
-              });
-              if (playerFilter === 'banned') players = players.filter(u => u.banStatus.isBanned);
-              players.sort((a, b) => {
-                if (playerSort === 'level') return (b.level || 0) - (a.level || 0);
-                if (playerSort === 'teeth') return (b.totalEarned || 0) - (a.totalEarned || 0);
-                return (b.prestigeCount || b.prestige || 0) - (a.prestigeCount || a.prestige || 0);
-              });
-              
-              if (players.length === 0) return (
-                <div style={{ textAlign: 'center', padding: '12px 0', color: '#8aaacc', fontFamily: 'var(--font-sans)', fontSize: 13 }}>
-                  {globalLoading ? (lang === 'es' ? 'Cargando base de datos...' : 'Loading database...') : (playerFilter === 'banned' ? (lang === 'es' ? 'No hay jugadores banneados' : 'No banned players') : (lang === 'es' ? 'No hay jugadores en el ranking' : 'No players in leaderboard'))}
-                </div>
-              );
-              
+                
+                return (
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0, justifyContent: 'flex-end' }}>
+                    {isBanned && (
+                      <button 
+                        onClick={() => setRestoreTarget(u.name)}
+                        className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(76,175,80,0.1)', color: '#388e3c', fontSize: 12, border: '1px solid rgba(76,175,80,0.25)', borderRadius: 8 }}
+                      >
+                        <i className="fa-solid fa-user-check"></i>
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => setDeleteTarget({ name: u.name, type: 'global' })}
+                      className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.25)', borderRadius: 8 }}
+                    >
+                      <i className="fa-solid fa-user-slash"></i>
+                    </button>
+                  </div>
+                );
+              };
+
+              // Filter users if "Banned" filter is active
+              let filteredScores = globalUsers;
+              if (playerFilter === 'banned') {
+                filteredScores = globalUsers.filter(u => {
+                  const lb = window.AntiCheat.checkBanStatus(u.name);
+                  return lb.isBanned || u.banIndefinite || (u.banUntil && u.banUntil > Date.now());
+                });
+              }
+
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
-                  {players.map((u) => (
-                    <div key={'global-' + u.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: u.banStatus.isBanned ? 'rgba(220,50,50,0.06)' : '#f0f7ff', borderRadius: 10, border: `1px solid ${u.banStatus.isBanned ? 'rgba(220,50,50,0.2)' : 'rgba(0,118,219,0.15)'}` }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: u.banStatus.isBanned ? '#e55' : 'var(--primary-i100)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
-                        {(u.name[0] || '?').toUpperCase()}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ fontSize: 14, color: '#1a3a5a', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
-                          {u.banStatus.isBanned && <span style={{ fontSize: 9, padding: '1px 6px', background: '#e55', color: '#fff', borderRadius: 4, fontWeight: 700 }}>BAN</span>}
-                        </div>
-                        <div style={{ fontSize: 10, color: '#7a9abf', fontWeight: 500, marginTop: 1 }}>
-                          <i className="fa-solid fa-hospital" style={{ marginRight: 4, fontSize: 8 }}></i>
-                          {u.clinicName || (lang === 'es' ? `Clínica de ${u.name}` : `${u.name}'s Clinic`)}
-                        </div>
-                        <div style={{ fontSize: 10, color: '#5a8aaa', fontWeight: 600, marginTop: 2 }}>
-                          {window.formatNum(u.totalEarned || 0)} {lang === 'es' ? 'dientes' : 'teeth'} · {lang === 'es' ? 'Prestigio' : 'Prestige'} {u.prestigeCount || 0} · Lv.{u.level || 0}
-                        </div>
-                        {u.banStatus.isBanned && (
-                          <div style={{ fontSize: 10, color: '#c33', fontWeight: 600, marginTop: 2 }}>
-                            <i className="fa-solid fa-clock" style={{ marginRight: 4 }}></i>
-                            {u.banStatus.indefinite 
-                              ? (lang === 'es' ? 'Ban permanente' : 'Permanent ban')
-                              : (lang === 'es' ? `Baneado hasta ${new Date(u.banStatus.until).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}` : `Banned until ${new Date(u.banStatus.until).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}`)}
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                        {u.banStatus.isBanned && (
-                          <button 
-                            onClick={() => setRestoreTarget(u.name)}
-                            onMouseEnter={e => {
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'Restaurar jugador' : 'Restore player', pos: { x: rect.left + rect.width / 2, y: rect.top } });
-                            }}
-                            onMouseLeave={() => setGlobalTooltip(null)}
-                            className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(76,175,80,0.1)', color: '#388e3c', fontSize: 12, border: '1px solid rgba(76,175,80,0.25)', borderRadius: 8 }}
-                          >
-                            <i className="fa-solid fa-user-check"></i>
-                          </button>
-                        )}
-                        <button 
-                          onClick={() => setDeleteTarget({ name: u.name, type: 'global' })}
-                          onMouseEnter={e => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'Eliminar jugador' : 'Delete player', pos: { x: rect.left + rect.width / 2, y: rect.top } });
-                          }}
-                          onMouseLeave={() => setGlobalTooltip(null)}
-                          className="app-btn" style={{ ...btn, padding: '6px 10px', background: 'rgba(220,50,50,0.1)', color: '#c33', fontSize: 12, border: '1px solid rgba(220,50,50,0.25)', borderRadius: 8 }}
-                        >
-                          <i className="fa-solid fa-user-slash"></i>
-                        </button>
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <i className="fa-solid fa-users" style={{ color: 'var(--primary-i100)', fontSize: 20 }}></i>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a' }}>
+                        {lang === 'es' ? 'Gestión de Jugadores' : 'Player Management'}
+                        <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({globalUsers.filter(u => u.name.toLowerCase() !== 'james').length})</span>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.6)', padding: 3, borderRadius: 8, border: '1px solid rgba(100,160,230,0.15)' }}>
+                      {[{ id: 'all', label: lang === 'es' ? 'Todos' : 'All' }, { id: 'banned', label: lang === 'es' ? 'Banneados' : 'Banned' }].map(f => (
+                        <button key={f.id} onClick={() => setPlayerFilter(f.id)} className="app-btn" style={{ ...btn, padding: '4px 10px', fontSize: 10, borderRadius: 6, background: playerFilter === f.id ? '#1a8fff' : 'transparent', color: playerFilter === f.id ? '#fff' : '#4a6a8a', border: 'none' }}>
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <window.LeaderboardBody 
+                    lb={{ ...lbState, scores: filteredScores }} 
+                    lang={lang} 
+                    currentUser={null} 
+                    renderRowExtra={renderAdminActions}
+                    extraColumns="100px"
+                  />
+                </>
               );
             })()}
           </div>

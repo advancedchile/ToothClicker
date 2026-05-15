@@ -52,7 +52,7 @@ function LeaderboardHeader({ lb, lang }) {
   );
 }
 
-function LeaderboardBody({ lb, lang, currentUser }) {
+function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns = "" }) {
   const t = window.STRINGS[lang];
   const [sortBy, setSortBy] = window.useStateG('prestige'); // 'prestige' or 'level'
   const allRows = lb.scores || [];
@@ -121,16 +121,17 @@ function LeaderboardBody({ lb, lang, currentUser }) {
           {lang === 'es' ? 'POR DIENTES' : 'BY TEETH'}
         </button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 90px 140px', gap: 'var(--spacing-3)', padding: '0 var(--spacing-3)', color: 'var(--fg-3)', marginBottom: 2 }} className="t-mini-caps">
+      <div style={{ display: 'grid', gridTemplateColumns: `36px 1fr 90px 140px ${extraColumns}`, gap: 'var(--spacing-3)', padding: '0 var(--spacing-3)', color: 'var(--fg-3)', marginBottom: 2 }} className="t-mini-caps">
         <div>{t.lbRank}</div><div>{t.lbPlayer}</div>
         <div style={{ textAlign: 'right' }}>{t.lbPrestige}</div>
         <div style={{ textAlign: 'right' }}>{t.lbTotal}</div>
+        {extraColumns && <div></div>}
       </div>
       {rows.map((r, i) => {
         const isCurrent = currentUser && r.name === currentUser;
         const medal = i === 0 ? '#FFC220' : i === 1 ? '#A6B5C5' : i === 2 ? '#E8A06E' : null;
         return (
-          <div key={r.name + '-' + i} style={{ display: 'grid', gridTemplateColumns: '36px 1fr 90px 140px', gap: 'var(--spacing-3)', alignItems: 'center', padding: '10px var(--spacing-3)', background: isCurrent ? 'var(--primary-i010)' : 'var(--bg-1)', border: `1px solid ${isCurrent ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 'var(--radius-s)' }}>
+          <div key={r.name + '-' + i} style={{ display: 'grid', gridTemplateColumns: `36px 1fr 90px 140px ${extraColumns}`, gap: 'var(--spacing-3)', alignItems: 'center', padding: '10px var(--spacing-3)', background: isCurrent ? 'var(--primary-i010)' : 'var(--bg-1)', border: `1px solid ${isCurrent ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 'var(--radius-s)' }}>
             <div style={{ width: 28, height: 28, borderRadius: '50%', background: medal || 'var(--bg-3)', color: medal ? '#fff' : 'var(--fg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{i + 1}</div>
             <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
               {window.TOOTH_STAGES && <img src={window.getToothStage(r.prestigeCount || 0).img} alt="" style={{ width: 40, height: 40, objectFit: 'contain', flexShrink: 0 }} />}
@@ -162,6 +163,7 @@ function LeaderboardBody({ lb, lang, currentUser }) {
               {window.formatNum(r.prestigeCount || 0)}
             </div>
             <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--primary-i100)', fontWeight: 600 }}>{window.formatNum(r.totalEarned || 0)}</div>
+            {renderRowExtra && renderRowExtra(r)}
           </div>
         );
       })}
@@ -528,4 +530,4 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
   );
 }
 
-Object.assign(window, { Gate, LeaderboardPanel, MiniStat, useCloudLeaderboard });
+Object.assign(window, { Gate, LeaderboardPanel, LeaderboardHeader, LeaderboardBody, MiniStat, useCloudLeaderboard });
