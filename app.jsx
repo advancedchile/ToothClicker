@@ -1099,7 +1099,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
              {state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)}
              <i className="fa-solid fa-pen-to-square" style={{ fontSize: 13, opacity: 0.5, marginLeft: 6 }}></i>
           </div>
-          <div className="mobile-player-pill">
+          <button 
+            className="mobile-player-pill" 
+            style={{ all: 'unset', display: 'flex' }}
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
             <div className="mobile-avatar">{(username[0] || '?').toUpperCase()}</div>
             <div className="mobile-player-info">
               <div className="mobile-player-name">{username}</div>
@@ -1110,8 +1114,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 </div>
               </div>
             </div>
-            <i className="fa-solid fa-angle-down" style={{ fontSize: 10, color: '#0076db', marginLeft: 4 }}></i>
-          </div>
+            <i className="fa-solid fa-angle-down" style={{ fontSize: 10, color: '#0076db', marginLeft: 4, transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}></i>
+          </button>
         </header>
 
         <section className="mobile-stats-container">
@@ -1191,6 +1195,75 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               <i className="fa-solid fa-bars"></i>
            </button>
         </footer>
+
+        {/* Mobile Menu Overlay */}
+        <div 
+          className={`mobile-menu-overlay ${menuOpen ? 'open' : ''}`} 
+          onClick={() => setMenuOpen(false)}
+        >
+          <div className="mobile-menu-drawer" onClick={e => e.stopPropagation()}>
+            <button className="mobile-menu-item" onClick={() => { toggleSound(); setMenuOpen(false); }}>
+              <i className={`fa-solid ${soundOn ? 'fa-volume-high' : 'fa-volume-xmark'}`}></i>
+              <span className="mobile-menu-item-text">{soundOn ? t.soundOn : t.soundOff}</span>
+            </button>
+
+            <button className="mobile-menu-item" onClick={() => { toggleLang(); setMenuOpen(false); }}>
+              <i className="fa-solid fa-language"></i>
+              <span className="mobile-menu-item-text">{lang === 'es' ? 'Español' : 'English'}</span>
+              <span className="mobile-menu-item-trailing">{lang === 'es' ? 'EN →' : 'ES →'}</span>
+            </button>
+
+            <button className="mobile-menu-item" onClick={() => { cycleNumFormat(); setMenuOpen(false); }}>
+              <i className="fa-solid fa-hashtag"></i>
+              <span className="mobile-menu-item-text">{lang === 'es' ? 'Formato numérico' : 'Number format'}</span>
+              <span className="mobile-menu-item-trailing">{{ short: '1.2M', long: lang === 'es' ? 'millón' : 'million', engineering: '1.2e6', scientific: '10^6' }[numFormat]} →</span>
+            </button>
+
+            <button className="mobile-menu-item" onClick={() => { setMenuOpen(false); setShowAbout(true); }}>
+              <i className="fa-solid fa-circle-info"></i>
+              <span className="mobile-menu-item-text">{lang === 'es' ? 'Acerca de' : 'About'}</span>
+            </button>
+
+            <button className="mobile-menu-item" onClick={() => { setMenuOpen(false); setShowFeedbackModal(true); }}>
+              <i className="fa-solid fa-comment-dots"></i>
+              <span className="mobile-menu-item-text">{lang === 'es' ? 'Enviar feedback' : 'Send feedback'}</span>
+            </button>
+
+            <div className="mobile-menu-divider" />
+
+            <button className="mobile-menu-item" onClick={() => {
+              setMenuOpen(false);
+              try {persistUserSave(username, stateRef.current);} catch (e) {}
+              try {
+                const s = stateRef.current;
+                if (s) {
+                  const ban = window.AntiCheat.getBanData(username);
+                  window.cloudSubmitScore({ 
+                    name: username, 
+                    totalEarned: s.totalEarned || 0, 
+                    prestige: s.prestige || 0, 
+                    prestigeCount: s.prestigeCount || 0, 
+                    timePlayed: s.timePlayed || 0, 
+                    teeth: s.teeth || 0, 
+                    clinicName: s.clinicName, 
+                    level: s.level || 0,
+                    banUntil: ban.until,
+                    banIndefinite: ban.until === -1
+                  });
+                }
+              } catch (e) {}
+              onLogout && onLogout();
+            }}>
+              <i className="fa-solid fa-right-from-bracket"></i>
+              <span className="mobile-menu-item-text">{t.logout}</span>
+            </button>
+
+            <button className="mobile-menu-item danger" onClick={() => { setMenuOpen(false); setShowResetConfirm(true); }}>
+              <i className="fa-solid fa-trash"></i>
+              <span className="mobile-menu-item-text">{t.reset}</span>
+            </button>
+          </div>
+        </div>
       </div>
     );
   };
