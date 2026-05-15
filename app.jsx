@@ -480,26 +480,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       persistUserSave(username, stateRef.current);
       setSaveFlash(true);
       setTimeout(() => setSaveFlash(false), 1500);
-      const s = stateRef.current;
-      if (s) {
-        const ban = window.AntiCheat.getBanData(username);
-        window.cloudSubmitScore({ 
-          name: username, 
-          sessionId, // Include current session ID
-          totalEarned: s.totalEarned || 0, 
-          prestige: s.prestige || 0, 
-          prestigeCount: s.prestigeCount || 0, 
-          timePlayed: s.timePlayed || 0, 
-          teeth: s.teeth || 0, 
-          clinicName: s.clinicName, 
-          level: s.level || 0,
-          saveData: s, // Send full state for cloud sync
-          banUntil: ban.until,
-          banIndefinite: ban.until === -1
-        });
-      }
-    } catch (e) {}
-  }, [username, sessionId]);
+      pushScore(); // Use unified push logic
+    } catch (e) { console.error("Manual save failed:", e); }
+  }, [username, pushScore]);
 
   useEffect(() => {
     const saveId = setInterval(() => {try {persistUserSave(username, stateRef.current);setSaveFlash(true);setTimeout(() => setSaveFlash(false), 1500);} catch (e) {}}, 60000);

@@ -9,8 +9,11 @@ function useCloudLeaderboard({ pollMs = 15000, enabled = true } = {}) {
   const refresh = useCallbackG(async () => {
     setState(s => ({ ...s, loading: true, error: null }));
     const res = await window.cloudFetchLeaderboard();
-    if (res.ok) setState({ loading: false, error: null, scores: res.scores, lastUpdate: Date.now() });
-    else setState(s => ({ ...s, loading: false, error: res.error }));
+    if (res.ok) {
+      console.log(`[Ranking] Refresh OK (${res.scores.length} players)`);
+      console.table(res.scores.slice(0, 10).map(s => ({ name: s.name, total: s.totalEarned, prestige: s.prestigeCount, level: s.level })));
+      setState({ loading: false, error: null, scores: res.scores, lastUpdate: Date.now() });
+    } else setState(s => ({ ...s, loading: false, error: res.error }));
   }, []);
   useEffectG(() => {
     if (!enabled) return;
@@ -156,9 +159,10 @@ function LeaderboardPanel({ username, lang }) {
 
   const handleRefresh = async () => {
     if (window.forcePushScore) {
+      console.log("[Ranking] Forcing data push before refresh...");
       window.forcePushScore();
-      // Wait a bit to ensure the server has the latest data
-      await new Promise(r => setTimeout(r, 1000));
+      // Wait a bit more to ensure Supabase has indexed the new row
+      await new Promise(r => setTimeout(r, 2000));
     }
     await lb.refresh();
   };

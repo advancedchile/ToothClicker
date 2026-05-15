@@ -9,13 +9,14 @@ async function cloudFetchLeaderboard() {
   try {
     if (!_supabase) throw new Error('Supabase not initialized');
     
-    // Fetch scores
+    // Fetch scores with cache-buster
     const { data: players, error } = await _supabase
       .from('players')
       .select('*')
       .order('prestige_count', { ascending: false })
       .order('level', { ascending: false })
       .order('total_earned', { ascending: false })
+      .neq('name', 'cache-buster-' + Date.now()) // Force unique query
       .limit(100);
 
     if (error) throw error;
