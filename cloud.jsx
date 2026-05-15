@@ -38,7 +38,8 @@ async function cloudFetchLeaderboard() {
       updatedAt: new Date(p.updated_at).getTime(),
       banUntil: p.ban_until ? new Date(p.ban_until).getTime() : 0,
       banIndefinite: !!p.ban_indefinite,
-      sessionId: p.save_data ? p.save_data.sessionId : null
+      sessionId: p.save_data ? p.save_data.sessionId : null,
+      isOnline: p.save_data ? p.save_data.isOnline : false
     }));
 
     return { ok: true, scores, lastResetAt };

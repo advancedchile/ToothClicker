@@ -121,7 +121,18 @@ function LeaderboardBody({ lb, lang, currentUser }) {
               {window.TOOTH_STAGES && <img src={window.getToothStage(r.prestigeCount || 0).img} alt="" style={{ width: 40, height: 40, objectFit: 'contain', flexShrink: 0 }} />}
               <div style={{ minWidth: 0 }}>
                 <div className="t-heading-xs" style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: (Date.now() - r.updatedAt) < 120000 ? '#22C55E' : '#94A3B8', boxShadow: (Date.now() - r.updatedAt) < 120000 ? '0 0 6px #22C55E' : 'none', flexShrink: 0 }} />
+                  {(() => {
+                    const timeSince = Date.now() - r.updatedAt;
+                    const online = r.isOnline !== false && timeSince < 60000;
+                    return (
+                      <div style={{ 
+                        width: 8, height: 8, borderRadius: '50%', 
+                        background: online ? '#22C55E' : '#94A3B8', 
+                        boxShadow: online ? '0 0 6px #22C55E' : 'none', 
+                        flexShrink: 0 
+                      }} />
+                    );
+                  })()}
                   {r.name}
                   {isCurrent && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: 'var(--primary-i100)', color: '#fff', padding: '2px 6px', borderRadius: 999 }}>{t.lbYou}</span>}
                 </div>

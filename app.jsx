@@ -499,9 +499,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     }
   }, [hasSeenTour, state.totalEarned, currentTourStep]);
 
-  const pushScore = useCallback((stateOverride) => {
+  const pushScore = useCallback((stateOverride, isLeaving = false) => {
     const s = stateOverride || stateRef.current;
-    if (!s) return;
+    if (!s || !username) return;
     const ban = window.AntiCheat.getBanData(username);
     const entry = { 
       name: username, 
@@ -513,11 +513,10 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       teeth: s.teeth || 0, 
       clinicName: s.clinicName, 
       level: s.level || 0,
-      saveData: s,
+      saveData: { ...s, isOnline: !isLeaving }, 
       banUntil: ban.until,
       banIndefinite: ban.until === -1
     };
-    console.log(`[Sync] Pushing score for ${username}:`, { totalEarned: entry.totalEarned, clinicName: entry.clinicName, prestigeCount: entry.prestigeCount });
     window.cloudSubmitScore(entry);
   }, [username, sessionId]);
 
@@ -525,7 +524,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     window.forcePushScore = pushScore;
     const first = setTimeout(() => pushScore(), 1500);
     const id = setInterval(() => pushScore(), 15000);
-    const handleLeave = () => pushScore();
+    const handleLeave = () => pushScore(null, true);
     window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') handleLeave(); });
     window.addEventListener('pagehide', handleLeave);
     return () => {
@@ -2276,13 +2275,14 @@ function App() {
   }, [checkBan]);
 
   const handleLogout = useCallback(() => {
+    pushScore(null, true); // Push offline status
     setSessionTerminated(false);
     setUsername(null);
     setSessionId(null);
     localStorage.removeItem(SESSION_ID_KEY);
     refreshUsers();
     setScreen('gate');
-  }, [refreshUsers]);
+  }, [refreshUsers, pushScore]);
 
   const handleDeleteUser = useCallback(() => {
     // Remove from users list
