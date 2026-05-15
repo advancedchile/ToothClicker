@@ -1120,12 +1120,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         <section className="mobile-stats-container">
            <div className="mobile-stat-row">
               <span className="mobile-stat-label">{t.currentTeeth}</span>
-              <span className="mobile-stat-value" style={{ marginLeft: 'auto' }}>{fmt(state.teeth)}</span>
+              <span className="mobile-stat-value">{fmt(state.teeth)}</span>
               <span className="mobile-stat-sub">{fmt(perSecond, true)}/s</span>
            </div>
            <div className="mobile-stat-row">
               <span className="mobile-stat-label">{t.perClick}</span>
-              <span className="mobile-stat-value mobile-stat-click" style={{ marginLeft: 'auto' }}>{fmt(perClick, true)}</span>
+              <span className="mobile-stat-value mobile-stat-click">{fmt(perClick, true)}</span>
               <span className="mobile-stat-sub">x{fmt(Math.floor(globalMult * 100) / 100)}</span>
            </div>
         </section>

@@ -34,7 +34,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 100%;
+    width: calc(100% + 32px);
+    margin: -16px -16px 0 -16px;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eeeeee;
+    box-sizing: border-box;
   }
 
   .mobile-clinic-name {
@@ -143,7 +148,7 @@
   .mobile-stat-row {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 10px; /* 10px gap as requested */
   }
 
   .mobile-stat-label {
@@ -156,7 +161,7 @@
 
   .mobile-stat-value {
     font-family: 'GameNums', sans-serif;
-    font-size: 20px;
+    font-size: 11px; /* Smaller font to match labels */
     font-weight: 700;
     color: #0076db;
   }
