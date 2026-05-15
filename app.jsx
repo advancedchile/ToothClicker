@@ -2275,14 +2275,13 @@ function App() {
   }, [checkBan]);
 
   const handleLogout = useCallback(() => {
-    pushScore(null, true); // Push offline status
     setSessionTerminated(false);
     setUsername(null);
     setSessionId(null);
     localStorage.removeItem(SESSION_ID_KEY);
     refreshUsers();
     setScreen('gate');
-  }, [refreshUsers, pushScore]);
+  }, [refreshUsers]);
 
   const handleDeleteUser = useCallback(() => {
     // Remove from users list
