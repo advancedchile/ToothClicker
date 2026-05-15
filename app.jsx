@@ -1193,15 +1193,6 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         </section>
 
         <footer className="mobile-footer-player">
-           <div className="mobile-music-card">
-              <div className="mobile-music-info">
-                 <div className="mobile-track-name">{currentTrack?.title || 'No track'}</div>
-                 <div className="mobile-track-time">{window.formatMusicTime(musicTime)} / {window.formatMusicTime(musicDuration)}</div>
-              </div>
-              <div style={{ color: '#0076db' }}>
-                <i className="fa-solid fa-volume-high"></i>
-              </div>
-           </div>
            <button className="mobile-music-bars-btn" onClick={() => setMusicModalOpen(true)} style={{ all: 'unset', position: 'relative' }}>
                {isMusicPlaying ? (
                  <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 16 }}>

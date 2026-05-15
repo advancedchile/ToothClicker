@@ -244,7 +244,8 @@
   .mobile-footer-player {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: center;
+    gap: 16px;
     width: 100%;
     margin-top: auto;
     padding-bottom: 20px; /* More padding at bottom */
