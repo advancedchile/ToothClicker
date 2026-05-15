@@ -36,7 +36,8 @@ async function cloudFetchLeaderboard() {
       teeth: Number(p.teeth || 0),
       updatedAt: new Date(p.updated_at).getTime(),
       banUntil: p.ban_until ? new Date(p.ban_until).getTime() : 0,
-      banIndefinite: !!p.ban_indefinite
+      banIndefinite: !!p.ban_indefinite,
+      sessionId: p.session_id || (p.save_data ? p.save_data.sessionId : null)
     }));
 
     return { ok: true, scores, lastResetAt };
@@ -67,6 +68,7 @@ async function cloudSubmitScore(entry) {
       row.ban_until = new Date(entry.banUntil).toISOString();
       row.ban_indefinite = entry.banUntil === -1;
     }
+    if (entry.sessionId) row.session_id = entry.sessionId;
 
     const { error } = await _supabase.from('players').upsert(row, { onConflict: 'name' });
 
@@ -90,6 +92,19 @@ async function cloudAuthenticate(name, password) {
 
     if (error) throw new Error('User not found');
     if (data.password && data.password !== password) throw new Error('Invalid password');
+    
+    // Generate a new session ID for this login
+    const newSessionId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    
+    // Update the session_id in the database immediately using upsert (more reliable)
+    const newSaveData = { ...(data.save_data || {}), sessionId: newSessionId };
+    const { error: updateError } = await _supabase.from('players').upsert({ 
+      name: name,
+      save_data: newSaveData,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'name' });
+
+    if (updateError) console.error('[Cloud] Failed to update session ID:', updateError);
 
     // Return the full player data to sync the progress
     return { 
@@ -107,7 +122,8 @@ async function cloudAuthenticate(name, password) {
         teeth: Number(data.teeth || 0),
         banUntil: data.ban_until ? new Date(data.ban_until).getTime() : 0,
         banIndefinite: !!data.ban_indefinite,
-        password: data.password
+        password: data.password,
+        sessionId: newSessionId
       }
     };
   } catch (e) {
@@ -118,6 +134,7 @@ async function cloudAuthenticate(name, password) {
 async function cloudRegister(name, password, initialData = {}) {
   try {
     if (!_supabase) throw new Error('No Supabase');
+    const sessionId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     const { error } = await _supabase.from('players').insert({
       name,
       password,
@@ -129,15 +146,34 @@ async function cloudRegister(name, password, initialData = {}) {
       level: Math.floor(Number(initialData.level || 0)),
       teeth: Math.floor(Number(initialData.teeth || 0)),
       updated_at: new Date().toISOString(),
-      save_data: initialData
+      save_data: { ...initialData, sessionId: sessionId }
     });
     if (error) throw error;
     console.log('[Cloud] Register OK for', name);
-    return { ok: true };
+    return { ok: true, sessionId };
   } catch (e) {
     console.error('[Cloud] Register FAILED for', name, ':', e);
     return { ok: false, error: e.message };
   }
+}
+
+async function cloudFetchPlayer(name) {
+  try {
+    if (!_supabase) throw new Error('No Supabase');
+    const { data, error } = await _supabase.from('players').select('*').eq('name', name).single();
+    if (error) throw error;
+    
+    let sd = data.save_data;
+    if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e) {} }
+    
+    return { 
+      ok: true, 
+      player: {
+        ...data,
+        sessionId: data.session_id || (sd ? sd.sessionId : null)
+      } 
+    };
+  } catch (e) { return { ok: false, error: e.message }; }
 }
 
 async function cloudDeleteScore(name) {
@@ -294,5 +330,6 @@ Object.assign(window, {
   cloudSaveSettings,
   cloudResetAll,
   cloudAuthenticate,
-  cloudRegister
+  cloudRegister,
+  cloudFetchPlayer
 });

@@ -12,6 +12,7 @@ const ADMIN_USERS_KEY  = 'tooth-clicker-admin-users';
 const LB_RESET_KEY     = 'tooth-clicker-lb-reset-v3';
 const LAST_RESET_KEY   = 'tooth-clicker-last-reset-v1';
 const ADMIN_AUTH_KEY   = 'tooth-clicker-admin-session-v1';
+const SESSION_ID_KEY   = 'tooth-clicker-session-id';
 const ADMIN_NAME       = 'James'; // reserved superuser name
 
 let MUSIC_TRACKS = [
@@ -96,6 +97,6 @@ Object.assign(window, {
   loadAllSaves, saveAllSaves, loadUserSave, persistUserSave, deleteUserSave, 
   loadUsers, saveUsers, resetAllProgress, defaultState, 
   topBtnStyle, primaryBtnStyle, secondaryBtnStyle, debugBtnStyle,
-  SAVES_KEY, CURRENT_USER_KEY, LANG_KEY, SOUND_KEY, NUMFMT_KEY, USERS_KEY, DEVICE_USER_KEY, ADMIN_USERS_KEY, LAST_RESET_KEY, ADMIN_AUTH_KEY, ADMIN_NAME, MUSIC_TRACKS
+  SAVES_KEY, CURRENT_USER_KEY, LANG_KEY, SOUND_KEY, NUMFMT_KEY, USERS_KEY, DEVICE_USER_KEY, ADMIN_USERS_KEY, LAST_RESET_KEY, ADMIN_AUTH_KEY, SESSION_ID_KEY, ADMIN_NAME, MUSIC_TRACKS
 });
 

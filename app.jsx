@@ -36,7 +36,7 @@ function MenuItem({ icon, label, onClick, danger, trailing }) {
 }
 function MenuDivider() {return <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 2px' }} />;}
 
-function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange }) {
+function Game({ username, sessionId, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange }) {
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
@@ -466,6 +466,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
         const ban = window.AntiCheat.getBanData(username);
         window.cloudSubmitScore({ 
           name: username, 
+          sessionId, // Include current session ID
           totalEarned: s.totalEarned || 0, 
           prestige: s.prestige || 0, 
           prestigeCount: s.prestigeCount || 0, 
@@ -479,7 +480,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
         });
       }
     } catch (e) {}
-  }, [username]);
+  }, [username, sessionId]);
 
   useEffect(() => {
     const saveId = setInterval(() => {try {persistUserSave(username, stateRef.current);setSaveFlash(true);setTimeout(() => setSaveFlash(false), 1500);} catch (e) {}}, 60000);
@@ -503,6 +504,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
       const ban = window.AntiCheat.getBanData(username);
       window.cloudSubmitScore({ 
         name: username, 
+        sessionId, // Include current session ID
         totalEarned: s.totalEarned || 0, 
         prestige: s.prestige || 0, 
         prestigeCount: s.prestigeCount || 0, 
@@ -518,7 +520,7 @@ function Game({ username, lang: initialLang, onLangChange, onLogout, onDeleteUse
     const id = setInterval(pushScore, 30000);
     window.addEventListener('beforeunload', pushScore);
     return () => {clearTimeout(first);clearInterval(id);window.removeEventListener('beforeunload', pushScore);pushScore();};
-  }, [username]);
+  }, [username, sessionId]);
 
   // Achievement checker
   useEffect(() => {
@@ -2075,6 +2077,8 @@ function App() {
   const [lang, setLang] = useState(() => localStorage.getItem(LANG_KEY) || 'es');
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem(SOUND_KEY) !== '0');
   const [numFormat, setNumFormat] = useState(() => localStorage.getItem(NUMFMT_KEY) || 'short');
+  const [sessionId, setSessionId] = useState(() => localStorage.getItem(SESSION_ID_KEY) || null);
+  const [sessionTerminated, setSessionTerminated] = useState(false);
 
   // Global reset check and settings sync
   useEffect(() => {
@@ -2089,8 +2093,21 @@ function App() {
             const keysToClear = [SAVES_KEY, USERS_KEY, DEVICE_USER_KEY, CURRENT_USER_KEY, ADMIN_AUTH_KEY];
             keysToClear.forEach(k => localStorage.removeItem(k));
             if (username) { setUsername(null); setScreen('gate'); }
-            setTimeout(() => window.location.reload(), 100);
             return;
+          }
+        }
+
+        // Check for session termination
+        if (username && sessionId && !sessionTerminated) {
+          const meRes = await window.cloudFetchPlayer(username);
+          if (meRes.ok && meRes.player) {
+            const cloudSessionId = meRes.player.sessionId;
+            console.log(`[SessionCheck] Local: ${sessionId} | Cloud: ${cloudSessionId}`);
+            if (cloudSessionId && cloudSessionId !== sessionId) {
+              console.warn("Session mismatch detected! Another device logged in.");
+              setSessionTerminated(true);
+              return;
+            }
           }
         }
 
@@ -2138,9 +2155,9 @@ function App() {
     };
     
     syncData();
-    const id = setInterval(syncData, 60000);
+    const id = setInterval(syncData, 15000);
     return () => clearInterval(id);
-  }, [username]);
+  }, [username, sessionId]);
   // Keep window.__lang in sync (used by UserPill)
   useEffect(() => {window.__lang = lang;}, [lang]);
 
@@ -2181,6 +2198,12 @@ function App() {
     
     setUsers(updated);
     setDeviceUser(cleaned);
+    
+    if (res.sessionId) {
+      setSessionId(res.sessionId);
+      localStorage.setItem(SESSION_ID_KEY, res.sessionId);
+    }
+    
     setUsername(cleaned);
     setScreen('game');
   }, [lang, checkBan]);
@@ -2204,6 +2227,11 @@ function App() {
       if (!currentUsers.includes(name)) {
         saveUsers([...currentUsers, name]);
         setUsers(loadUsers());
+      }
+
+      if (cloudData && cloudData.sessionId) {
+        setSessionId(cloudData.sessionId);
+        localStorage.setItem(SESSION_ID_KEY, cloudData.sessionId);
       }
     }
     
@@ -2230,6 +2258,8 @@ function App() {
 
   const handleLogout = useCallback(() => {
     setUsername(null);
+    setSessionId(null);
+    localStorage.removeItem(SESSION_ID_KEY);
     refreshUsers();
     setScreen('gate');
   }, [refreshUsers]);
@@ -2288,7 +2318,7 @@ function App() {
 
   if (screen === 'game') {
     return (
-      <Game key={username} username={username} lang={lang} onLangChange={handleLangChange}
+      <Game key={username} username={username} sessionId={sessionId} lang={lang} onLangChange={handleLangChange}
         onLogout={handleLogout} onDeleteUser={handleDeleteUser}
         numFormat={numFormat} onNumFormatChange={handleNumFormatChange} />);
   }
@@ -2324,6 +2354,35 @@ function App() {
               style={{ all: 'unset', background: 'var(--bg-3)', color: 'var(--fg-1)', padding: '10px 24px', borderRadius: 8, cursor: 'pointer' }}
             >
               {lang === 'es' ? 'Volver' : 'Back'}
+            </button>
+          </div>
+        </window.Modal>
+      )}
+
+      {sessionTerminated && (
+        <window.Modal onClose={() => {}} persistent={true}>
+          <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+            <div style={{ fontSize: 52, marginBottom: 16 }}>📱</div>
+            <h2 className="t-heading-m" style={{ color: 'var(--warning-i130)', marginBottom: 12 }}>
+              {lang === 'es' ? 'Sesión Cerrada' : 'Session Closed'}
+            </h2>
+            <p className="t-body-m" style={{ color: 'var(--fg-2)', lineHeight: 1.6, marginBottom: 24 }}>
+              {lang === 'es' 
+                ? 'Tu sesión se ha cerrado porque has ingresado al juego desde otro dispositivo.' 
+                : 'Your session has been closed because you logged into the game from another device.'}
+            </p>
+            <button 
+              onClick={() => {
+                localStorage.removeItem(SESSION_ID_KEY);
+                window.location.reload();
+              }}
+              style={{
+                all: 'unset', boxSizing: 'border-box', width: '100%', padding: '12px', 
+                background: 'var(--primary-i100)', color: '#fff', borderRadius: 10, 
+                fontWeight: 600, fontSize: 15, cursor: 'pointer'
+              }}
+            >
+              {lang === 'es' ? 'Entendido' : 'Understood'}
             </button>
           </div>
         </window.Modal>
