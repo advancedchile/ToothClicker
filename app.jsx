@@ -54,8 +54,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     if (cloudSaved) {
       const cloudPCount = cloudSaved.prestigeCount || 0;
       const localPCount = localSnap?.prestigeCount || 0;
-      const cloudTotal = cloudSaved.totalEarned || 0;
-      const localTotal = localSnap?.totalEarned || 0;
+      const cloudTotal = cloudSaved.lifetimeEarned || cloudSaved.totalEarned || 0;
+      const localTotal = localSnap?.lifetimeEarned || localSnap?.totalEarned || 0;
       
       // If cloud is strictly better in either metric, use cloud
       if (!localSnap || cloudPCount > localPCount || cloudTotal > localTotal) {
@@ -104,7 +104,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       base.legacyAcademyFixDone = true;
     }
 
-    if (offlineInfo) return { ...base, teeth: (base.teeth || 0) + offlineInfo.earned, totalEarned: (base.totalEarned || 0) + offlineInfo.earned, lastTick: Date.now() };
+    if (offlineInfo) return { ...base, teeth: (base.teeth || 0) + offlineInfo.earned, totalEarned: (base.totalEarned || 0) + offlineInfo.earned, lifetimeEarned: (base.lifetimeEarned || 0) + offlineInfo.earned, lastTick: Date.now() };
     return { ...base, lastTick: Date.now() };
   });
   const [showWelcomeBack, setShowWelcomeBack] = useState(() => !!offlineInfo);
@@ -428,11 +428,21 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     }
     return v;
   }, [state.generators, storeMults]);
-  const clickBase = useMemo(() => window.computeClickPower(state, perSecondRaw).total, [state.clickUpgrades, state.generators, state.achievements, state.timePlayed, perSecondRaw]);
+  const has75Gens = useMemo(() => {
+    return Object.values(state.generators || {}).some(qty => qty >= 75);
+  }, [state.generators]);
+
+  const clickBase = useMemo(() => window.computeClickPower(state).total, [state.clickUpgrades, state.achievements, state.timePlayed]);
+  
+  // Click upgrades and store upgrades give 2x if 75+ gens, else 0.2x
+  const upgradeBonus = (clickBase * (storeMults.click || 1)) - 1;
+  const appliedUpgradeBonus = upgradeBonus * (has75Gens ? 2.0 : 0.2);
+
   const crystalMult = crystalFrenzyUntil > Date.now() ? 5 : 1;
   const goldenMult = goldenActiveUntil > Date.now() ? 7 : 1;
   const globalMult = prestigeMult * achMult * goldenMult * crystalMult * storeMults.global * academyGpsMult;
-  const perClick = clickBase * storeMults.click * globalMult;
+  
+  const perClick = (1 + appliedUpgradeBonus) * globalMult;
   perClickRef.current = perClick;
   // Displayed tooth: player-selected if unlocked, else auto (highest unlocked)
   const autoStage = window.getToothStage(state.prestigeCount || 0);
@@ -446,9 +456,19 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const achUnlockedCount = Object.values(state.achievements || {}).filter(Boolean).length;
   const prestigeReq = useMemo(() => {
     const count = state.prestigeCount || 0;
-    return 12_500_000_000_000 * Math.pow(1.25, count); // Increased by 150% (original 5e12 * 2.5)
+    // Increased significantly: 100T base, 1.5x scaling
+    return 100_000_000_000_000 * Math.pow(1.5, count);
   }, [state.prestigeCount]);
-  const prestigeGain = state.totalEarned >= prestigeReq ? 1 : 0;
+
+  const prestigeGain = useMemo(() => {
+    if (state.totalEarned < prestigeReq) return 0;
+    const B = 100_000_000_000_000;
+    const r = 1.5;
+    const n = state.prestigeCount || 0;
+    // Calculate total points k that can be gained at once
+    const k = Math.log(1 + (state.totalEarned * (r - 1)) / (B * Math.pow(r, n))) / Math.log(r);
+    return Math.max(0, Math.floor(k));
+  }, [state.totalEarned, prestigeReq, state.prestigeCount]);
   
   const auroraOpacity = useMemo(() => {
     const t = state.teeth || 0;
@@ -496,7 +516,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           } else { break; }
         }
 
-        return { ...s, teeth: s.teeth + earned, totalEarned: s.totalEarned + earned, timePlayed: s.timePlayed + dt, lastTick: now, xp: newXP, level: newLevel };
+        return { ...s, teeth: s.teeth + earned, totalEarned: s.totalEarned + earned, lifetimeEarned: (s.lifetimeEarned || 0) + earned, timePlayed: s.timePlayed + dt, lastTick: now, xp: newXP, level: newLevel };
       });
     }, 100);
     return () => clearInterval(interval);
@@ -534,7 +554,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     const entry = { 
       name: username, 
       sessionId,
-      totalEarned: s.totalEarned || 0, 
+      totalEarned: s.lifetimeEarned || s.totalEarned || 0, 
       prestige: s.prestige || 0, 
       prestigeCount: s.prestigeCount || 0, 
       timePlayed: s.timePlayed || 0, 
@@ -590,7 +610,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       setTimeout(() => setToast(null), 3500);
       if (soundRef.current) {window.playTone(660, 0.12, 'triangle', 0.06);setTimeout(() => window.playTone(880, 0.12, 'triangle', 0.06), 100);}
     }
-  }, [state.totalClicks, state.totalEarned, state.generators, state.prestige, state.goldenClicks, state.clickUpgrades, state.timePlayed, state.feedbackSent]);
+  }, [state.totalClicks, state.totalEarned, state.lifetimeEarned, state.generators, state.prestige, state.goldenClicks, state.clickUpgrades, state.timePlayed, state.feedbackSent]);
 
   // Handle Custom Milestone Messages
   useEffect(() => {
@@ -743,7 +763,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         }
       }
 
-      return { ...s, teeth: s.teeth + gain, totalEarned: s.totalEarned + gain, totalClicks: s.totalClicks + 1, maxCPS: Math.max(s.maxCPS || 0, cps), xp: newXP, level: newLevel };
+      return { ...s, teeth: s.teeth + gain, totalEarned: s.totalEarned + gain, lifetimeEarned: (s.lifetimeEarned || 0) + gain, totalClicks: s.totalClicks + 1, maxCPS: Math.max(s.maxCPS || 0, cps), xp: newXP, level: newLevel };
     });
     setFloats([{ id: Math.random(), x, y, gain, born: Date.now(), tx: (Math.random() - 0.5) * 80 }]);
     setToothParticles([{ id: Math.random(), x, y, born: Date.now(), tx: (Math.random() - 0.5) * 320, rot: (Math.random() - 0.5) * 180 }]);
@@ -950,13 +970,15 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const doPrestige = useCallback(() => {
     setShowPrestigeConfirm(false);
     if (prestigeGain <= 0) return;
-    const oldPrestige = stateRef.current?.prestige || 0;
-    const newPrestige = oldPrestige + prestigeGain;
+    const gain = prestigeGain;
     const oldCount = stateRef.current?.prestigeCount || 0;
-    const newCount = oldCount + 1;
-    // Find newly unlocked stages based on prestige COUNT
-    const newlyUnlocked = window.TOOTH_STAGES.filter((s) => s.prestige > 0 && s.prestige > oldCount && s.prestige <= newCount);
+    const newCount = oldCount + gain;
+    const oldPrestige = stateRef.current?.prestige || 0;
+    const newPrestige = oldPrestige + gain;
     
+    // Find newly unlocked stages based on prestige COUNT gain
+    const newlyUnlocked = window.TOOTH_STAGES.filter((s) => s.prestige > 0 && s.prestige > oldCount && s.prestige <= newCount);
+
     setState((s) => {
       const next = { 
         ...defaultState(), 
@@ -975,7 +997,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         xpUpgrades: s.xpUpgrades,
         // Persist Clinic name and Lifetime Earnings
         clinicName: s.clinicName,
-        totalEarned: s.totalEarned
+        totalEarned: 0, // Reset run progress
+        lifetimeEarned: s.lifetimeEarned || s.totalEarned // Persist lifetime
       };
 
       // Immediate local persistence

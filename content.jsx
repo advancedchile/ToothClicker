@@ -340,7 +340,7 @@ function buildClickUpgrades() {
   const out = [];
   let cost = 1125; // Increased by 125% (original 500 * 2.25)
   const MULT = 4.2;
-  const types = ['flat','flat','flat','mult','perGen','flat','perAch','flat','perSec','flat','mult','perGen','timeBonus','flat'];
+  const types = ['flat','flat','flat','mult','mult','flat','perAch','flat','mult','flat','mult','mult','timeBonus','flat'];
   let flatVal = 1;
   const nameIdx = { flat: 0, mult: 0, perGen: 0, perAch: 0, perSec: 0, timeBonus: 0 };
   for (let i = 0; i < 120; i++) {
@@ -364,22 +364,8 @@ function buildClickUpgrades() {
       up.en = enName + ' ' + romanize(Math.floor(i / 14) + 1);
       up.desc_es = `×1.75 poder de click`;
       up.desc_en = `×1.75 click power`;
-    } else if (type === 'perGen') {
-      const genIdx = Math.min(GENERATORS.length - 1, Math.floor(i / 14) * 4);
-      const gen = GENERATORS[genIdx];
-      up.ref = gen.id; up.refName = { es: gen.es, en: gen.en }; up.value = 0.5;
-      up.es = esName.replace('{gen}', gen.es.toLowerCase());
-      up.en = enName.replace('{gen}', gen.en.toLowerCase());
-      up.desc_es = `+0.5 % al click por cada ${gen.es.toLowerCase()}`;
-      up.desc_en = `+0.5 % to click per ${gen.en.toLowerCase()} owned`;
-    } else if (type === 'perAch') {
-      up.value = 1.5; up.es = esName; up.en = enName;
       up.desc_es = `+1.5 % al click por cada logro desbloqueado`;
       up.desc_en = `+1.5 % to click per achievement unlocked`;
-    } else if (type === 'perSec') {
-      up.value = 0.5; up.es = esName; up.en = enName;
-      up.desc_es = `+0.5 % de la producción por segundo se suma al click`;
-      up.desc_en = `+0.5 % of per-second output added to click power`;
     } else if (type === 'timeBonus') {
       up.threshold = 3600 * (Math.floor(i / 14) + 1); up.value = 20;
       up.es = esName + ' ' + romanize(Math.floor(i / 14) + 1);
@@ -436,7 +422,7 @@ function buildAchievements() {
   ];
   earnMs.forEach((v, i) => {
     const [es, en] = earnTitles[i];
-    out.push({ id: 'earn_' + i, check: (s) => s.totalEarned >= v, es, en,
+    out.push({ id: 'earn_' + i, check: (s) => (s.lifetimeEarned || s.totalEarned) >= v, es, en,
       desc_es: `Gana ${formatNumWithMode(v, 'short')} dientes en total`, desc_en: `Earn ${formatNumWithMode(v, 'short')} teeth in total`, cat: 'earned' });
   });
 
@@ -536,19 +522,19 @@ function buildAchievements() {
   out.push({ id: 'feedback_first', check: (s) => s.feedbackSent, es: 'Crítico de Dientes', en: 'Tooth Critic', desc_es: 'Envía tu primer feedback', desc_en: 'Send your first feedback', cat: 'social' });
 
   const secrets = [
-    { id: 'sec_speedrun', es: 'Velocidad de la luz', en: 'Light speed', desc_es: '1,000,000,000 de dientes en menos de 30 min', desc_en: '1,000,000,000 teeth within the first 30 min', check: (s) => s.totalEarned >= 1_000_000_000 && s.timePlayed <= 1800 },
-    { id: 'sec_clicker', es: 'Clicker fundamentalista', en: 'Fundamentalist clicker', desc_es: '1,000,000 dientes sin comprar generadores', desc_en: '1,000,000 teeth without buying generators', check: (s) => s.totalEarned >= 1_000_000 && Object.values(s.generators || {}).reduce((a,b)=>a+b,0) === 0 },
+    { id: 'sec_speedrun', es: 'Velocidad de la luz', en: 'Light speed', desc_es: '1,000,000,000 de dientes en menos de 30 min', desc_en: '1,000,000,000 teeth within the first 30 min', check: (s) => (s.lifetimeEarned || s.totalEarned) >= 1_000_000_000 && s.timePlayed <= 1800 },
+    { id: 'sec_clicker', es: 'Clicker fundamentalista', en: 'Fundamentalist clicker', desc_es: '1,000,000 dientes sin comprar generadores', desc_en: '1,000,000 teeth without buying generators', check: (s) => (s.lifetimeEarned || s.totalEarned) >= 1_000_000 && Object.values(s.generators || {}).reduce((a,b)=>a+b,0) === 0 },
     { id: 'sec_idle', es: 'Estatua de marfil', en: 'Ivory statue', desc_es: 'Jugá 24h sin hacer un solo click', desc_en: 'Play 24h without a single click', check: (s) => s.timePlayed >= 86400 && s.totalClicks === 0 },
     { id: 'sec_diverse', es: 'Coleccionista total', en: 'Total collector', desc_es: 'Ten al menos 100 de cada uno de los primeros 15 generadores', desc_en: 'Own at least 100 of each of the first 15 generators', check: (s) => GENERATORS.slice(0, 15).every(g => (s.generators?.[g.id] || 0) >= 100) },
     { id: 'sec_mono_brush', es: 'Obsesión por la limpieza', en: 'Cleaning obsession', desc_es: 'Ten 5000 cepillos y nada más', desc_en: 'Own 5000 brushes and nothing else', check: (s) => (s.generators?.brush || 0) >= 5000 && Object.entries(s.generators || {}).filter(([k,v]) => k !== 'brush' && v > 0).length === 0 },
-    { id: 'sec_no_prest', es: 'Inmortal', en: 'Immortal', desc_es: 'Alcanza 1Qa de dientes sin prestigiar', desc_en: 'Reach 1Qa teeth without prestiging', check: (s) => s.totalEarned >= 1e15 && (s.prestige || 0) === 0 },
+    { id: 'sec_no_prest', es: 'Inmortal', en: 'Immortal', desc_es: 'Alcanza 1Qa de dientes sin prestigiar', desc_en: 'Reach 1Qa teeth without prestiging', check: (s) => (s.lifetimeEarned || s.totalEarned) >= 1e15 && (s.prestige || 0) === 0 },
     { id: 'sec_minimal', es: 'Eficiencia extrema', en: 'Extreme efficiency', desc_es: 'Llega a 1B de producción/s con menos de 20 generadores en total', desc_en: 'Reach 1B production/s with fewer than 20 generators total', check: (s) => { const ps = window.computePerSecond && window.computePerSecond(s); return (ps || 0) >= 1e9 && Object.values(s.generators || {}).reduce((a,b)=>a+b,0) < 20; } },
     { id: 'sec_golden5', es: 'Imán dorado', en: 'Golden magnet', desc_es: 'Atrapa 50 dientes dorados en una sola sesión', desc_en: 'Catch 50 golden teeth in a single session', check: (s) => (s.goldenClicks || 0) >= 50 && s.timePlayed <= 3600 },
     { id: 'sec_marathon', es: 'Eternidad', en: 'Eternity', desc_es: 'Jugá 1000h en total', desc_en: 'Play 1000h in total', check: (s) => s.timePlayed >= 3600 * 1000 },
-    { id: 'sec_click_king', es: 'Dios del click', en: 'Click god', desc_es: '1B de dientes solo con clicks', desc_en: '1B teeth through clicks alone', check: (s) => (s.totalClicks || 0) * 10 >= 1e9 && s.totalEarned >= 1e9 },
+    { id: 'sec_click_king', es: 'Dios del click', en: 'Click god', desc_es: '1B de dientes solo con clicks', desc_en: '1B teeth through clicks alone', check: (s) => (s.totalClicks || 0) * 10 >= 1e9 && (s.lifetimeEarned || s.totalEarned) >= 1e9 },
     { id: 'sec_all_click_ups', es: 'Artesanía total', en: 'Total craftsmanship', desc_es: 'Compra todas las mejoras de click', desc_en: 'Buy every click upgrade', check: (s) => Object.values(s.clickUpgrades || {}).filter(Boolean).length >= CLICK_UPGRADES.length },
     { id: 'sec_50_prest', es: 'Ciclo infinito', en: 'Infinite cycle', desc_es: 'Prestigia 1000 veces', desc_en: 'Prestige 1000 times', check: (s) => (s.prestigeCount || 0) >= 1000 },
-    { id: 'sec_atom_blessing', es: 'Omnisciencia dental', en: 'Dental omniscience', desc_es: '1e100 dientes totales', desc_en: '1e100 total teeth', check: (s) => s.totalEarned >= 1e100 },
+    { id: 'sec_atom_blessing', es: 'Omnisciencia dental', en: 'Dental omniscience', desc_es: '1e100 dientes totales', desc_en: '1e100 total teeth', check: (s) => (s.lifetimeEarned || s.totalEarned) >= 1e100 },
     { id: 'sec_fairy_queen', es: 'Imperio de fantasía', en: 'Fantasy empire', desc_es: 'Ten 500 reinas de las haditas', desc_en: 'Own 500 fairy queens', check: (s) => (s.generators?.fairy_queen || 0) >= 500 },
     { id: 'sec_dragon_hoard', es: 'Tesoro del multiverso', en: 'Multiverse hoard', desc_es: 'Ten 1000 dragones odontólogos', desc_en: 'Own 1000 dragon dentists', check: (s) => (s.generators?.dragon || 0) >= 1000 },
     { id: 'sec_omega', es: 'Omega alcanzado', en: 'Omega reached', desc_es: 'Ten 10 Omega Odontos', desc_en: 'Own 10 Omega Odontos', check: (s) => (s.generators?.omega || 0) >= 10 },
@@ -600,19 +586,16 @@ function playTone(freq, dur = 0.08, type = 'sine', vol = 0.05) {
   } catch (e) {}
 }
 
-function computeClickPower(state, perSecond) {
+function computeClickPower(state) {
   let flat = 1, mult = 1;
   const ups = state.clickUpgrades || {};
-  const gens = state.generators || {};
   const achCount = Object.values(state.achievements || {}).filter(Boolean).length;
   const timePlayed = state.timePlayed || 0;
   for (const u of CLICK_UPGRADES) {
     if (!ups[u.id]) continue;
     if (u.type === 'flat') flat += u.value;
     else if (u.type === 'mult') mult *= u.value;
-    else if (u.type === 'perGen') { const owned = gens[u.ref] || 0; mult *= (1 + (u.value / 100) * owned); }
     else if (u.type === 'perAch') { mult *= (1 + (u.value / 100) * achCount); }
-    else if (u.type === 'perSec') { flat += (perSecond || 0) * (u.value / 100); }
     else if (u.type === 'timeBonus') { if (timePlayed >= u.threshold) mult *= (1 + u.value / 100); }
   }
   return { flat, mult, total: flat * mult };
