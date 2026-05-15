@@ -50,13 +50,13 @@
   .mobile-player-pill {
     display: flex;
     align-items: center;
-    gap: 8px;
     background: var(--primary-i010);
-    padding: 6px 12px 6px 6px;
-    border-radius: var(--radius-pill);
+    padding: 10px 15px;
+    border-radius: 999px;
     border: 1.5px solid transparent;
     transition: all 0.2s ease;
     box-shadow: 0 2px 8px rgba(0, 118, 219, 0.05);
+    gap: 6px; /* Base gap of 6px between elements */
   }
 
   .mobile-player-pill:active {
@@ -76,6 +76,7 @@
     justify-content: center;
     font-size: 14px;
     font-weight: 700;
+    flex-shrink: 0;
   }
 
   .mobile-player-info {
@@ -102,6 +103,13 @@
     font-weight: 800;
     color: #0076db;
     text-transform: uppercase;
+  }
+
+  .mobile-player-pill i {
+    margin-left: 4px; /* Slight extra offset for the arrow to separate from text */
+    display: flex;
+    align-items: center;
+    height: 100%;
   }
 
   .mobile-xp-bar {

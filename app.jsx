@@ -1119,7 +1119,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 </div>
               </div>
             </div>
-            <i className="fa-solid fa-angle-down" style={{ fontSize: 10, color: '#0076db', marginLeft: 4, transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}></i>
+            <i className="fa-solid fa-angle-down" style={{ fontSize: 10, color: '#0076db', transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }}></i>
           </button>
         </header>
 
