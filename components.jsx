@@ -83,6 +83,7 @@ function ToothbrushRing({ count }) {
               position: 'absolute',
               width: 0,
               height: 0,
+              transform: `translateY(-${radius}px) rotate(180deg)`,
               animation: 'brushEntry 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) backwards'
             }}>
               <img
