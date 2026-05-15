@@ -1131,14 +1131,14 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         </section>
 
         <section className="mobile-tooth-area">
-           <window.ToothbrushRing count={state.generators.brush} />
+           <window.ToothbrushRing count={state.generators.brush} radius={125} />
            <div 
              onMouseDown={(e) => { handleClick(e); setIsMainMouseDown(true); }}
              onMouseUp={() => setIsMainMouseDown(false)}
              onMouseLeave={() => setIsMainMouseDown(false)}
              onTouchStart={(e) => { handleClick(e); setIsMainMouseDown(true); }}
              onTouchEnd={() => setIsMainMouseDown(false)}
-             style={{ position: 'relative', cursor: 'pointer', zIndex: 2 }}
+             style={{ position: 'relative', cursor: 'pointer', zIndex: 2, display: 'flex', justifyContent: 'center' }}
            >
              <img 
                src={currentToothImg} 
@@ -1148,9 +1148,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                  filter: holdBonusUntil > Date.now() ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : goldenMult > 1 ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : crystalMult > 1 ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))'
                }}
              />
+             {toothParticles.map((p) => (
+               <img key={p.id} src={currentToothImg} alt="" style={{ position: 'absolute', left: p.x - 110, top: p.y - 110, width: 34, height: 34, objectFit: 'contain', pointerEvents: 'none', animation: 'toothPop 2000ms ease-out forwards', '--tx': `${p.tx}px`, '--rot': `${p.rot}deg`, zIndex: 90, opacity: 0.9 }} />
+             ))}
            </div>
            <div className="mobile-click-text">
-              <div className="mobile-click-me">{liveCPS > 0 ? `${liveCPS} CPS` : t.clickMe}</div>
+              <div className="mobile-click-me">{liveCPS > 0 ? `${liveCPS} CPS` : (lang === 'es' ? 'Toca el diente' : 'Tap the tooth')}</div>
               <div className="mobile-click-gain">+{fmt(perClick, true)} {t.teeth} / click</div>
            </div>
 
@@ -1187,10 +1190,24 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 <i className="fa-solid fa-volume-high"></i>
               </div>
            </div>
-           <button className="mobile-music-bars-btn" style={{ all: 'unset' }}>
-              <i className="fa-solid fa-bars-staggered"></i>
-           </button>
-           <button className="mobile-hamburger-btn" style={{ all: 'unset' }}>
+           <button className="mobile-music-bars-btn" onClick={() => setMusicModalOpen(true)} style={{ all: 'unset', position: 'relative' }}>
+               {isMusicPlaying ? (
+                 <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 16 }}>
+                    {[0.1, 0.4, 0.2, 0.5, 0.3].map((delay, i) => (
+                      <div key={i} style={{ 
+                        width: 2, 
+                        height: 16, 
+                        background: '#fff', 
+                        borderRadius: 2,
+                        animation: `musicWave 0.8s ease-in-out infinite ${delay}s`
+                      }} />
+                    ))}
+                 </div>
+               ) : (
+                 <i className="fa-solid fa-bars-staggered"></i>
+               )}
+            </button>
+           <button className="mobile-hamburger-btn" onClick={() => setMenuOpen(!menuOpen)} style={{ all: 'unset' }}>
               <i className="fa-solid fa-bars"></i>
            </button>
         </footer>

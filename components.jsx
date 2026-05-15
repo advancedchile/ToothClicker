@@ -35,10 +35,9 @@ function ToothIcon({ size = 220, golden = false }) {
  * Renders a ring of toothbrushes around the main tooth.
  * Each purchase of "brush" adds one toothbrush (max 100).
  */
-function ToothbrushRing({ count }) {
+function ToothbrushRing({ count, radius = 160 }) {
   const max = 100;
   const displayCount = Math.min(count || 0, max);
-  const radius = 160; // Distance from center
   
   if (displayCount <= 0) return null;
 

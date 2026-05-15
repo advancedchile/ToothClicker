@@ -187,8 +187,8 @@
   }
 
   .mobile-main-tooth {
-    width: 220px;
-    height: 220px;
+    width: 200px; /* Slightly smaller tooth */
+    height: 200px;
     object-fit: contain;
     position: relative;
     z-index: 2;
@@ -232,7 +232,7 @@
     height: 54px;
     background: #ffffff;
     border: 1px solid #e8e8e8;
-    border-radius: 12px;
+    border-radius: 50%; /* Circular upgrades */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -413,4 +413,9 @@
   .mobile-menu-item.danger .mobile-menu-item-text {
     color: #e11d24;
   }
+}
+
+@keyframes musicWave {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
 }
