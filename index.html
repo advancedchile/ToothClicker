@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Tooth Clicker - El Simulador Dental Adictivo</title>
   <meta name="description" content="Gestiona tu clínica dental, mejora tus equipos y domina el arte de la limpieza dental en Tooth Clicker, el juego incremental más brillante de la web.">
   <meta name="keywords" content="Tooth Clicker, juego de dentista, clicker game, simulador dental, juego gratis online, idle game, higiene bucal, juego de navegador">
@@ -437,6 +437,27 @@
   <script type="text/babel" src="xp_upgrades.jsx?v=0.6.1"></script>
   <script type="text/babel" src="tweaks.jsx?v=0.6.1"></script>
 
+  <script>
+    // Prevent zooming on mobile
+    document.addEventListener('touchstart', function (event) {
+      if (event.touches.length > 1) {
+        event.preventDefault();
+      }
+    }, { passive: false });
+    
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+      const now = (new Date()).getTime();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+
+    document.addEventListener('gesturestart', function (event) {
+      event.preventDefault();
+    });
+  </script>
 </body>
 
 </html>

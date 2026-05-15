@@ -3,7 +3,15 @@
 @media (max-width: 768px) {
   body {
     overflow: hidden; /* Prevent scrolling on mobile main view */
-    touch-action: manipulation;
+    touch-action: none; /* Disable all browser gestures like zoom */
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Explicitly hide desktop elements just in case */
+  .game-container {
+    display: none !important;
   }
 
   /* View Container */
@@ -274,18 +282,28 @@
   /* Mobile Menu Overlay & Drawer */
   .mobile-menu-overlay {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(2px);
-    z-index: 1000;
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 10000;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
+    touch-action: none; /* Prevent interaction with background */
   }
 
   .mobile-menu-overlay.open {
     opacity: 1;
     visibility: visible;
+    display: block !important;
+  }
+
+  .mobile-menu-overlay:not(.open) {
+    display: none;
   }
 
   .mobile-menu-drawer {
@@ -293,15 +311,15 @@
     top: 0;
     right: -280px;
     width: 280px;
-    height: 100vh;
-    height: 100dvh;
+    height: 100%;
     background: #ffffff;
-    z-index: 1001;
+    z-index: 10001;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     padding: 24px 0;
     box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
   }
 
   .mobile-menu-overlay.open .mobile-menu-drawer {
@@ -312,14 +330,17 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 16px 24px;
+    padding: 14px 24px;
     width: 100%;
     border: none;
-    background: transparent;
+    background: transparent !important; /* Force transparent background */
     cursor: pointer;
     transition: background 0.2s;
     text-align: left;
     font-family: var(--font-sans);
+    border-radius: 0 !important; /* Ensure they are not pills */
+    box-sizing: border-box;
+    flex-shrink: 0;
   }
 
   .mobile-menu-item:active {
