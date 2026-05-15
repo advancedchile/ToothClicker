@@ -394,6 +394,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                     currentUser={null} 
                     renderRowExtra={renderAdminActions}
                     extraColumns="100px"
+                    noScroll={true}
                   />
                 </>
               );

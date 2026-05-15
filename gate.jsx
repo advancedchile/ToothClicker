@@ -52,7 +52,7 @@ function LeaderboardHeader({ lb, lang }) {
   );
 }
 
-function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns = "" }) {
+function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns = "", noScroll = false }) {
   const t = window.STRINGS[lang];
   const [sortBy, setSortBy] = window.useStateG('prestige'); // 'prestige' or 'level'
   const allRows = lb.scores || [];
@@ -81,7 +81,7 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
     </div>
   );
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', maxHeight: 520 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: noScroll ? 'visible' : 'auto', maxHeight: noScroll ? 'none' : 520 }}>
       {/* Sort Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '0 4px' }}>
         <button 
