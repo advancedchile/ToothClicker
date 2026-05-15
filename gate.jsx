@@ -62,7 +62,10 @@ function LeaderboardBody({ lb, lang, currentUser }) {
       if (sortBy === 'level') {
         return (b.level || 0) - (a.level || 0) || (b.prestigeCount || 0) - (a.prestigeCount || 0);
       }
-      return (b.prestigeCount || 0) - (a.prestigeCount || 0) || (b.level || 0) - (a.level || 0);
+      if (sortBy === 'total') {
+        return (b.totalEarned || 0) - (a.totalEarned || 0) || (b.prestigeCount || 0) - (a.prestigeCount || 0);
+      }
+      return (b.prestigeCount || 0) - (a.prestigeCount || 0) || (b.totalEarned || 0) - (a.totalEarned || 0);
     });
   
   if (lb.loading && rows.length === 0 && !lb.error) return (
@@ -104,6 +107,18 @@ function LeaderboardBody({ lb, lang, currentUser }) {
         >
           <i className="fa-solid fa-graduation-cap" style={{ marginRight: 6 }}></i>
           {lang === 'es' ? 'POR NIVEL' : 'BY LEVEL'}
+        </button>
+        <button 
+          onClick={() => { window.playClickSound && window.playClickSound(); setSortBy('total'); }}
+          style={{
+            all: 'unset', boxSizing: 'border-box', flex: 1, padding: '8px', borderRadius: 8, textAlign: 'center', fontSize: 10, fontWeight: 700, cursor: 'pointer',
+            background: sortBy === 'total' ? 'var(--primary-i100)' : 'var(--bg-3)',
+            color: sortBy === 'total' ? '#fff' : 'var(--fg-3)',
+            transition: 'all 150ms', fontFamily: 'var(--font-sans)'
+          }}
+        >
+          <i className="fa-solid fa-tooth" style={{ marginRight: 6 }}></i>
+          {lang === 'es' ? 'POR DIENTES' : 'BY TEETH'}
         </button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 90px 140px', gap: 'var(--spacing-3)', padding: '0 var(--spacing-3)', color: 'var(--fg-3)', marginBottom: 2 }} className="t-mini-caps">
