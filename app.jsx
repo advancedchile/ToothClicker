@@ -37,6 +37,12 @@ function MenuItem({ icon, label, onClick, danger, trailing }) {
 function MenuDivider() {return <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 2px' }} />;}
 
 function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange }) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
@@ -1084,6 +1090,119 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   });
 
   const currentToothImg = holdBonusUntil > Date.now() ? "uploads/gold-tooth-1.png" : crystalFrenzyUntil > Date.now() ? "uploads/crystal-tooth-1.png" : selectedStage.img;
+
+  const renderMobileView = () => {
+    return (
+      <div className="mobile-game-container">
+        <header className="mobile-header">
+          <div className="mobile-clinic-name">
+             {state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)}
+             <i className="fa-solid fa-pen-to-square" style={{ fontSize: 13, opacity: 0.5, marginLeft: 6 }}></i>
+          </div>
+          <div className="mobile-player-pill">
+            <div className="mobile-avatar">{(username[0] || '?').toUpperCase()}</div>
+            <div className="mobile-player-info">
+              <div className="mobile-player-name">{username}</div>
+              <div className="mobile-player-lvl">
+                <span className="mobile-lvl-text">NIV. {state.level}</span>
+                <div className="mobile-xp-bar">
+                   <div className="mobile-xp-progress" style={{ width: `${Math.min(100, (state.xp / window.getXPRequired(state.level)) * 100)}%` }} />
+                </div>
+              </div>
+            </div>
+            <i className="fa-solid fa-angle-down" style={{ fontSize: 10, color: '#0076db', marginLeft: 4 }}></i>
+          </div>
+        </header>
+
+        <section className="mobile-stats-container">
+           <div className="mobile-stat-row">
+              <span className="mobile-stat-label">{t.currentTeeth}</span>
+              <span className="mobile-stat-value" style={{ marginLeft: 'auto' }}>{fmt(state.teeth)}</span>
+              <span className="mobile-stat-sub">{fmt(perSecond, true)}/s</span>
+           </div>
+           <div className="mobile-stat-row">
+              <span className="mobile-stat-label">{t.perClick}</span>
+              <span className="mobile-stat-value mobile-stat-click" style={{ marginLeft: 'auto' }}>{fmt(perClick, true)}</span>
+              <span className="mobile-stat-sub">x{fmt(Math.floor(globalMult * 100) / 100)}</span>
+           </div>
+        </section>
+
+        <section className="mobile-tooth-area">
+           <window.ToothbrushRing count={state.generators.brush} />
+           <div 
+             onMouseDown={(e) => { handleClick(e); setIsMainMouseDown(true); }}
+             onMouseUp={() => setIsMainMouseDown(false)}
+             onMouseLeave={() => setIsMainMouseDown(false)}
+             onTouchStart={(e) => { handleClick(e); setIsMainMouseDown(true); }}
+             onTouchEnd={() => setIsMainMouseDown(false)}
+             style={{ position: 'relative', cursor: 'pointer', zIndex: 2 }}
+           >
+             <img 
+               src={currentToothImg} 
+               alt="tooth" 
+               className="mobile-main-tooth"
+               style={{
+                 filter: holdBonusUntil > Date.now() ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : goldenMult > 1 ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : crystalMult > 1 ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))'
+               }}
+             />
+           </div>
+           <div className="mobile-click-text">
+              <div className="mobile-click-me">{liveCPS > 0 ? `${liveCPS} CPS` : t.clickMe}</div>
+              <div className="mobile-click-gain">+{fmt(perClick, true)} {t.teeth} / click</div>
+           </div>
+
+           {floats.map((f) =>
+              <div key={f.id} style={{ position: 'absolute', left: f.x, top: f.y, pointerEvents: 'none', color: '#000000', fontWeight: 900, fontSize: 18, textShadow: '-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 2px 4px rgba(0,0,0,0.2)', animation: 'clickPop 600ms ease-out forwards', fontVariantNumeric: 'tabular-nums', '--tx': `${f.tx}px`, zIndex: 100 }}>+{fmt(f.gain, true)}</div>
+           )}
+        </section>
+
+        <section className="mobile-upgrades-row">
+           {(window.STORE_UPGRADES || []).filter(up => {
+              if (state.storeUpgrades[up.id]) return false;
+              if (up.type === 'generator') return (state.generators[up.targetId] || 0) >= up.milestone;
+              return state.totalEarned >= up.requirement;
+           }).slice(0, 2).map(up => (
+              <div key={up.id} className="mobile-upgrade-slot" style={{ color: up.color }}>
+                <i className={`fa-solid ${up.icon}`}></i>
+              </div>
+           ))}
+           {/* Placeholders if less than 2 upgrades */}
+           {Array.from({ length: Math.max(0, 2 - (window.STORE_UPGRADES || []).filter(up => !state.storeUpgrades[up.id] && (up.type === 'generator' ? (state.generators[up.targetId] || 0) >= up.milestone : state.totalEarned >= up.requirement)).length) }).map((_, i) => (
+             <div key={'ph-'+i} className="mobile-upgrade-slot" style={{ opacity: 0.3 }}>
+               <i className="fa-solid fa-lock"></i>
+             </div>
+           ))}
+        </section>
+
+        <footer className="mobile-footer-player">
+           <div className="mobile-music-card">
+              <div className="mobile-music-info">
+                 <div className="mobile-track-name">{currentTrack?.title || 'No track'}</div>
+                 <div className="mobile-track-time">{window.formatMusicTime(musicTime)} / {window.formatMusicTime(musicDuration)}</div>
+              </div>
+              <div style={{ color: '#0076db' }}>
+                <i className="fa-solid fa-volume-high"></i>
+              </div>
+           </div>
+           <button className="mobile-music-bars-btn" style={{ all: 'unset' }}>
+              <i className="fa-solid fa-bars-staggered"></i>
+           </button>
+           <button className="mobile-hamburger-btn" style={{ all: 'unset' }}>
+              <i className="fa-solid fa-bars"></i>
+           </button>
+        </footer>
+      </div>
+    );
+  };
+
+  if (isMobile) {
+    return (
+      <>
+        {renderMobileView()}
+        {toast && <window.Toast toast={toast} lang={lang} />}
+      </>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', fontFamily: 'var(--font-sans)', color: 'var(--fg-1)' }}>

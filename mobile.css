@@ -1,0 +1,273 @@
+/* Mobile Responsive Styles for Tooth Clicker */
+
+@media (max-width: 768px) {
+  body {
+    overflow: hidden; /* Prevent scrolling on mobile main view */
+    touch-action: manipulation;
+  }
+
+  /* View Container */
+  .mobile-game-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    background: #ffffff;
+    padding: 16px;
+    box-sizing: border-box;
+    gap: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .mobile-clinic-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'PixelifySans', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1b;
+  }
+
+  .mobile-player-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #ebf4fc;
+    padding: 6px 12px 6px 6px;
+    border-radius: 999px;
+  }
+
+  .mobile-avatar {
+    width: 28px;
+    height: 28px;
+    background: #0076db;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .mobile-player-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .mobile-player-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #0062b8;
+    line-height: 1;
+  }
+
+  .mobile-player-lvl {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mobile-lvl-text {
+    font-size: 9px;
+    font-weight: 800;
+    color: #0076db;
+    text-transform: uppercase;
+  }
+
+  .mobile-xp-bar {
+    width: 40px;
+    height: 4px;
+    background: rgba(0, 118, 219, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .mobile-xp-progress {
+    height: 100%;
+    background: #0076db;
+    transition: width 0.3s ease;
+  }
+
+  /* Stats Section */
+  .mobile-stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mobile-stat-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .mobile-stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #8c8c8d;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .mobile-stat-value {
+    font-family: 'GameNums', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #0076db;
+  }
+
+  .mobile-stat-sub {
+    font-family: 'GameNums', sans-serif;
+    font-size: 14px;
+    color: #5f5f5f;
+  }
+
+  .mobile-stat-click {
+    color: #4236ff;
+  }
+
+  /* Center Tooth */
+  .mobile-tooth-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .mobile-main-tooth {
+    width: 220px;
+    height: 220px;
+    object-fit: contain;
+    position: relative;
+    z-index: 2;
+    transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .mobile-main-tooth:active {
+    transform: scale(0.92);
+  }
+
+  .mobile-click-text {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mobile-click-me {
+    font-family: 'PixelifySans', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1b;
+  }
+
+  .mobile-click-gain {
+    font-size: 13px;
+    color: #5f5f5f;
+  }
+
+  /* Upgrades Row */
+  .mobile-upgrades-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    padding-bottom: 20px;
+  }
+
+  .mobile-upgrade-slot {
+    width: 54px;
+    height: 54px;
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  /* Footer Player */
+  .mobile-footer-player {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin-top: auto;
+    padding-bottom: 10px;
+  }
+
+  .mobile-music-card {
+    flex: 1;
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  }
+
+  .mobile-music-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile-track-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #0076db;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-track-time {
+    font-size: 10px;
+    color: #8c8c8d;
+    font-family: 'GameNums', sans-serif;
+  }
+
+  .mobile-music-bars-btn {
+    width: 60px;
+    height: 60px;
+    background: #0076db;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: 0 4px 16px rgba(0,118,219,0.3);
+  }
+
+  .mobile-hamburger-btn {
+    width: 60px;
+    height: 60px;
+    background: #0076db;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: 0 4px 16px rgba(0,118,219,0.3);
+  }
+}
