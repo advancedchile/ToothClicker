@@ -63,6 +63,11 @@ function ToothbrushRing({ count }) {
           ${peakPercent}% { opacity: 0.3; transform: translateY(-3px); }
           ${endPercent}%, 100% { opacity: 1; transform: translateY(0); }
         }
+        @keyframes brushEntry {
+          0% { opacity: 0; transform: translateY(-${radius + 10}px) rotate(180deg) scale(0); }
+          60% { opacity: 1; transform: translateY(-${radius - 5}px) rotate(180deg) scale(1.1); }
+          100% { opacity: 1; transform: translateY(-${radius}px) rotate(180deg) scale(1); }
+        }
       `}</style>
       {Array.from({ length: displayCount }).map((_, i) => {
         const angle = (i / displayCount) * 360;
@@ -71,23 +76,31 @@ function ToothbrushRing({ count }) {
             position: 'absolute',
             width: 0,
             height: 0,
-            transform: `rotate(${angle}deg) translateY(-${radius}px) rotate(180deg)`
+            transform: `rotate(${angle}deg)`,
+            transition: 'transform 0.5s ease-out'
           }}>
-            <img
-              src="assets/tooth_wash/tooth_wash_1.png"
-              alt=""
-              style={{
-                position: 'absolute',
-                width: 50,
-                height: 50,
-                objectFit: 'contain',
-                left: -25,
-                top: -25,
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
-                animation: `brushWaveDynamic ${cycleTime}s infinite ease-in-out`,
-                animationDelay: `${i * delayStep}s`
-              }}
-            />
+            <div style={{
+              position: 'absolute',
+              width: 0,
+              height: 0,
+              animation: 'brushEntry 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) backwards'
+            }}>
+              <img
+                src="assets/tooth_wash/tooth_wash_1.png"
+                alt=""
+                style={{
+                  position: 'absolute',
+                  width: 50,
+                  height: 50,
+                  objectFit: 'contain',
+                  left: -25,
+                  top: -25,
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+                  animation: `brushWaveDynamic ${cycleTime}s infinite ease-in-out`,
+                  animationDelay: `${i * delayStep}s`
+                }}
+              />
+            </div>
           </div>
         );
       })}
