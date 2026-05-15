@@ -904,29 +904,58 @@ function Game({ username, sessionId, lang: initialLang, onLangChange, onLogout, 
     const newCount = oldCount + 1;
     // Find newly unlocked stages based on prestige COUNT
     const newlyUnlocked = window.TOOTH_STAGES.filter((s) => s.prestige > 0 && s.prestige > oldCount && s.prestige <= newCount);
-    setState((s) => ({ 
-      ...defaultState(), 
-      prestige: newPrestige, 
-      prestigeCount: newCount, 
-      selectedTooth: s.selectedTooth || 0, 
-      achievements: s.achievements, 
-      startedAt: s.startedAt, 
-      timePlayed: s.timePlayed, 
-      totalClicks: s.totalClicks, 
-      goldenClicks: s.goldenClicks, 
-      lastTick: Date.now(),
-      // Persist Level and Academy progress
-      level: s.level,
-      xp: s.xp,
-      xpUpgrades: s.xpUpgrades
-    }));
+    
+    setState((s) => {
+      const next = { 
+        ...defaultState(), 
+        prestige: newPrestige, 
+        prestigeCount: newCount, 
+        selectedTooth: s.selectedTooth || 0, 
+        achievements: s.achievements, 
+        startedAt: s.startedAt, 
+        timePlayed: s.timePlayed, 
+        totalClicks: s.totalClicks, 
+        goldenClicks: s.goldenClicks, 
+        lastTick: Date.now(),
+        // Persist Level and Academy progress
+        level: s.level,
+        xp: s.xp,
+        xpUpgrades: s.xpUpgrades,
+        // Persist Clinic name and Lifetime Earnings
+        clinicName: s.clinicName,
+        totalEarned: s.totalEarned
+      };
+
+      // Immediate local persistence
+      persistUserSave(username, next);
+      
+      // Immediate cloud sync
+      const ban = window.AntiCheat.getBanData(username);
+      window.cloudSubmitScore({ 
+        name: username, 
+        sessionId,
+        totalEarned: next.totalEarned || 0, 
+        prestige: next.prestige || 0, 
+        prestigeCount: next.prestigeCount || 0, 
+        timePlayed: next.timePlayed || 0, 
+        teeth: next.teeth || 0, 
+        clinicName: next.clinicName, 
+        level: next.level || 0,
+        saveData: next,
+        banUntil: ban.until,
+        banIndefinite: ban.until === -1
+      });
+
+      return next;
+    });
+
     if (soundRef.current) [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => window.playTone(f, 0.15, 'triangle', 0.06), i * 80));
     if (newlyUnlocked.length > 0) {
       const latestUnlocked = newlyUnlocked[newlyUnlocked.length - 1];
       const idx = window.TOOTH_STAGES.indexOf(latestUnlocked);
       setTimeout(() => setNewToothUnlock({ stage: latestUnlocked, idx }), 600);
     }
-  }, [prestigeGain]);
+  }, [prestigeGain, username, sessionId]);
 
   const doReset = useCallback(() => {
     setShowResetConfirm(false);deleteUserSave(username);

@@ -128,7 +128,6 @@ function LeaderboardBody({ lb, lang, currentUser }) {
                   {r.clinicName || (lang === 'es' ? `Clínica de ${r.name}` : `${r.name}'s Clinic`)}
                   <span style={{ marginLeft: 8, color: 'var(--fg-3)', fontWeight: 400 }}>• Niv. {r.level || 0}</span>
                 </div>
-                <div className="t-body-s" style={{ color: 'var(--fg-3)' }}>{window.formatTime(r.timePlayed || 0)}</div>
               </div>
             </div>
             <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--warning-i130)', fontWeight: 600 }}>
