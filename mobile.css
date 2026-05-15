@@ -300,11 +300,12 @@
   .mobile-menu-overlay.open {
     opacity: 1;
     visibility: visible;
-    display: block !important;
   }
 
-  .mobile-menu-overlay:not(.open) {
-    display: none;
+  .mobile-menu-overlay {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
   }
 
   .mobile-menu-drawer {
