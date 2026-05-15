@@ -247,7 +247,7 @@
     gap: 12px;
     width: 100%;
     margin-top: auto;
-    padding-bottom: 10px;
+    padding-bottom: 20px; /* More padding at bottom */
   }
 
   .mobile-music-card {
@@ -284,29 +284,31 @@
   }
 
   .mobile-music-bars-btn {
-    width: 60px;
-    height: 60px;
+    width: 52px;
+    height: 52px;
     background: #0076db;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 24px;
-    box-shadow: 0 4px 16px rgba(0,118,219,0.3);
+    font-size: 20px;
+    box-shadow: 0 4px 12px rgba(0,118,219,0.3);
+    flex-shrink: 0;
   }
 
   .mobile-hamburger-btn {
-    width: 60px;
-    height: 60px;
+    width: 52px;
+    height: 52px;
     background: #0076db;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 24px;
-    box-shadow: 0 4px 16px rgba(0,118,219,0.3);
+    font-size: 20px;
+    box-shadow: 0 4px 12px rgba(0,118,219,0.3);
+    flex-shrink: 0;
   }
 
   /* Mobile Menu Overlay & Drawer */
