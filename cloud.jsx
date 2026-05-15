@@ -20,6 +20,9 @@ async function cloudFetchLeaderboard() {
       .limit(100);
 
     if (error) throw error;
+    if (players && players.length > 0) {
+      console.log("[Cloud] Raw player columns:", Object.keys(players[0]));
+    }
 
     // Fetch last reset from settings
     const { data: setRes } = await _supabase.from('settings').select('value').eq('key', 'lastResetAt').single();
@@ -38,7 +41,7 @@ async function cloudFetchLeaderboard() {
       updatedAt: new Date(p.updated_at).getTime(),
       banUntil: p.ban_until ? new Date(p.ban_until).getTime() : 0,
       banIndefinite: !!p.ban_indefinite,
-      sessionId: p.session_id || (p.save_data ? p.save_data.sessionId : null)
+      sessionId: p.save_data ? p.save_data.sessionId : null
     }));
 
     return { ok: true, scores, lastResetAt };
@@ -69,7 +72,6 @@ async function cloudSubmitScore(entry) {
       row.ban_until = new Date(entry.banUntil).toISOString();
       row.ban_indefinite = entry.banUntil === -1;
     }
-    if (entry.sessionId) row.session_id = entry.sessionId;
 
     const { data: upsertData, error } = await _supabase.from('players').upsert(row, { onConflict: 'name' }).select();
 
@@ -101,10 +103,14 @@ async function cloudAuthenticate(name, password) {
     // Generate a new session ID for this login
     const newSessionId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     
-    // Update the player row with the new session and current stats (sync)
+    // Update the player row with the new session inside save_data (sync)
+    let sdObj = data.save_data;
+    if (typeof sdObj === 'string') { try { sdObj = JSON.parse(sdObj); } catch(e) {} }
+    const newSaveData = { ...(sdObj || {}), sessionId: newSessionId };
+
     const { error: updateError } = await _supabase.from('players').upsert({ 
       name: name,
-      session_id: newSessionId,
+      save_data: newSaveData,
       updated_at: new Date().toISOString()
     }, { onConflict: 'name' });
 
@@ -177,7 +183,7 @@ async function cloudFetchPlayer(name) {
       ok: true, 
       player: {
         ...data,
-        sessionId: data.session_id || (sd ? sd.sessionId : null)
+        sessionId: data.save_data ? data.save_data.sessionId : null
       } 
     };
   } catch (e) { return { ok: false, error: e.message }; }
