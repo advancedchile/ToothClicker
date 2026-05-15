@@ -525,8 +525,17 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     window.forcePushScore = pushScore;
     const first = setTimeout(() => pushScore(), 1500);
     const id = setInterval(() => pushScore(), 15000);
-    window.addEventListener('beforeunload', () => pushScore());
-    return () => {delete window.forcePushScore; clearTimeout(first);clearInterval(id);window.removeEventListener('beforeunload', () => pushScore()); pushScore();};
+    const handleLeave = () => pushScore();
+    window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') handleLeave(); });
+    window.addEventListener('pagehide', handleLeave);
+    return () => {
+      delete window.forcePushScore; 
+      clearTimeout(first);
+      clearInterval(id);
+      window.removeEventListener('visibilitychange', handleLeave);
+      window.removeEventListener('pagehide', handleLeave);
+      handleLeave();
+    };
   }, [pushScore]);
 
   // Achievement checker

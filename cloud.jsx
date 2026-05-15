@@ -20,9 +20,6 @@ async function cloudFetchLeaderboard() {
       .limit(100);
 
     if (error) throw error;
-    if (players && players.length > 0) {
-      console.log("[Cloud] Raw player columns:", Object.keys(players[0]));
-    }
 
     // Fetch last reset from settings
     const { data: setRes } = await _supabase.from('settings').select('value').eq('key', 'lastResetAt').single();

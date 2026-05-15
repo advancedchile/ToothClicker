@@ -10,8 +10,6 @@ function useCloudLeaderboard({ pollMs = 15000, enabled = true } = {}) {
     setState(s => ({ ...s, loading: true, error: null }));
     const res = await window.cloudFetchLeaderboard();
     if (res.ok) {
-      console.log(`[Ranking] Refresh OK (${res.scores.length} players)`);
-      console.table(res.scores.slice(0, 10).map(s => ({ name: s.name, total: s.totalEarned, prestige: s.prestigeCount, level: s.level })));
       setState({ loading: false, error: null, scores: res.scores, lastUpdate: Date.now() });
     } else setState(s => ({ ...s, loading: false, error: res.error }));
   }, []);
