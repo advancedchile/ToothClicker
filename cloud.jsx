@@ -72,11 +72,14 @@ async function cloudSubmitScore(entry) {
 
     const { error } = await _supabase.from('players').upsert(row, { onConflict: 'name' });
 
-    if (error) throw error;
-    console.log('[Cloud] Save OK for', entry.name, '| teeth:', row.teeth, '| total:', row.total_earned);
+    if (error) {
+      console.error("[Cloud] Upsert FAILED for", entry.name, ":", error);
+      throw error;
+    }
+    console.log('[Cloud] Save OK for', entry.name, '| clinic:', row.clinic_name, '| prestige:', row.prestige_count, '| total:', row.total_earned);
     return { ok: true };
   } catch (e) { 
-    console.error("[Cloud] Save FAILED for", entry.name, ":", e);
+    console.error("[Cloud] Save EXCEPTION for", entry.name, ":", e);
     return { ok: false, error: e.message || 'network' }; 
   }
 }
