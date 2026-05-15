@@ -48,6 +48,8 @@
   }
 
   .mobile-player-pill {
+    all: unset; /* Reset button defaults */
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     background: var(--primary-i010);
@@ -56,12 +58,17 @@
     border: 1.5px solid transparent;
     transition: all 0.2s ease;
     box-shadow: 0 2px 8px rgba(0, 118, 219, 0.05);
-    gap: 6px; /* Base gap of 6px between elements */
+    gap: 6px; /* Base gap of 6px between avatar and info */
+    cursor: pointer;
+  }
+
+  .mobile-player-pill.open {
+    background: var(--primary-i020);
+    border-color: var(--primary-i050);
   }
 
   .mobile-player-pill:active {
     background: var(--primary-i020);
-    border-color: var(--primary-i050);
     transform: scale(0.96);
   }
 

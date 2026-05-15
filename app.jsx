@@ -1100,13 +1100,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
              <i className="fa-solid fa-pen-to-square" style={{ fontSize: 13, opacity: 0.5, marginLeft: 6 }}></i>
           </div>
           <button 
-            className="mobile-player-pill" 
-            style={{ 
-              all: 'unset', 
-              display: 'flex',
-              borderColor: menuOpen ? 'var(--primary-i050)' : 'transparent',
-              background: menuOpen ? 'var(--primary-i020)' : 'var(--primary-i010)'
-            }}
+            className={`mobile-player-pill ${menuOpen ? 'open' : ''}`}
             onClick={() => setMenuOpen(!menuOpen)}
           >
             <div className="mobile-avatar">{(username[0] || '?').toUpperCase()}</div>
