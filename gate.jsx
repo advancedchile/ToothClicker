@@ -125,7 +125,7 @@ function LeaderboardBody({ lb, lang, currentUser }) {
                   {isCurrent && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: 'var(--primary-i100)', color: '#fff', padding: '2px 6px', borderRadius: 999 }}>{t.lbYou}</span>}
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--primary-i100)', fontWeight: 600, marginBottom: 2 }}>
-                  {r.clinicName || (lang === 'es' ? `Clínica de ${r.name}` : `${r.name}'s Clinic`)}
+                  {r.clinicName ? r.clinicName : (lang === 'es' ? `Clínica de ${r.name}` : `${r.name}'s Clinic`)}
                   <span style={{ marginLeft: 8, color: 'var(--fg-3)', fontWeight: 400 }}>• Niv. {r.level || 0}</span>
                 </div>
               </div>

@@ -56,7 +56,7 @@ async function cloudSubmitScore(entry) {
       prestige: Math.floor(Number(entry.prestige || 0)),
       prestige_count: Math.floor(Number(entry.prestigeCount || 0)),
       time_played: Math.floor(Number(entry.timePlayed || 0)),
-      clinic_name: entry.clinicName || '',
+      clinic_name: (entry.clinicName && entry.clinicName.trim()) ? entry.clinicName.trim() : null,
       level: Math.floor(Number(entry.level || 0)),
       teeth: Math.floor(Number(entry.teeth || 0)),
       updated_at: new Date().toISOString()
@@ -99,28 +99,30 @@ async function cloudAuthenticate(name, password) {
     // Generate a new session ID for this login
     const newSessionId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     
-    // Update the session_id in the database immediately using upsert (more reliable)
-    const newSaveData = { ...(data.save_data || {}), sessionId: newSessionId };
+    // Update the player row with the new session and current stats (sync)
     const { error: updateError } = await _supabase.from('players').upsert({ 
       name: name,
-      save_data: newSaveData,
+      session_id: newSessionId,
       updated_at: new Date().toISOString()
     }, { onConflict: 'name' });
 
     if (updateError) console.error('[Cloud] Failed to update session ID:', updateError);
 
     // Return the full player data to sync the progress
+    let sd = data.save_data;
+    if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e) {} }
+
     return { 
       ok: true, 
       player: {
         ...data,
-        saveData: data.save_data,
+        saveData: sd,
         name: data.name,
         totalEarned: Number(data.total_earned || 0),
         prestige: Number(data.prestige || 0),
         prestigeCount: Number(data.prestige_count || 0),
         timePlayed: Number(data.time_played || 0),
-        clinicName: data.clinic_name || '',
+        clinicName: data.clinic_name || null,
         level: Number(data.level || 0),
         teeth: Number(data.teeth || 0),
         banUntil: data.ban_until ? new Date(data.ban_until).getTime() : 0,

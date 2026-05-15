@@ -36,7 +36,7 @@ function MenuItem({ icon, label, onClick, danger, trailing }) {
 }
 function MenuDivider() {return <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 2px' }} />;}
 
-function Game({ username, sessionId, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange }) {
+function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange }) {
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
@@ -47,7 +47,25 @@ function Game({ username, sessionId, lang: initialLang, onLangChange, onLogout, 
   const bootRef = useRef(null);
   if (bootRef.current === null) {
     const OFFLINE_CAP_S = 2 * 60 * 60;
-    const snap = loadUserSave(username);
+    const localSnap = loadUserSave(username);
+    
+    // Merge logic: use cloud if it has better progress, otherwise keep local
+    let snap = localSnap;
+    if (cloudSaved) {
+      const cloudPCount = cloudSaved.prestigeCount || 0;
+      const localPCount = localSnap?.prestigeCount || 0;
+      const cloudTotal = cloudSaved.totalEarned || 0;
+      const localTotal = localSnap?.totalEarned || 0;
+      
+      // If cloud is strictly better in either metric, use cloud
+      if (!localSnap || cloudPCount > localPCount || cloudTotal > localTotal) {
+        console.log("[Sync] Using cloud save as it has better progress.");
+        snap = { ...defaultState(), ...cloudSaved };
+      } else {
+        console.log("[Sync] Keeping local save as it has better progress.");
+      }
+    }
+
     let info = null;
     if (snap && snap.lastTick) {
       const elapsed = Math.max(0, (Date.now() - snap.lastTick) / 1000);
@@ -2085,6 +2103,7 @@ function App() {
   const [numFormat, setNumFormat] = useState(() => localStorage.getItem(NUMFMT_KEY) || 'short');
   const [sessionId, setSessionId] = useState(() => localStorage.getItem(SESSION_ID_KEY) || null);
   const [sessionTerminated, setSessionTerminated] = useState(false);
+  const [savedState, setSavedState] = useState(null);
 
   // Global reset check and settings sync
   useEffect(() => {
@@ -2211,6 +2230,7 @@ function App() {
     }
     
     setUsername(cleaned);
+    setSavedState(null); // New users start fresh
     setScreen('game');
   }, [lang, checkBan]);
 
@@ -2218,15 +2238,8 @@ function App() {
     if (checkBan(name)) return;
     
     if (cloudData) {
-      // If we are coming from a successful login on a new device
-      const localData = loadUserSave(name);
       const cloudProgress = cloudData.saveData || cloudData; 
-
-      if (!localData || (cloudProgress.totalEarned || 0) >= (localData.totalEarned || 0)) {
-        console.log("Syncing progress from cloud for:", name);
-        // Force merge with cloud data as priority
-        persistUserSave(name, { ...defaultState(), ...cloudProgress, password });
-      }
+      setSavedState(cloudProgress);
       
       // Ensure user is in the local list
       const currentUsers = loadUsers();
@@ -2235,10 +2248,12 @@ function App() {
         setUsers(loadUsers());
       }
 
-      if (cloudData && cloudData.sessionId) {
+      if (cloudData.sessionId) {
         setSessionId(cloudData.sessionId);
         localStorage.setItem(SESSION_ID_KEY, cloudData.sessionId);
       }
+    } else {
+      setSavedState(null);
     }
     
     setUsername(name);
@@ -2325,6 +2340,7 @@ function App() {
   if (screen === 'game') {
     return (
       <Game key={username} username={username} sessionId={sessionId} lang={lang} onLangChange={handleLangChange}
+        saved={savedState}
         onLogout={handleLogout} onDeleteUser={handleDeleteUser}
         numFormat={numFormat} onNumFormatChange={handleNumFormatChange} />);
   }
