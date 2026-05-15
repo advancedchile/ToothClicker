@@ -2124,12 +2124,17 @@ function App() {
 
         // Check for session termination
         if (username && sessionId && !sessionTerminated) {
-          const meRes = await window.cloudFetchPlayer(username);
+          const checkUser = username;
+          const checkSession = sessionId;
+          const meRes = await window.cloudFetchPlayer(checkUser);
+          
+          // If we logged out or changed user while waiting, stop
+          if (!username || !sessionId || username !== checkUser || sessionId !== checkSession) return;
+
           if (meRes.ok && meRes.player) {
             const cloudSessionId = meRes.player.sessionId;
-            console.log(`[SessionCheck] Local: ${sessionId} | Cloud: ${cloudSessionId}`);
-            if (cloudSessionId && cloudSessionId !== sessionId) {
-              console.warn("Session mismatch detected! Another device logged in.");
+            if (cloudSessionId && cloudSessionId !== checkSession) {
+              console.warn(`[SessionCheck] Mismatch for ${username}! Cloud: ${cloudSessionId} vs Local: ${checkSession}`);
               setSessionTerminated(true);
               return;
             }
@@ -2278,6 +2283,7 @@ function App() {
   }, [checkBan]);
 
   const handleLogout = useCallback(() => {
+    setSessionTerminated(false);
     setUsername(null);
     setSessionId(null);
     localStorage.removeItem(SESSION_ID_KEY);
