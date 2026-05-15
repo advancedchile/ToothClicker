@@ -87,6 +87,23 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [state, setState] = useState(() => {
     if (!saved) return defaultState();
     const base = { ...defaultState(), ...saved };
+    
+    // Legacy support: for old saves, auto-grant upgrades for already earned achievements/levels
+    if (!base.legacyAcademyFixDone) {
+      if (!base.xpUpgrades) base.xpUpgrades = {};
+      (window.XP_UPGRADES || []).forEach(up => {
+        if (up.achievementId && base.achievements && base.achievements[up.achievementId]) {
+          base.xpUpgrades[up.id] = true;
+        }
+      });
+      (window.LEVEL_UPGRADES || []).forEach(up => {
+        if (base.level >= up.levelReq) {
+          base.xpUpgrades[up.id] = true;
+        }
+      });
+      base.legacyAcademyFixDone = true;
+    }
+
     if (offlineInfo) return { ...base, teeth: (base.teeth || 0) + offlineInfo.earned, totalEarned: (base.totalEarned || 0) + offlineInfo.earned, lastTick: Date.now() };
     return { ...base, lastTick: Date.now() };
   });
@@ -316,7 +333,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     return !!saved?.hasSeenHelpIndicator;
   });
   const buyXpUpgrade = (id) => {
-    const up = (window.XP_UPGRADES || []).find(u => u.id === id);
+    const up = [...(window.XP_UPGRADES || []), ...(window.LEVEL_UPGRADES || [])].find(u => u.id === id);
     if (!up || state.xpUpgrades[id]) return;
     const cost = up.baseCost;
     if (state.teeth < cost) return;
@@ -394,7 +411,13 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const prestigeMult = 1 + 0.05 * (state.prestige || 0);
   const achMult = 1 + 0.01 * Object.values(state.achievements || {}).filter(Boolean).length;
   const academyGpsMult = useMemo(() => {
-    return 1 + (window.XP_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades[up.id] ? (up.gpsBonus || 0) : 0), 0);
+    const regular = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades[up.id] ? (up.gpsBonus || 0) : 0), 0);
+    const special = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades[up.id] ? (up.gpsBonus || 0) : 0), 0);
+    return 1 + regular + special;
+  }, [state.xpUpgrades]);
+  const academyXpMult = useMemo(() => {
+    const special = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades[up.id] ? (up.xpMult || 0) : 0), 0);
+    return 1 + special;
   }, [state.xpUpgrades]);
   const perSecondRaw = useMemo(() => {
     let v = 0;
@@ -450,7 +473,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         // Passive XP Gain
         const xpPassiveBase = 0;
         const xpFromUpgrades = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades[up.id] ? up.xpPassive : 0), 0);
-        let newXP = (s.xp || 0) + (xpPassiveBase + xpFromUpgrades) * dt;
+        
+        // Apply global XP multipliers from special academy upgrades
+        const specialXpMult = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades[up.id] ? (up.xpMult || 0) : 0), 0);
+        const globalXpMult = 1 + specialXpMult;
+
+        let newXP = (s.xp || 0) + (xpPassiveBase + xpFromUpgrades) * globalXpMult * dt;
         let newLevel = s.level || 0;
         const maxLevel = 50000;
         while (newLevel < maxLevel) {
@@ -550,7 +578,16 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         }
         return next;
       });
-      const a = newUnlocks[0];setToast(a);setTimeout(() => setToast(null), 3500);
+      const a = newUnlocks[0];
+      const hasUpgrade = (window.XP_UPGRADES || []).some(up => up.achievementId === a.id);
+      
+      setToast({
+        ...a,
+        desc_es: hasUpgrade ? `${a.desc_es} ¡Nueva mejora de academia desbloqueada!` : a.desc_es,
+        desc_en: hasUpgrade ? `${a.desc_en} New academy upgrade unlocked!` : a.desc_en
+      });
+      
+      setTimeout(() => setToast(null), 3500);
       if (soundRef.current) {window.playTone(660, 0.12, 'triangle', 0.06);setTimeout(() => window.playTone(880, 0.12, 'triangle', 0.06), 100);}
     }
   }, [state.totalClicks, state.totalEarned, state.generators, state.prestige, state.goldenClicks, state.clickUpgrades, state.timePlayed, state.feedbackSent]);
@@ -1522,82 +1559,69 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               <div style={{ marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div>
                   <div className="t-heading-m">{lang === 'es' ? 'Academia Dental' : 'Dental Academy'}</div>
-                  <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Mejora tus conocimientos para optimizar tu clínica.' : 'Improve your knowledge to optimize your practice.'}</div>
+                  <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Premios académicos por tus logros y nivel.' : 'Academic rewards for your achievements and level.'}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 4, background: 'var(--bg-3)', padding: 3, borderRadius: 8 }}>
-                  {['all', 'locked', 'disabled'].map(f => (
+                  {['all', 'not_bought', 'bought'].map(f => (
                     <button key={f} onClick={() => setAcademyFilter(f)} style={{
                       all: 'unset', boxSizing: 'border-box', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                       background: academyFilter === f ? 'var(--primary-i100)' : 'transparent',
                       color: academyFilter === f ? '#fff' : 'var(--fg-2)', transition: 'all 150ms'
                     }}>
-                      {f === 'all' ? (lang === 'es' ? 'Todas' : 'All') : 
-                       f === 'locked' ? (lang === 'es' ? 'Bloqueadas' : 'Locked') : 
-                       (lang === 'es' ? 'Deshabilitadas' : 'Disabled')}
+                      {f === 'all' ? (lang === 'es' ? 'Todos' : 'All') : 
+                       f === 'not_bought' ? (lang === 'es' ? 'No comprados' : 'Not bought') : 
+                       (lang === 'es' ? 'Comprados' : 'Bought')}
                     </button>
                   ))}
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {(window.XP_UPGRADES || []).filter(up => {
+                {[...(window.LEVEL_UPGRADES || []), ...(window.XP_UPGRADES || [])].filter(up => {
                   const purchased = !!state.xpUpgrades[up.id];
-                  const isLocked = state.level < up.levelReq || state.totalEarned < up.teethReq;
-                  const canAfford = state.teeth >= up.baseCost;
+                  const isUnlocked = up.achievementId ? !!state.achievements[up.achievementId] : (state.level >= up.levelReq);
                   
-                  if (academyFilter === 'locked') return isLocked && !purchased;
-                  if (academyFilter === 'disabled') return !isLocked && !purchased && !canAfford;
+                  if (academyFilter === 'not_bought') return !purchased && isUnlocked;
+                  if (academyFilter === 'bought') return purchased;
                   
-                  return true; 
-                })
-                .filter(up => {
-                  const purchased = !!state.xpUpgrades[up.id];
-                  const isLocked = state.level < up.levelReq || state.totalEarned < up.teethReq;
-                  if (academyFilter === 'all') {
-                    // Show purchased, unlocked, and the next 5 locked ones
-                    if (purchased || !isLocked) return true;
-                    const firstLockedIdx = (window.XP_UPGRADES || []).findIndex(u => state.level < u.levelReq || state.totalEarned < u.teethReq);
-                    const myIdx = (window.XP_UPGRADES || []).indexOf(up);
-                    return myIdx >= firstLockedIdx && myIdx < firstLockedIdx + 10;
-                  }
-                  return true;
+                  return isUnlocked || purchased; 
                 })
                 .map(up => {
                   const purchased = !!state.xpUpgrades[up.id];
-                  const isLocked = state.level < up.levelReq || state.totalEarned < up.teethReq;
                   const cost = up.baseCost;
                   const canAfford = state.teeth >= cost;
+                  const isSpecial = up.isLevelSpecial;
                   
                   return (
                     <div key={up.id} style={{ 
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', 
-                      background: purchased ? 'var(--positive-i005)' : (isLocked ? 'var(--bg-3)' : 'var(--bg-1)'), 
-                      border: purchased ? '1px solid var(--positive-i020)' : (isLocked ? '1px solid var(--border-subtle)' : '1px solid var(--primary-i020)'), 
-                      borderRadius: 12, opacity: isLocked ? 0.6 : 1,
+                      background: purchased ? 'var(--positive-i005)' : (isSpecial ? 'var(--warning-i005)' : 'var(--bg-1)'), 
+                      border: purchased ? '1px solid var(--positive-i020)' : (isSpecial ? '1px solid var(--warning-i030)' : '1px solid var(--primary-i020)'), 
+                      borderRadius: 12,
                       transition: 'all 200ms'
                     }}>
                       <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: purchased ? 'var(--positive-i100)' : (isLocked ? 'var(--fg-3)' : 'var(--fg-1)'), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {isLocked ? '???' : up.name[lang]}
+                          <div style={{ fontSize: 13, fontWeight: 700, color: purchased ? 'var(--positive-i100)' : 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {up.name[lang]}
                           </div>
-                          {!purchased && isLocked && <i className="fa-solid fa-lock" style={{ fontSize: 10, color: 'var(--fg-4)' }}></i>}
+                          {isSpecial && <i className="fa-solid fa-star" style={{ fontSize: 10, color: 'var(--warning-i100)' }}></i>}
                         </div>
-                        <div style={{ fontSize: 11, color: isLocked ? 'var(--fg-4)' : 'var(--fg-3)', marginTop: 2, lineHeight: 1.3 }}>
-                          {isLocked ? (lang === 'es' ? `Requiere Nivel ${up.levelReq}` : `Requires Level ${up.levelReq}`) : up.desc[lang]}
+                        <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2, lineHeight: 1.3 }}>
+                          {up.desc[lang]}
                         </div>
                       </div>
                       <button 
-                        disabled={purchased || !canAfford || isLocked}
+                        disabled={purchased || !canAfford}
                         onClick={() => buyXpUpgrade(up.id)}
                         style={{
                           all: 'unset', boxSizing: 'border-box', padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, 
-                          cursor: (purchased || !canAfford || isLocked) ? 'not-allowed' : 'pointer',
-                          background: purchased ? 'var(--positive-i100)' : (isLocked ? 'var(--bg-2)' : (canAfford ? 'var(--primary-i100)' : 'var(--bg-3)')),
-                          color: (purchased || (canAfford && !isLocked)) ? '#fff' : 'var(--fg-3)',
+                          cursor: (purchased || !canAfford) ? 'not-allowed' : 'pointer',
+                          background: purchased ? 'var(--positive-i100)' : (canAfford ? 'var(--primary-i100)' : 'var(--bg-3)'),
+                          color: (purchased || canAfford) ? '#fff' : 'var(--fg-3)',
                           minWidth: 90, textAlign: 'center', transition: 'all 150ms'
                         }}
                       >
-                        {purchased ? (lang === 'es' ? 'Completado' : 'Completed') : (isLocked ? (lang === 'es' ? 'Bloqueado' : 'Locked') : fmt(cost))}
+                        {purchased ? (lang === 'es' ? 'Completado' : 'Completed') : fmt(cost)}
                       </button>
                     </div>
                   );
@@ -2021,7 +2045,21 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             <div className="t-body-m" style={{ marginTop: 8, color: 'var(--fg-2)' }}>
               {lang === 'es' ? `¡Felicidades! Has alcanzado el nivel ${justLeveledTo}.` : `Congratulations! You've reached level ${justLeveledTo}.`}
             </div>
-            <div style={{ marginTop: 24, padding: '12px', background: 'var(--primary-i005)', borderRadius: 12, border: '1px solid var(--primary-i020)' }}>
+            {(() => {
+              const up = (window.LEVEL_UPGRADES || []).find(u => u.levelReq === justLeveledTo);
+              if (!up) return null;
+              return (
+                <div style={{ marginTop: 16, padding: '12px', background: 'var(--warning-i005)', borderRadius: 12, border: '1px solid var(--warning-i030)', textAlign: 'left' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--warning-i130)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+                    {lang === 'es' ? '¡NUEVA MEJORA ESPECIAL!' : 'NEW SPECIAL UPGRADE!'}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>{up.name[lang]}</div>
+                  <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>{up.desc[lang]}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary-i100)', marginTop: 4 }}>{lang === 'es' ? 'Disponible en la Academia' : 'Available in the Academy'}</div>
+                </div>
+              );
+            })()}
+            <div style={{ marginTop: 16, padding: '12px', background: 'var(--primary-i005)', borderRadius: 12, border: '1px solid var(--primary-i020)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary-i130)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                 {lang === 'es' ? 'Próximo Objetivo' : 'Next Goal'}
               </div>
@@ -2029,7 +2067,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 {fmt(window.getXPRequired(justLeveledTo))} XP
               </div>
             </div>
-            <button onClick={() => setShowLevelUpModal(false)} style={{ ...primaryBtnStyle, marginTop: 24, width: '100%' }}>
+            <button onClick={() => setShowLevelUpModal(false)} style={{ ...primaryBtnStyle, marginTop: 20, width: '100%' }}>
               {lang === 'es' ? '¡Excelente!' : 'Awesome!'}
             </button>
           </div>
