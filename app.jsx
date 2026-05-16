@@ -38,6 +38,7 @@ function MenuDivider() {return <div style={{ height: 1, background: 'var(--borde
 
 function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange }) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  const isAdmin = username === 'James';
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handler);
@@ -1250,12 +1251,6 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
             <div className="mobile-menu-divider" />
 
-            {isAdmin && (
-              <button className="mobile-menu-item" onClick={() => { setAdminOpen(true); setMenuOpen(false); }}>
-                <i className="fa-solid fa-user-shield"></i>
-                <span className="mobile-menu-item-text">Admin</span>
-              </button>
-            )}
 
             <button className="mobile-menu-item" onClick={() => { setMenuOpen(false); setShowResetConfirm(true); }}>
               <i className="fa-solid fa-trash"></i>
