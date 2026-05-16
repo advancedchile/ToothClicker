@@ -1108,7 +1108,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     return (
       <div className="mobile-game-container">
         <header className="mobile-header">
-          <div className="mobile-clinic-name">
+          <div className="mobile-clinic-name" onClick={() => setShowRenameModal(true)} style={{ cursor: 'pointer' }}>
              {state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)}
              <i className="fa-solid fa-pen-to-square" style={{ fontSize: 13, opacity: 0.5, marginLeft: 6 }}></i>
           </div>
@@ -1182,7 +1182,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               if (up.type === 'generator') return (state.generators[up.targetId] || 0) >= up.milestone;
               return state.totalEarned >= up.requirement;
            }).slice(0, 2).map(up => (
-              <div key={up.id} className="mobile-upgrade-slot" style={{ color: up.color }}>
+              <div key={up.id} className="mobile-upgrade-slot" style={{ color: up.color, cursor: 'pointer' }} onClick={() => buyStoreUpgrade(up)}>
                 <i className={`fa-solid ${up.icon}`}></i>
               </div>
            ))}
