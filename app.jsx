@@ -160,6 +160,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [musicMuted, setMusicMuted] = useState(() => saved?.musicSettings?.muted ?? false);
   const [playMode, setPlayMode] = useState(() => saved?.musicSettings?.playMode ?? 'shuffle');
   const [musicTime, setMusicTime] = useState(0);
+  const [tabsMenuOpen, setTabsMenuOpen] = useState(false);
   const [musicDuration, setMusicDuration] = useState(0);
   const sessionStartMinutes = useRef(null);
 
@@ -1210,12 +1211,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                  <i className="fa-solid fa-bars-staggered" style={{ color: '#fff' }}></i>
                )}
             </button>
-             <button className="mobile-hamburger-btn">
+             <button className="mobile-hamburger-btn" onClick={() => setTabsMenuOpen(true)}>
                <i className="fa-solid fa-bars" style={{ color: '#fff' }}></i>
             </button>
         </footer>
 
-        {/* Mobile Menu Overlay */}
+        {/* Mobile Menu Overlay (Player Menu) */}
         <div 
           className={`mobile-menu-overlay ${menuOpen ? 'open' : ''}`} 
           onClick={() => setMenuOpen(false)}
@@ -1229,7 +1230,6 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             <button className="mobile-menu-item" onClick={() => { toggleLang(); setMenuOpen(false); }}>
               <i className="fa-solid fa-language"></i>
               <span className="mobile-menu-item-text">{lang === 'es' ? 'Español' : 'English'}</span>
-              <span className="mobile-menu-item-trailing">{lang === 'es' ? 'EN →' : 'ES →'}</span>
             </button>
 
             <button className="mobile-menu-item" onClick={() => { cycleNumFormat(); setMenuOpen(false); }}>
@@ -1250,37 +1250,45 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
             <div className="mobile-menu-divider" />
 
-            <button className="mobile-menu-item" onClick={() => {
-              setMenuOpen(false);
-              try {persistUserSave(username, stateRef.current);} catch (e) {}
-              try {
-                const s = stateRef.current;
-                if (s) {
-                  const ban = window.AntiCheat.getBanData(username);
-                  window.cloudSubmitScore({ 
-                    name: username, 
-                    totalEarned: s.totalEarned || 0, 
-                    prestige: s.prestige || 0, 
-                    prestigeCount: s.prestigeCount || 0, 
-                    timePlayed: s.timePlayed || 0, 
-                    teeth: s.teeth || 0, 
-                    clinicName: s.clinicName, 
-                    level: s.level || 0,
-                    banUntil: ban.until,
-                    banIndefinite: ban.until === -1
-                  });
-                }
-              } catch (e) {}
-              onLogout && onLogout();
-            }}>
-              <i className="fa-solid fa-right-from-bracket"></i>
-              <span className="mobile-menu-item-text">{t.logout}</span>
-            </button>
+            {isAdmin && (
+              <button className="mobile-menu-item" onClick={() => { setAdminOpen(true); setMenuOpen(false); }}>
+                <i className="fa-solid fa-user-shield"></i>
+                <span className="mobile-menu-item-text">Admin</span>
+              </button>
+            )}
 
-            <button className="mobile-menu-item danger" onClick={() => { setMenuOpen(false); setShowResetConfirm(true); }}>
+            <button className="mobile-menu-item" onClick={() => { setMenuOpen(false); setShowResetConfirm(true); }}>
               <i className="fa-solid fa-trash"></i>
               <span className="mobile-menu-item-text">{t.reset}</span>
             </button>
+
+            <button className="mobile-menu-item danger" onClick={() => { onLogout && onLogout(); setMenuOpen(false); }}>
+              <i className="fa-solid fa-right-from-bracket"></i>
+              <span className="mobile-menu-item-text">{t.logout}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Tabs Menu (Game Navigation) */}
+        <div 
+          className={`mobile-tabs-overlay ${tabsMenuOpen ? 'open' : ''}`} 
+          onClick={() => setTabsMenuOpen(false)}
+        >
+          <div className="mobile-tabs-sheet" onClick={e => e.stopPropagation()}>
+            {[
+              { id: 'generators', label: t.tabGen, icon: 'fa-solid fa-industry' },
+              { id: 'click', label: t.tabClick, icon: 'fa-solid fa-hand-pointer' },
+              { id: 'achievements', label: t.tabAch, icon: 'fa-solid fa-trophy' },
+              { id: 'prestige', label: t.tabPrestige, icon: 'fa-solid fa-crown' },
+              { id: 'skills', label: lang === 'es' ? 'Academia' : 'Academy', icon: 'fa-solid fa-graduation-cap' },
+              { id: 'leaderboard', label: t.tabLeaderboard, icon: 'fa-solid fa-ranking-star' },
+              { id: 'stats', label: t.tabStats, icon: 'fa-solid fa-chart-line' }
+            ].map((item) => (
+              <button key={item.id} className="mobile-tab-item" onClick={() => { setTab(item.id); setTabsMenuOpen(false); }}>
+                <i className={item.icon}></i>
+                <span className="mobile-tab-label">{item.label}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
