@@ -1193,7 +1193,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         </section>
 
         <footer className="mobile-footer-player">
-           <button className="mobile-music-bars-btn" onClick={() => setMusicModalOpen(true)} style={{ all: 'unset', position: 'relative' }}>
+           <button className="mobile-music-bars-btn" onClick={() => setMusicModalOpen(true)}>
                {isMusicPlaying ? (
                  <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 16 }}>
                     {[0.1, 0.4, 0.2, 0.5, 0.3].map((delay, i) => (
@@ -1210,7 +1210,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                  <i className="fa-solid fa-bars-staggered" style={{ color: '#fff' }}></i>
                )}
             </button>
-            <button className="mobile-hamburger-btn" style={{ all: 'unset' }}>
+             <button className="mobile-hamburger-btn">
                <i className="fa-solid fa-bars" style={{ color: '#fff' }}></i>
             </button>
         </footer>

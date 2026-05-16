@@ -285,8 +285,11 @@
   }
 
   .mobile-music-bars-btn {
-    width: 52px;
-    height: 52px;
+    all: unset;
+    cursor: pointer;
+    box-sizing: border-box;
+    width: 56px;
+    height: 56px;
     background: #0076db;
     border-radius: 50%;
     display: flex;
@@ -299,8 +302,11 @@
   }
 
   .mobile-hamburger-btn {
-    width: 52px;
-    height: 52px;
+    all: unset;
+    cursor: pointer;
+    box-sizing: border-box;
+    width: 56px;
+    height: 56px;
     background: #0076db;
     border-radius: 50%;
     display: flex;
