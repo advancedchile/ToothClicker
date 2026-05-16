@@ -1133,13 +1133,15 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               style={{
                 all: 'unset',
                 background: '#f0f4f8',
-                padding: '4px 8px',
-                borderRadius: '8px',
+                padding: '10px 12px',
+                borderRadius: '10px',
                 width: '100%',
-                maxWidth: '200px',
-                fontSize: '14px',
+                maxWidth: '240px',
+                fontSize: '16px',
                 fontFamily: 'inherit',
-                border: '1px solid #0076db'
+                border: '2px solid #0076db',
+                height: '42px',
+                boxSizing: 'border-box'
               }}
             />
           ) : (
@@ -1217,17 +1219,25 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               if (state.storeUpgrades[up.id]) return false;
               if (up.type === 'generator') return (state.generators[up.targetId] || 0) >= up.milestone;
               return state.totalEarned >= up.requirement;
-           }).slice(0, 2).map(up => (
-              <div key={up.id} className="mobile-upgrade-slot" style={{ color: up.color, cursor: 'pointer' }} onClick={() => buyStoreUpgrade(up)}>
-                <i className={`fa-solid ${up.icon}`}></i>
-              </div>
-           ))}
-           {/* Placeholders if less than 2 upgrades */}
-           {Array.from({ length: Math.max(0, 2 - (window.STORE_UPGRADES || []).filter(up => !state.storeUpgrades[up.id] && (up.type === 'generator' ? (state.generators[up.targetId] || 0) >= up.milestone : state.totalEarned >= up.requirement)).length) }).map((_, i) => (
-             <div key={'ph-'+i} className="mobile-upgrade-slot" style={{ opacity: 0.3 }}>
+           }).map(up => {
+              const canAfford = state.teeth >= up.cost;
+              return (
+                <div 
+                  key={up.id} 
+                  className={`mobile-upgrade-slot ${!canAfford ? 'disabled' : ''}`} 
+                  style={{ color: canAfford ? up.color : '#8c8c8d', cursor: 'pointer' }} 
+                  onClick={() => buyStoreUpgrade(up)}
+                >
+                  <i className={`fa-solid ${up.icon}`}></i>
+                </div>
+              );
+           })}
+           {/* Placeholder if none available */}
+           {((window.STORE_UPGRADES || []).filter(up => !state.storeUpgrades[up.id] && (up.type === 'generator' ? (state.generators[up.targetId] || 0) >= up.milestone : state.totalEarned >= up.requirement)).length === 0) && (
+             <div className="mobile-upgrade-slot disabled" style={{ opacity: 0.3 }}>
                <i className="fa-solid fa-lock"></i>
              </div>
-           ))}
+           )}
         </section>
 
         <footer className="mobile-footer-player">

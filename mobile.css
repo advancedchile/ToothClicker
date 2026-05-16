@@ -224,8 +224,15 @@
     display: flex;
     gap: 12px;
     justify-content: flex-start;
-    padding-bottom: 10px; /* Reduced to move up */
-    margin-top: -10px; /* Move up slightly */
+    padding: 0 24px;
+    padding-bottom: 12px;
+    margin-top: -10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .mobile-upgrades-row::-webkit-scrollbar {
+    display: none;
   }
 
   .mobile-upgrade-slot {
@@ -239,6 +246,13 @@
     justify-content: center;
     font-size: 24px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: opacity 0.2s, filter 0.2s;
+  }
+
+  .mobile-upgrade-slot.disabled {
+    opacity: 0.4;
+    filter: grayscale(0.8);
+    background: #f8f9fa;
   }
 
   /* Footer Player */
@@ -490,6 +504,17 @@
   .mobile-menu-item.danger i,
   .mobile-menu-item.danger .mobile-menu-item-text {
     color: #e11d24;
+  }
+
+  .game-toast-container {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 10px !important;
+    transform: none !important;
+    max-width: none !important;
+    width: calc(100% - 20px) !important;
+    box-sizing: border-box;
+    gap: 12px !important;
   }
 }
 
