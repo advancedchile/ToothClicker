@@ -1108,10 +1108,46 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     return (
       <div className="mobile-game-container">
         <header className="mobile-header">
-          <div className="mobile-clinic-name" onClick={() => setShowRenameModal(true)} style={{ cursor: 'pointer' }}>
-             {state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)}
-             <i className="fa-solid fa-pen-to-square" style={{ fontSize: 13, opacity: 0.5, marginLeft: 6 }}></i>
-          </div>
+          {isEditingClinic ? (
+            <input 
+              autoFocus
+              className="mobile-clinic-input"
+              value={tempClinicName}
+              onChange={e => setTempClinicName(e.target.value.slice(0, 30))}
+              onBlur={() => {
+                setIsEditingClinic(false);
+                const final = tempClinicName.trim();
+                if (final !== state.clinicName) {
+                  const nextClinic = final || null;
+                  setState(s => ({ ...s, clinicName: nextClinic }));
+                  pushScore({ ...stateRef.current, clinicName: nextClinic });
+                }
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') e.currentTarget.blur();
+                if (e.key === 'Escape') {
+                  setTempClinicName(state.clinicName || '');
+                  setIsEditingClinic(false);
+                }
+              }}
+              style={{
+                all: 'unset',
+                background: '#f0f4f8',
+                padding: '4px 8px',
+                borderRadius: '8px',
+                width: '100%',
+                maxWidth: '200px',
+                fontSize: '14px',
+                fontFamily: 'inherit',
+                border: '1px solid #0076db'
+              }}
+            />
+          ) : (
+            <div className="mobile-clinic-name" onClick={() => { setIsEditingClinic(true); setTempClinicName(state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)); }} style={{ cursor: 'pointer' }}>
+               {state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)}
+               <i className="fa-solid fa-pen-to-square" style={{ fontSize: 13, opacity: 0.5, marginLeft: 6 }}></i>
+            </div>
+          )}
           <button 
             className={`mobile-player-pill ${menuOpen ? 'open' : ''}`}
             onClick={() => setMenuOpen(!menuOpen)}
