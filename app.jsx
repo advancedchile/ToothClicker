@@ -1325,7 +1325,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               { id: 'leaderboard', label: t.tabLeaderboard, icon: 'fa-solid fa-ranking-star' },
               { id: 'stats', label: t.tabStats, icon: 'fa-solid fa-chart-line' }
             ].map((item) => (
-              <button key={item.id} className="mobile-tab-item" onClick={() => { setTab(item.id); setTabsMenuOpen(false); }}>
+              <button 
+                key={item.id} 
+                className={`mobile-tab-item ${tab === item.id ? 'active' : ''}`} 
+                onClick={() => { setTab(item.id); setTabsMenuOpen(false); }}
+              >
                 <i className={item.icon}></i>
                 <span className="mobile-tab-label">{item.label}</span>
               </button>
