@@ -1242,21 +1242,19 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
         <footer className="mobile-footer-player">
            <button className="mobile-music-bars-btn" onClick={() => setMusicModalOpen(true)}>
-               {isMusicPlaying ? (
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 16 }}>
-                    {[0.1, 0.4, 0.2, 0.5, 0.3].map((delay, i) => (
-                      <div key={i} style={{ 
-                        width: 2.5, 
-                        height: 16, 
-                        background: '#fff', 
-                        borderRadius: 2,
-                        animation: `musicWave 0.8s ease-in-out infinite ${delay}s`
-                      }} />
-                    ))}
-                 </div>
-               ) : (
-                 <i className="fa-solid fa-bars-staggered" style={{ color: '#fff' }}></i>
-               )}
+               <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 16 }}>
+                 {[0.1, 0.4, 0.2, 0.5, 0.3].map((delay, i) => (
+                   <div key={i} style={{ 
+                     width: 2.5, 
+                     height: isMusicPlaying ? 16 : 2, 
+                     background: '#fff', 
+                     borderRadius: 2,
+                     opacity: isMusicPlaying ? 1 : 0.6,
+                     animation: isMusicPlaying ? `musicWave 0.8s ease-in-out infinite ${delay}s` : 'none',
+                     transition: 'all 0.3s ease'
+                   }} />
+                 ))}
+               </div>
             </button>
              <button className="mobile-hamburger-btn" onClick={() => setTabsMenuOpen(true)}>
                <i className="fa-solid fa-bars" style={{ color: '#fff' }}></i>
