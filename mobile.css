@@ -525,6 +525,17 @@
     box-sizing: border-box;
     gap: 12px !important;
   }
+
+  .game-modal-content {
+    max-width: none !important;
+    max-height: none !important;
+    width: calc(100% - 20px) !important;
+    height: calc(100% - 20px) !important;
+    margin: 10px !important;
+    border-radius: 16px !important;
+    padding: 24px !important;
+    box-sizing: border-box;
+  }
 }
 
 @keyframes musicWave {

@@ -17,7 +17,7 @@ const {
 function Modal({ children, onClose, maxWidth, persistent }) {
   return (
     <div onClick={() => !persistent && onClose && onClose()} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, animation: 'fadeIn 150ms ease' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-1)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-m)', boxShadow: 'var(--elevation-30)', maxWidth: maxWidth || 420, width: '92%', animation: 'modalIn 200ms ease', maxHeight: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="game-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-1)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-m)', boxShadow: 'var(--elevation-30)', maxWidth: maxWidth || 420, width: '92%', animation: 'modalIn 200ms ease', maxHeight: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {children}
       </div>
     </div>);
@@ -1338,17 +1338,10 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     );
   };
 
-  if (isMobile) {
-    return (
-      <>
-        {renderMobileView()}
-        {toast && <window.Toast toast={toast} lang={lang} />}
-      </>
-    );
-  }
-
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', fontFamily: 'var(--font-sans)', color: 'var(--fg-1)' }}>
+    <>
+      {isMobile ? renderMobileView() : (
+        <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', fontFamily: 'var(--font-sans)', color: 'var(--fg-1)' }}>
       {/* Top bar */}
       <header style={{ height: 64, background: 'var(--bg-1)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', padding: '0 var(--spacing-6)', gap: 'var(--spacing-4)', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2017,6 +2010,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         }}
         onLeave={() => setGlobalTooltip(null)}
       />
+        </div>
+      )}
       {musicModalOpen && (
         <MusicPlayerModal
           lang={lang}
@@ -2406,9 +2401,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           }}
         />
       )}
-
-
-    </div>);
+    </>
+  );
 }
 
 function App() {
