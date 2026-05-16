@@ -2018,10 +2018,27 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           onClose={() => setMusicModalOpen(false)}
           tracks={tracks}
           currentTrack={currentTrack}
-          onSelectTrack={(t) => { userPausedMusic.current = false; setCurrentTrack(t); setIsMusicPlaying(true); }}
+          onSelectTrack={(t) => { 
+            userPausedMusic.current = false; 
+            setCurrentTrack(t); 
+            setIsMusicPlaying(true); 
+            // Unlock/Play directly in click handler for mobile
+            if (audioRef.current) {
+              audioRef.current.src = t.src; // Force source update immediately
+              audioRef.current.play().catch(e => console.log('Gesture play:', e));
+            }
+          }}
           onPlayRandom={handlePlayRandom}
           isPlaying={isMusicPlaying}
-          onTogglePlay={() => { userPausedMusic.current = isMusicPlaying; setIsMusicPlaying(!isMusicPlaying); }}
+          onTogglePlay={() => { 
+            const next = !isMusicPlaying;
+            userPausedMusic.current = isMusicPlaying; 
+            setIsMusicPlaying(next); 
+            if (audioRef.current) {
+              if (next) audioRef.current.play().catch(e => console.log('Toggle play:', e));
+              else audioRef.current.pause();
+            }
+          }}
           onStop={handleStop}
           volume={musicVolume}
           onChangeVolume={setMusicVolume}

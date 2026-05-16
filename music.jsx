@@ -173,7 +173,7 @@ function MusicPlayerModal({
         </button>
       </div>
 
-      <div ref={trackListRef} style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto', paddingRight: 4 }}>
+      <div ref={trackListRef} style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, overflowY: 'auto', paddingRight: 4, minHeight: 0 }}>
         {tracks.map(t => {
           const isCurrent = currentTrack?.id === t.id;
           const isPlayingThis = isCurrent && isPlaying;
