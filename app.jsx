@@ -280,7 +280,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         audioRef.current.volume = targetVol;
         audioRef.current.play().catch(e => {
           console.error('Audio play blocked:', e);
-          setIsMusicPlaying(false);
+          // Don't set isMusicPlaying(false) here, let it stay true so UI shows it's trying to play
         });
       }
     } else if (audioRef.current && !isMusicPlaying) {
@@ -1953,6 +1953,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       <audio 
         ref={audioRef}
         src={currentTrack?.src || ''}
+        preload="auto"
+        style={{ display: 'none' }}
         onTimeUpdate={(e) => setMusicTime(e.target.currentTime)}
         onLoadedMetadata={(e) => setMusicDuration(e.target.duration)}
         onEnded={(e) => {
@@ -2025,6 +2027,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             // Unlock/Play directly in click handler for mobile
             if (audioRef.current) {
               audioRef.current.src = t.src; // Force source update immediately
+              audioRef.current.load(); // Required on some mobile browsers after src change
               audioRef.current.play().catch(e => console.log('Gesture play:', e));
             }
           }}
@@ -2035,7 +2038,14 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             userPausedMusic.current = isMusicPlaying; 
             setIsMusicPlaying(next); 
             if (audioRef.current) {
-              if (next) audioRef.current.play().catch(e => console.log('Toggle play:', e));
+              if (next) {
+                audioRef.current.play().catch(e => {
+                   console.log('Toggle play fail:', e);
+                   // Fallback: try to load and play again
+                   audioRef.current.load();
+                   audioRef.current.play().catch(p => console.log('Retry play fail:', p));
+                });
+              }
               else audioRef.current.pause();
             }
           }}
