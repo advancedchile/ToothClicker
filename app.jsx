@@ -1263,7 +1263,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 <div 
                   key={up.id} 
                   className={`mobile-upgrade-slot ${!canAfford ? 'disabled' : ''}`} 
-                  style={{ color: canAfford ? up.color : '#8c8c8d', cursor: 'pointer' }} 
+                  style={{ 
+                    borderColor: canAfford ? up.color : 'var(--neutral-i020)', 
+                    color: canAfford ? up.color : 'var(--fg-3)', 
+                    cursor: canAfford ? 'pointer' : 'not-allowed' 
+                  }} 
                   onClick={() => buyStoreUpgrade(up)}
                 >
                   <i className={`fa-solid ${up.icon}`}></i>
@@ -1272,7 +1276,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
            })}
            {/* Placeholder if none available */}
            {((window.STORE_UPGRADES || []).filter(up => !state.storeUpgrades[up.id] && (up.type === 'generator' ? (state.generators[up.targetId] || 0) >= up.milestone : state.totalEarned >= up.requirement)).length === 0) && (
-             <div className="mobile-upgrade-slot disabled" style={{ opacity: 0.3 }}>
+             <div className="mobile-upgrade-slot disabled" style={{ opacity: 0.3, borderColor: 'var(--neutral-i020)', color: 'var(--fg-4)' }}>
                <i className="fa-solid fa-lock"></i>
              </div>
            )}
