@@ -331,6 +331,40 @@ function AdminPasswordModal({ lang, onSuccess, onClose }) {
   );
 }
 
+// ── Dental anti-bot questions ──────────────────────────────────────────────
+const DENTAL_QUESTIONS = [
+  {
+    id: 1,
+    q_es: "¿Cuántos dientes tiene un adulto promedio sin muelas del juicio? (Ingresa número)",
+    q_en: "How many teeth does an average adult have without wisdom teeth? (Enter number)",
+    ans: ["28"]
+  },
+  {
+    id: 2,
+    q_es: "Si tienes 32 dientes y el dentista te extrae 2 molares, ¿cuántos te quedan? (Ingresa número)",
+    q_en: "If you have 32 teeth and the dentist extracts 2 molars, how many do you have left? (Enter number)",
+    ans: ["30"]
+  },
+  {
+    id: 3,
+    q_es: "Escribe la palabra 'DIENTE' en mayúsculas para continuar:",
+    q_en: "Type the word 'TOOTH' in capital letters to continue:",
+    ans: ["DIENTE", "TOOTH"]
+  },
+  {
+    id: 4,
+    q_es: "¿Cuál es el color ideal de un diente sano y limpio? (Ingresa una palabra)",
+    q_en: "What is the ideal color of a clean, healthy tooth? (Enter one word)",
+    ans: ["blanco", "white", "blancos"]
+  },
+  {
+    id: 5,
+    q_es: "¿Qué hadita te deja monedas bajo la almohada si dejas un diente de leche?",
+    q_en: "What fairy leaves you coins under your pillow if you leave a baby tooth?",
+    ans: ["hadita de los dientes", "tooth fairy", "hada", "hadita"]
+  }
+];
+
 // ── Gate ─────────────────────────────────────────────────────────────────────
 function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, onLogoutDeviceUser, users, deviceUser }) {
   const [name, setName] = useStateG('');
@@ -342,6 +376,11 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
   const [showAdminPw, setShowAdminPw] = useStateG(false);
   const lb = useCloudLeaderboard({ pollMs: 15000 });
 
+  // Anti-bot security states
+  const [websiteField, setWebsiteField] = useStateG('');
+  const [challengeQuestion, setChallengeQuestion] = useStateG(null);
+  const [challengeAnswer, setChallengeAnswer] = useStateG('');
+
   const RESERVED = (window.ADMIN_NAME || 'James').toLowerCase();
 
   const cloudUser = useMemoG(() => {
@@ -352,10 +391,29 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
 
   const nameReserved = useMemoG(() => name.trim().toLowerCase() === RESERVED, [name]);
 
+  // Pick a fresh question whenever registration mode is active and the name changes
+  useEffectG(() => {
+    if (name.trim() && !cloudUser) {
+      const q = DENTAL_QUESTIONS[Math.floor(Math.random() * DENTAL_QUESTIONS.length)];
+      setChallengeQuestion(q);
+      setChallengeAnswer('');
+    } else {
+      setChallengeQuestion(null);
+      setChallengeAnswer('');
+    }
+  }, [name, cloudUser]);
+
   const handleSubmit = async (e) => {
     e && e.preventDefault();
     const cleanName = name.trim();
     if (!cleanName || nameReserved || loading) return;
+
+    // 1. Honeypot check: Bots automatically fill all visible/hidden text fields
+    if (websiteField.trim() !== '') {
+      console.warn("Honeypot filled. Bot rejected.");
+      setError(lang === 'es' ? 'Error de red. Intenta de nuevo más tarde.' : 'Network error. Please try again later.');
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -380,6 +438,22 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
         setLoading(false);
         return;
       }
+
+      // 2. Dental Captcha check
+      if (challengeQuestion) {
+        const cleanAns = challengeAnswer.trim().toLowerCase();
+        const isCorrect = challengeQuestion.ans.some(a => {
+          const expected = a.toLowerCase().trim();
+          return cleanAns === expected || cleanAns.includes(expected) || expected.includes(cleanAns) && cleanAns.length >= 2;
+        });
+
+        if (!cleanAns || !isCorrect) {
+          setError(lang === 'es' ? '❌ Respuesta anti-bot incorrecta' : '❌ Incorrect anti-bot answer');
+          setLoading(false);
+          return;
+        }
+      }
+
       onCreateUser(cleanName, password);
     }
     setLoading(false);
@@ -410,6 +484,18 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
         {/* Registration/Login — only if this device hasn't registered yet */}
         {!deviceUser && (
           <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            {/* Honeypot field (hidden offscreen) */}
+            <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', opacity: 0, width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+              <input
+                type="text"
+                name="user_website"
+                value={websiteField}
+                onChange={e => setWebsiteField(e.target.value)}
+                tabIndex="-1"
+                autoComplete="off"
+              />
+            </div>
+
             <div style={{ position: 'relative', width: '100%' }}>
               <input
                 autoFocus
@@ -445,6 +531,46 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
                     borderRadius: 999, background: 'rgba(255,255,255,0.88)', color: '#334',
                     outline: 'none', backdropFilter: 'blur(4px)',
                     boxShadow: '0 2px 12px rgba(80,140,220,0.10)',
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Custom Dental Captcha Challenge */}
+            {!cloudUser && showPassword && challengeQuestion && (
+              <div style={{
+                width: '100%',
+                background: 'rgba(250, 245, 255, 0.9)',
+                border: '2px dashed #a855f7',
+                borderRadius: 14,
+                padding: '12px 16px',
+                marginTop: 4,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                animation: 'modalIn 0.35s ease',
+                boxSizing: 'border-box',
+                boxShadow: '0 4px 12px rgba(168,85,247,0.06)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#7e22ce', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em' }}>
+                  <i className="fa-solid fa-tooth" style={{ animation: 'anim-pulse 1s infinite' }}></i>
+                  <span>{lang === 'es' ? 'DESAFÍO DENTAL ANTI-BOTS' : 'ANTI-BOT DENTAL CHALLENGE'}</span>
+                </div>
+                <div style={{ fontSize: 12.5, color: '#3b0764', fontWeight: 600, fontFamily: 'var(--font-sans)', lineHeight: 1.35 }}>
+                  {lang === 'es' ? challengeQuestion.q_es : challengeQuestion.q_en}
+                </div>
+                <input
+                  type="text"
+                  value={challengeAnswer}
+                  onChange={e => { setChallengeAnswer(e.target.value); setError(''); }}
+                  placeholder={lang === 'es' ? 'Tu respuesta aquí...' : 'Your answer here...'}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    padding: '8px 14px',
+                    fontSize: 13, fontFamily: 'var(--font-sans)',
+                    border: '1.5px solid #d8b4fe',
+                    borderRadius: 8, background: '#fff', color: '#1a052e',
+                    outline: 'none', transition: 'border 150ms'
                   }}
                 />
               </div>
