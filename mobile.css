@@ -187,8 +187,8 @@
   }
 
   .mobile-main-tooth {
-    width: 200px; /* Slightly smaller tooth */
-    height: 200px;
+    width: 240px; /* Larger tooth */
+    height: 240px;
     object-fit: contain;
     position: relative;
     z-index: 2;
@@ -232,6 +232,7 @@
     scrollbar-width: none;
     width: 100%;
     box-sizing: border-box;
+    touch-action: pan-x !important; /* Restore horizontal touch scrolling on physical mobile devices! */
   }
   .mobile-upgrades-row::-webkit-scrollbar {
     display: none;

@@ -1226,15 +1226,15 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               onMouseLeave={() => setIsMainMouseDown(false)}
               onTouchStart={(e) => { handleClick(e); setIsMainMouseDown(true); }}
               onTouchEnd={() => setIsMainMouseDown(false)}
-              style={{ position: 'relative', cursor: 'pointer', zIndex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', width: 200, height: 200 }}
+              style={{ position: 'relative', cursor: 'pointer', zIndex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', width: 240, height: 240 }}
             >
-              <window.ToothbrushRing count={state.generators.brush} radius={100} />
+              <window.ToothbrushRing count={state.generators.brush} radius={120} />
               <img 
                 src={currentToothImg} 
                 alt="tooth" 
                 className="mobile-main-tooth"
                 style={{
-                  width: 200, height: 200, objectFit: 'contain', position: 'relative', zIndex: 5,
+                  width: 240, height: 240, objectFit: 'contain', position: 'relative', zIndex: 5,
                   filter: holdBonusUntil > Date.now() ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : goldenMult > 1 ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : crystalMult > 1 ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))'
                 }}
               />
