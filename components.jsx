@@ -527,7 +527,7 @@ function VersionLogModal({ onClose, lang }) {
           </div>
         ))}
       </div>
-      <button onClick={onClose} style={{ ...primaryBtnStyle, marginTop: 20 }}>
+      <button onClick={onClose} style={{ ...primaryBtnStyle, flex: 'none', width: '100%', marginTop: 20 }}>
         {lang === 'es' ? 'Volver' : 'Back'}
       </button>
     </window.Modal>

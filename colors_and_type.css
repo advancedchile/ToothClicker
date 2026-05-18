@@ -379,3 +379,8 @@ input[type="color"]::-moz-color-swatch {
   border: none !important;
   border-radius: 50% !important;
 }
+
+/* Custom Input Override for Search Icons */
+.search-input {
+  padding-left: 38px !important;
+}

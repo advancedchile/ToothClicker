@@ -1,8 +1,51 @@
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 const { 
   Modal, loadUsers, saveUsers, deleteUserSave, resetAllProgress, 
   ADMIN_NAME, formatNum 
 } = window;
+
+const BOSS_NAMES = [
+  'Dani', 'Memo', 'José María', 'Andrea', 'Payo', 'Cris', 'Pascal', 
+  'Tomi', 'John', 'Palo', 'Carlos', 'Gabo', 'Juanmi', 'María José'
+];
+
+const VALID_CHARS = [
+  'ale', 'carlos', 'andrea', 'cami', 'chalo', 'cote', 'cotefi', 'cris',
+  'dani', 'daniela', 'fabi', 'fenia', 'gabo', 'gianni', 'james', 'john',
+  'jose_maria', 'juan', 'juanmi', 'juli', 'leo', 'lucho', 'manu', 'mari',
+  'martin', 'mati', 'may', 'nico_flecha', 'nico_ojeda', 'palo', 'pancho',
+  'pascal', 'patito', 'payo', 'rafa', 'sofi', 'tatan', 'tomi', 'vania', 'yisus'
+];
+
+function getAvatarUrl(who, customImage, msgId) {
+  if (customImage) return customImage;
+  if (!who) return null;
+  
+  let norm = who.toLowerCase().trim()
+    .replace(/[áäàâ]/g, 'a')
+    .replace(/[éëèê]/g, 'e')
+    .replace(/[íïìî]/g, 'i')
+    .replace(/[óöòô]/g, 'o')
+    .replace(/[úüùû]/g, 'u')
+    .replace(/ñ/g, 'nia')
+    .replace(/[^a-z0-9]/g, '_')
+    .replace(/__+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  if (norm === 'feña') norm = 'fenia';
+
+  if (norm === 'nico') {
+    const val = typeof msgId === 'string' ? msgId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
+    return val % 2 === 0 ? 'assets/chars/nico_flecha.png' : 'assets/chars/nico_ojeda.png';
+  }
+
+  if (VALID_CHARS.includes(norm)) {
+    if (norm === 'ale') return 'assets/chars/Ale.png';
+    if (norm === 'carlos') return 'assets/chars/Carlos.png';
+    return `assets/chars/${norm}.png`;
+  }
+  return null;
+}
 
 // ── Admin Panel ───────────────────────────────────────────────────────────────
 function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
@@ -31,25 +74,140 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [cpsThreshold, setCpsThreshold] = useState(() => {
     try { return parseInt(localStorage.getItem('admin_cps_threshold')) || 20; } catch(e) { return 20; }
   });
+  const [cpsLimitEnabled, setCpsLimitEnabled] = useState(() => {
+    try { return localStorage.getItem('admin_cps_limit_enabled') !== 'false'; } catch(e) { return true; }
+  });
   const [globalTooltip, setGlobalTooltip] = useState(null);
   const fmt = window.formatNum;
 
   const [newMsgName, setNewMsgName] = useState('');
   const [newMsgText, setNewMsgText] = useState('');
   const [newMsgMilestone, setNewMsgMilestone] = useState(1);
+  const [newMsgIsRandom, setNewMsgIsRandom] = useState(true);
+  const [newMsgPlaytimeVal, setNewMsgPlaytimeVal] = useState(5);
+  const [newMsgPlaytimeUnit, setNewMsgPlaytimeUnit] = useState('minutes');
   const [newMsgColor, setNewMsgColor] = useState('#1a8fff');
   const [newMsgPos, setNewMsgPos] = useState('bottom'); // top, center, bottom
   const [newMsgSize, setNewMsgSize] = useState('medium'); // small, medium, large
   const [newMsgAnim, setNewMsgAnim] = useState('none'); // none, pulse, shake, float
   const [newMsgParticles, setNewMsgParticles] = useState('none'); // none, stars, teeth, fire, confetti
+  const [newMsgImage, setNewMsgImage] = useState(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarHover, setAvatarHover] = useState(false);
+  const fileInputRef = useRef(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingMsg, setEditingMsg] = useState(null);
+  const [createMode, setCreateMode] = useState(null); // null, 'manual', 'random'
+
+  const handleRandomizeEverything = () => {
+    // 1. Pool of all name emisores
+    const names = [
+      "John", "Nico", "Dani", "Pas", "Memo", "Ale", "Carlos", "cris", "Seba", "Pancho", "José María", "Gabo", "feña", "Feña",
+      "Alfonso", "Amparito", "Andrés", "Anto", "Bastián", "Cami", "Claudio", "Coty", "Cynthia", "Diego", "Edu", "Esteban",
+      "Fran", "Gabriel", "Génesis", "Gino", "Ignacio", "Isidora", "Javi", "Jose", "Katita", "Maca", "Mane", "Manu",
+      "Marcelo", "Mati", "Matías", "Nacho", "Nadia", "Natalia", "Naty", "Pablito", "Pato", "Romi", "Seba G.", "Tami", "Vale"
+    ];
+    const randName = names[Math.floor(Math.random() * names.length)];
+
+    // 2. Humorous custom message templates
+    const templates = [
+      "¿Quién subió esto a prod sin probar en staging? El login da error 500 pero tú dale al click.",
+      "Le prometí al principal inversor de riesgo que incorporaríamos IA en cada diente para el lunes.",
+      "Ese botón principal de la interfaz está corrido exactamente 2px a la izquierda. ¡Qué horror visual!",
+      "Nuestra API pública tarda 12 segundos enteros en responder una consulta simple. Excelente trabajo.",
+      "Borré accidentalmente la base de datos de producción entera. Ups, espero que tengas un respaldo.",
+      "Menos clicks inútiles en este juego y mucha más sinergia y alineación corporativa de alto impacto.",
+      "¿Por qué decidiste de la nada cambiar la tipografía oficial por una sin licencia que parece fea?",
+      "Todo el directorio internacional nos está observando de cerca hoy. Sigue clickeando con elegancia.",
+      "Falta un contraste brutal de accesibilidad. Por favor, usa únicamente nuestra paleta corporativa.",
+      "Tu código tiene tantos bugs y malas prácticas que parece escrito por un mono con sobredosis de café.",
+      "Para optimizar los costos de electricidad de la startup: apaga tu monitor mientras no estés aquí.",
+      "Figma es mi pasión y mi refugio creativo, pero ver tu código implementado es mi mayor tortura.",
+      "El cliente más importante de la empresa quiere esta funcionalidad lista para ayer. ¡Corre a programar!",
+      "¿Por qué el microservicio de facturación está intentando minar criptomonedas? Explícame esto ya.",
+      "Tu mayor y más relevante aporte al sprint de esta semana fue desgastar el mouse con este clicker.",
+      "Los reportes de KPIs trimestrales dan absoluta pena. Haz algo realmente útil por la compañía hoy.",
+      "¿De verdad hiciste un commit directo a master sin pasar por revisión de código? La audacia me asusta.",
+      "Ese tono fosforescente de verde literalmente daña mis retinas. Quítalo de inmediato de mi vista.",
+      "Si algún cliente o inversor te llega a preguntar, todo este software ya está terminado y testeado.",
+      "Esas sombras gigantes no tienen ningún tipo de sentido estético ni coherencia ahí. Quítalas ya.",
+      "El logotipo corporativo debe ser considerablemente más grande, brillante y con sombras modernas.",
+      "¿De verdad estás validando hipótesis de mercado o simplemente estás procrastinando con descaro?",
+      "Nuestra base de datos explotó y perdimos tres meses de facturación, pero el diente sigue girando.",
+      "¡Me encanta cómo pusiste un degradado arcoíris en la pantalla de carga sin avisarle a nadie!",
+      "El gerente de cuentas está llorando en la sala de reuniones porque la demo no cargó. Buen trabajo.",
+      "¿Puedes alinear el diente con la grilla de flexbox antes de que me dé un ataque de pánico visual?"
+    ];
+    const activeTexts = customMessages.map(m => m.text ? m.text.split('||image:')[0].trim() : '');
+    const availableTemplates = templates.filter(tpl => !activeTexts.includes(tpl.trim()));
+    const finalTemplates = availableTemplates.length > 0 ? availableTemplates : templates;
+    const randText = finalTemplates[Math.floor(Math.random() * finalTemplates.length)];
+
+    // 3. Random trigger type: playtime milestone vs random
+    const randIsRandom = Math.random() < 0.5;
+
+    // 4. Random playtime values (5 to 60) and unit
+    const randPlaytimeVal = Math.floor(Math.random() * 55) + 5;
+    const randPlaytimeUnit = Math.random() < 0.8 ? 'minutes' : 'hours';
+
+    // 5. Random styles (excluding 'none' to always have real visual parameters)
+    const positions = ['top', 'center', 'bottom'];
+    const sizes = ['small', 'medium', 'large'];
+    const animations = ['pulse', 'shake', 'float', 'rainbow'];
+    const particlesOptions = ['stars', 'teeth', 'fire', 'confetti'];
+
+    const randPos = positions[Math.floor(Math.random() * positions.length)];
+    const randSize = sizes[Math.floor(Math.random() * sizes.length)];
+    const randAnim = animations[Math.floor(Math.random() * animations.length)];
+    const randPart = particlesOptions[Math.floor(Math.random() * particlesOptions.length)];
+
+    // Generate vibrant Hex color
+    const h = Math.floor(Math.random() * 360);
+    const s = Math.floor(Math.random() * 25) + 75; // 75-100%
+    const l = Math.floor(Math.random() * 20) + 45; // 45-65%
+    const sPct = s / 100;
+    const lPct = l / 100;
+    const c = (1 - Math.abs(2 * lPct - 1)) * sPct;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = lPct - c / 2;
+    let r = 0, g = 0, b = 0;
+    if (h >= 0 && h < 60) { r = c; g = x; b = 0; }
+    else if (h >= 60 && h < 120) { r = x; g = c; b = 0; }
+    else if (h >= 120 && h < 180) { r = 0; g = c; b = x; }
+    else if (h >= 180 && h < 240) { r = 0; g = x; b = c; }
+    else if (h >= 240 && h < 300) { r = x; g = 0; b = c; }
+    else if (h >= 300 && h < 360) { r = c; g = 0; b = x; }
+    const toHex = (val) => {
+      const hex = Math.round((val + m) * 255).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    const randColor = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+
+    // Set all new message states
+    setNewMsgName(randName);
+    setNewMsgText(randText);
+    setNewMsgIsRandom(randIsRandom);
+    setNewMsgPlaytimeVal(randPlaytimeVal);
+    setNewMsgPlaytimeUnit(randPlaytimeUnit);
+    setNewMsgPos(randPos);
+    setNewMsgSize(randSize);
+    setNewMsgAnim(randAnim);
+    setNewMsgParticles(randPart);
+    setNewMsgColor(randColor);
+    setNewMsgImage(null); // Clear custom image to let seed avatar auto-match
+  };
   const [msgFilter, setMsgFilter] = useState('all');
   const [msgToDelete, setMsgToDelete] = useState(null);
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [wipeLoading, setWipeLoading] = useState(false);
   const [successNote, setSuccessNote] = useState('');
   const [previewMsg, setPreviewMsg] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [msgSearch, setMsgSearch] = useState('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [msgFilter, adminTab, customMessages.length, msgSearch]);
 
   const MILESTONE_OPTIONS = [1, 2, 3, 4, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 360];
 
@@ -73,19 +231,19 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
     // 4. Custom Messages
     window.cloudLoadCustomMessages().then(res => {
       let msgs = res.ok ? res.messages : [];
-      // Initial default messages if empty
-      if (msgs.length === 0) {
-        msgs = [
-          { id: 'm1', who: 'Dani', text: 'qué bueno que ya estás "trabajando". el ticket de QA del flujo de pagos sigue sin tocar, eh.', milestone: 1, createdAt: Date.now() },
-          { id: 'm2', who: 'Memo', text: 'lindo el clicker. el endpoint /auth lleva 1 minuto rompiendo staging. pero tú dale.', milestone: 2, createdAt: Date.now() + 1 },
-          { id: 'm3', who: 'José María', text: 'el cliente acaba de entrar al call. yo le digo que estás "validando hipótesis", ¿sale?', milestone: 3, createdAt: Date.now() + 2 },
-          { id: 'm4', who: 'Dani', text: '5 minutos clickeando. yo llevo 5 reportando el mismo bug del onboarding. coincidencia, seguro.', milestone: 5, createdAt: Date.now() + 3 },
-          { id: 'm5', who: 'Memo', text: 'la build sigue rota. tu rama también. pero qué bonito clickeas.', milestone: 10, createdAt: Date.now() + 4 },
-          { id: 'm6', who: 'José María', text: 'el prospecto preguntó por features. inventé 3. te las paso después, suerte.', milestone: 15, createdAt: Date.now() + 5 },
-          { id: 'm7', who: 'Dani', text: '1 hora. ya escribí el bug report de tu productividad. severity: blocker.', milestone: 60, createdAt: Date.now() + 6 }
-        ];
-        // Save defaults if we seeded
-        window.cloudSaveCustomMessages(msgs);
+      // Force all seeded messages that currently have a positive milestone in the old database to milestone: -1 (Random/Collaborator)
+      // Since seed IDs are not persisted in the database (they are stored as autogenerated UUIDs), we identify the old seed list
+      // by checking if the number of messages with non-random milestones (milestone !== -1) is very large (> 100).
+      const oldSeedCount = msgs.filter(m => m.milestone !== -1).length;
+      if (oldSeedCount > 100) {
+        let migrated = msgs.map(m => ({ ...m, milestone: -1 }));
+        window.cloudSaveCustomMessages(migrated);
+        msgs = migrated;
+      } else if (msgs.length < 600 && window.getBossMessagesSeed) {
+        // Fallback for new empty databases
+        const seed = window.getBossMessagesSeed();
+        window.cloudSaveCustomMessages(seed);
+        msgs = seed;
       }
       setCustomMessages(msgs);
       setMessagesLoading(false);
@@ -97,6 +255,10 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
           setCpsThreshold(res.settings.cpsThreshold);
           try { localStorage.setItem('admin_cps_threshold', res.settings.cpsThreshold); } catch(e) {}
         }
+        if (res.settings.cpsLimitEnabled !== undefined) {
+          setCpsLimitEnabled(res.settings.cpsLimitEnabled);
+          try { localStorage.setItem('admin_cps_limit_enabled', res.settings.cpsLimitEnabled.toString()); } catch(e) {}
+        }
       }
     });
   }, []);
@@ -107,6 +269,61 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
       setIsSavingMessages(false);
       if (!res.ok) alert('Error guardando mensajes en la nube: ' + res.error);
     });
+  };
+
+  const handleStartEditMsg = (m) => {
+    const isRand = m.milestone === -1;
+    let val = 5;
+    let unit = 'minutes';
+    if (!isRand) {
+      if (m.milestone >= 60 && m.milestone % 60 === 0) {
+        val = m.milestone / 60;
+        unit = 'hours';
+      } else {
+        val = m.milestone;
+        unit = 'minutes';
+      }
+    }
+    setEditingMsg({
+      ...m,
+      isRandom: isRand,
+      playtimeVal: val,
+      playtimeUnit: unit
+    });
+  };
+
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 100 * 1024) {
+      alert(lang === 'es' ? 'La imagen no debe superar los 100 KB' : 'Image size must not exceed 100 KB');
+      return;
+    }
+
+    const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+    if (!allowed.includes(file.type)) {
+      alert(lang === 'es' ? 'Formato no permitido. Solo png, jpg, jpeg y gif.' : 'Format not allowed. Only png, jpg, jpeg and gif.');
+      return;
+    }
+
+    setAvatarLoading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setTimeout(() => {
+        if (editingMsg) {
+          setEditingMsg(prev => ({ ...prev, image: reader.result }));
+        } else {
+          setNewMsgImage(reader.result);
+        }
+        setAvatarLoading(false);
+      }, 500);
+    };
+    reader.onerror = () => {
+      setAvatarLoading(false);
+      alert('Error reading file');
+    };
+    reader.readAsDataURL(file);
   };
 
   const btn = { all: 'unset', boxSizing: 'border-box', cursor: 'pointer', fontFamily: "'PixelifySans', var(--font-sans)", borderRadius: 10, fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 140ms' };
@@ -220,7 +437,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
     <div style={{ minHeight: '100vh', background: '#e8f2fb', fontFamily: "'PixelifySans', var(--font-sans)", position: 'relative', overflow: 'hidden' }}>
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(uploads/background-e5bd6167.png)', backgroundSize: 'cover', backgroundPosition: 'center', pointerEvents: 'none', opacity: 0.45 }} />
 
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 700, margin: '0 auto', padding: '32px 20px 56px' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 900, margin: '0 auto', padding: '32px 20px 56px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <button onClick={onBack} className="app-btn" style={{ ...btn, padding: '8px 12px', background: 'rgba(255,255,255,0.8)', color: '#4a6a8a', fontSize: 13, border: '1px solid rgba(100,160,230,0.35)' }}>
@@ -285,36 +502,89 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
 
         {/* CPS Threshold Config */}
         <div style={card}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-            <i className="fa-solid fa-gauge-high" style={{ color: '#ff9800', fontSize: 15 }}></i>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
-              {lang === 'es' ? 'Límite de CPS (Clicks por Segundo)' : 'CPS Limit (Clicks per Second)'}
-            </span>
-          </div>
-          <div style={{ fontSize: 12, color: '#5a8aaa', marginBottom: 12, lineHeight: 1.5 }}>
-            {lang === 'es' 
-              ? `Cuando un jugador alcance ${cpsThreshold} CPS, se activará la advertencia o ban por uso de macros.`
-              : `When a player reaches ${cpsThreshold} CPS, the macro warning or ban will be triggered.`}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <input 
-              type="range" min="5" max="50" step="1" value={cpsThreshold}
-              onChange={e => {
-                const v = parseInt(e.target.value);
-                setCpsThreshold(v);
-                try { localStorage.setItem('admin_cps_threshold', v); } catch(e) {}
-                window.cloudSaveSettings({ cpsThreshold: v });
-              }}
-              style={{ flex: 1, cursor: 'pointer' }}
-            />
-            <div style={{ minWidth: 60, textAlign: 'center', padding: '6px 12px', background: cpsThreshold <= 10 ? 'rgba(220,50,50,0.1)' : cpsThreshold <= 25 ? 'rgba(255,152,0,0.1)' : 'rgba(76,175,80,0.1)', border: `1px solid ${cpsThreshold <= 10 ? 'rgba(220,50,50,0.3)' : cpsThreshold <= 25 ? 'rgba(255,152,0,0.3)' : 'rgba(76,175,80,0.3)'}`, borderRadius: 8, fontWeight: 700, fontSize: 16, color: cpsThreshold <= 10 ? '#c33' : cpsThreshold <= 25 ? '#e68a00' : '#388e3c' }}>
-              {cpsThreshold}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="fa-solid fa-gauge-high" style={{ color: '#ff9800', fontSize: 15 }}></i>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
+                {lang === 'es' ? 'Límite de CPS (Clicks por Segundo)' : 'CPS Limit (Clicks per Second)'}
+              </span>
             </div>
+            
+            {/* Toggle Switch */}
+            <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', gap: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: cpsLimitEnabled ? '#388e3c' : '#718096', textTransform: 'uppercase' }}>
+                {cpsLimitEnabled 
+                  ? (lang === 'es' ? 'Activo' : 'Active') 
+                  : (lang === 'es' ? 'Sin Límite' : 'No Limit')}
+              </span>
+              <div 
+                onClick={() => {
+                  const nextVal = !cpsLimitEnabled;
+                  setCpsLimitEnabled(nextVal);
+                  try { localStorage.setItem('admin_cps_limit_enabled', nextVal.toString()); } catch(e) {}
+                  window.cloudSaveSettings({ cpsLimitEnabled: nextVal });
+                }}
+                style={{
+                  width: 44,
+                  height: 24,
+                  borderRadius: 12,
+                  background: cpsLimitEnabled ? '#4cd137' : '#d2d8d8',
+                  padding: 2,
+                  position: 'relative',
+                  transition: 'all 0.2s',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
+                }}
+              >
+                <div style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  background: '#fff',
+                  position: 'absolute',
+                  top: 2,
+                  left: cpsLimitEnabled ? 22 : 2,
+                  transition: 'all 0.2s',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                }} />
+              </div>
+            </label>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#8aaacc', marginTop: 6 }}>
-            <span>{lang === 'es' ? 'Más estricto' : 'Stricter'}</span>
-            <span>{lang === 'es' ? 'Más permisivo' : 'More permissive'}</span>
+          
+          <div style={{ fontSize: 12, color: '#5a8aaa', marginBottom: 12, lineHeight: 1.5 }}>
+            {cpsLimitEnabled ? (
+              lang === 'es' 
+                ? `Cuando un jugador alcance ${cpsThreshold} CPS, se activará la advertencia o ban por uso de macros.`
+                : `When a player reaches ${cpsThreshold} CPS, the macro warning or ban will be triggered.`
+            ) : (
+              lang === 'es'
+                ? 'El límite de CPS está desactivado. Los jugadores no recibirán advertencias ni bans por CPS elevado.'
+                : 'The CPS limit is disabled. Players will not receive macro warnings or bans for high CPS.'
+            )}
           </div>
+
+          {cpsLimitEnabled && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <input 
+                  type="range" min="5" max="50" step="1" value={cpsThreshold}
+                  onChange={e => {
+                    const v = parseInt(e.target.value);
+                    setCpsThreshold(v);
+                    try { localStorage.setItem('admin_cps_threshold', v); } catch(e) {}
+                    window.cloudSaveSettings({ cpsThreshold: v });
+                  }}
+                  style={{ flex: 1, cursor: 'pointer' }}
+                />
+                <div style={{ minWidth: 60, textAlign: 'center', padding: '6px 12px', background: cpsThreshold <= 10 ? 'rgba(220,50,50,0.1)' : cpsThreshold <= 25 ? 'rgba(255,152,0,0.1)' : 'rgba(76,175,80,0.1)', border: `1px solid ${cpsThreshold <= 10 ? 'rgba(220,50,50,0.3)' : cpsThreshold <= 25 ? 'rgba(255,152,0,0.3)' : 'rgba(76,175,80,0.3)'}`, borderRadius: 8, fontWeight: 700, fontSize: 16, color: cpsThreshold <= 10 ? '#c33' : cpsThreshold <= 25 ? '#e68a00' : '#388e3c' }}>
+                  {cpsThreshold}
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#8aaacc', marginTop: 6 }}>
+                <span>{lang === 'es' ? 'Más estricto' : 'Stricter'}</span>
+                <span>{lang === 'es' ? 'Más permisivo' : 'More permissive'}</span>
+              </div>
+            </>
+          )}
         </div>
 
           </>
@@ -483,94 +753,274 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 {lang === 'es' ? 'Mensajes por Tiempo de Juego' : 'Playtime Milestone Messages'}
                 <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({customMessages.length})</span>
               </span>
+              <button
+                onClick={() => {
+                  if (confirm(lang === 'es' ? '¿Estás seguro de restablecer todos los mensajes personalizados a los valores aleatorios por defecto? Se perderán los cambios manuales.' : 'Are you sure you want to reset all custom messages to the default random values? Manual changes will be lost.')) {
+                    setIsSavingMessages(true);
+                    const seed = window.getBossMessagesSeed ? window.getBossMessagesSeed() : [];
+                    window.cloudSaveCustomMessages(seed).then(res => {
+                      setIsSavingMessages(false);
+                      if (res.ok) {
+                        setCustomMessages(seed);
+                        setSuccessNote(lang === 'es' ? '¡Mensajes restablecidos!' : 'Messages reset!');
+                        setTimeout(() => setSuccessNote(''), 3000);
+                      } else {
+                        alert('Error: ' + res.error);
+                      }
+                    });
+                  }
+                }}
+                className="app-btn"
+                style={{
+                  padding: '4px 10px',
+                  background: '#fee2e2',
+                  color: '#ef4444',
+                  border: '1px solid #fca5a5',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  marginLeft: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <i className="fa-solid fa-rotate-left"></i> {lang === 'es' ? 'Restablecer Semilla' : 'Reset Seed'}
+              </button>
               {successNote && <span style={{ fontSize: 11, color: '#2ecc71', fontWeight: 700, marginLeft: 12, animation: 'fadeIn 0.3s' }}><i className="fa-solid fa-check-circle"></i> {successNote}</span>}
               {(messagesLoading || isSavingMessages) && <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 12, color: '#ff9800', marginLeft: 'auto' }}></i>}
               {isSavingMessages && <span style={{ fontSize: 10, color: '#ff9800', marginLeft: 8 }}>{lang === 'es' ? 'Guardando...' : 'Saving...'}</span>}
             </div>
 
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-              <button 
-                onClick={() => { setEditingMsg(null); setShowCreateModal(true); }}
+            <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => {
+                  setNewMsgName('');
+                  setNewMsgText('');
+                  setNewMsgMilestone(1);
+                  setNewMsgIsRandom(true);
+                  setNewMsgPlaytimeVal(5);
+                  setNewMsgPlaytimeUnit('minutes');
+                  setNewMsgColor('#1a8fff');
+                  setNewMsgPos('bottom');
+                  setNewMsgSize('medium');
+                  setNewMsgAnim('none');
+                  setNewMsgParticles('none');
+                  setNewMsgImage(null);
+                  setCreateMode(null);
+                  setShowCreateModal(true);
+                }}
                 className="app-btn"
-                style={{ ...btn, flex: 1, height: 44, background: '#1a8fff', color: '#fff', boxShadow: '0 4px 12px rgba(26,143,255,0.2)', fontSize: 14 }}
+                style={{ ...btn, flex: 1, minWidth: 150, height: 44, background: '#1a8fff', color: '#fff', boxShadow: '0 4px 12px rgba(26,143,255,0.2)', fontSize: 14 }}
               >
                 <i className="fa-solid fa-plus"></i> {lang === 'es' ? 'Nuevo mensaje' : 'New message'}
               </button>
+
+              {/* Buscador de emisor */}
+              <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: 14, top: 15, color: '#8aaacc', fontSize: 14 }}></i>
+                <input
+                  type="text"
+                  placeholder={lang === 'es' ? 'Buscar emisor...' : 'Search sender...'}
+                  value={msgSearch}
+                  onChange={e => setMsgSearch(e.target.value)}
+                  className="app-input search-input"
+                  style={{
+                    width: '100%',
+                    height: 44,
+                    paddingLeft: 38,
+                    borderRadius: 8,
+                    border: '1px solid #cbd5e1',
+                    fontSize: 14,
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {msgSearch && (
+                  <button
+                    onClick={() => setMsgSearch('')}
+                    style={{
+                      position: 'absolute',
+                      right: 12,
+                      top: 10,
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#94a3b8',
+                      fontSize: 16,
+                      padding: 4
+                    }}
+                  >
+                    <i className="fa-solid fa-circle-xmark"></i>
+                  </button>
+                )}
+              </div>
+
               <select 
                 value={msgFilter}
                 onChange={e => setMsgFilter(e.target.value)}
                 className="app-select"
-                style={{ width: 120 }}
+                style={{ width: 180, height: 44 }}
               >
                 <option value="all">{lang === 'es' ? 'Todos' : 'All'}</option>
-                <option value="shown">{lang === 'es' ? 'Ya mostrados' : 'Shown'}</option>
-                <option value="pending">{lang === 'es' ? 'Pendientes' : 'Pending'}</option>
+                <option value="bosses">{lang === 'es' ? 'Solo jefes' : 'Solo leaders'}</option>
+                <option value="collabs">{lang === 'es' ? 'Solo colaboradores' : 'Solo staff'}</option>
               </select>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[...customMessages]
-                .filter(m => {
-                  const currentT = window.__timePlayed || 0;
-                  if (msgFilter === 'shown') return m.milestone <= currentT;
-                  if (msgFilter === 'pending') return m.milestone > currentT;
-                  return true;
-                })
-                .sort((a, b) => a.milestone - b.milestone)
-                .map(m => (
-                <div key={m.id} style={{ padding: '14px', background: '#fff', borderRadius: 12, border: '1px solid #edf2f7', display: 'flex', flexDirection: 'column', gap: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 14, height: 14, borderRadius: '50%', background: m.color || '#1a8fff', boxShadow: `0 0 8px ${m.color || '#1a8fff'}44` }}></div>
-                      <span style={{ fontWeight: 700, fontSize: 14, color: '#2d3748' }}>{m.who}</span>
-                    </div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#718096', background: '#f7fafc', padding: '3px 10px', borderRadius: 20 }}>
-                      <i className="fa-regular fa-clock" style={{ marginRight: 5 }}></i>
-                      {lang === 'es' ? `Al minuto ${m.milestone}` : `At minute ${m.milestone}`}
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 13, color: '#4a5568', lineHeight: 1.5, fontStyle: 'italic', background: '#fdfdfd', padding: '10px 14px', borderRadius: 10, borderLeft: `3px solid ${m.color || '#1a8fff'}` }}>
-                    "{m.text}"
-                  </div>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                    <div style={{ display: 'flex', gap: 12 }}>
-                      <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
-                        <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 10 }}></i>
-                        {m.animation || 'none'}
+              {(() => {
+                const filtered = [...customMessages]
+                  .filter(m => {
+                    // Filter by search query (case-insensitive name match)
+                    if (msgSearch.trim()) {
+                      const query = msgSearch.toLowerCase();
+                      const name = (m.who || '').toLowerCase();
+                      if (!name.includes(query)) return false;
+                    }
+                    const isBoss = typeof m.milestone === 'number' && m.milestone >= 0;
+                    if (msgFilter === 'bosses') return isBoss;
+                    if (msgFilter === 'collabs') return !isBoss;
+                    return true;
+                  })
+                  .sort((a, b) => a.milestone - b.milestone);
+
+                const itemsPerPage = 25;
+                const totalItems = filtered.length;
+                const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+                return (
+                  <>
+                    {paginated.map(m => {
+                      const isBoss = typeof m.milestone === 'number' && m.milestone >= 0;
+                      return (
+                        <div key={m.id} style={{ padding: '14px', background: '#fff', borderRadius: 12, border: '1px solid #edf2f7', display: 'flex', flexDirection: 'column', gap: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {(() => {
+                                const avatarUrl = getAvatarUrl(m.who, m.image, m.id);
+                                if (avatarUrl) {
+                                  return (
+                                    <img
+                                      src={avatarUrl}
+                                      alt={m.who}
+                                      style={{
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: '50%',
+                                        objectFit: 'cover',
+                                        border: `2px solid ${m.color || '#1a8fff'}`,
+                                        boxShadow: `0 0 6px ${m.color || '#1a8fff'}44`
+                                      }}
+                                    />
+                                  );
+                                } else {
+                                  return (
+                                    <div style={{
+                                      width: 28,
+                                      height: 28,
+                                      borderRadius: '50%',
+                                      background: '#f1f5f9',
+                                      border: `2px solid ${m.color || '#1a8fff'}`,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      color: m.color || '#1a8fff',
+                                      fontSize: 12,
+                                      boxShadow: `0 0 6px ${m.color || '#1a8fff'}44`
+                                    }}>
+                                      <i className="fa-solid fa-user"></i>
+                                    </div>
+                                  );
+                                }
+                              })()}
+                              <span style={{ fontWeight: 700, fontSize: 14, color: '#2d3748' }}>{m.who}</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: isBoss ? '#b45309' : '#718096', background: isBoss ? '#fffbeb' : '#f7fafc', padding: '3px 10px', borderRadius: 20, border: isBoss ? '1px solid #fef3c7' : '1px solid #edf2f7', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                {isBoss ? '👑' : '⚡'} {isBoss ? (lang === 'es' ? 'Jefe' : 'Boss') : (lang === 'es' ? 'Aleatorio' : 'Random')}
+                              </div>
+                              {isBoss && (
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#718096', background: '#f7fafc', padding: '3px 10px', borderRadius: 20, border: '1px solid #edf2f7' }}>
+                                  <i className="fa-regular fa-clock" style={{ marginRight: 5 }}></i>
+                                  {m.milestone >= 60 && m.milestone % 60 === 0 ? `${m.milestone / 60} h` : `${m.milestone} min`}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        <div style={{ fontSize: 13, color: '#4a5568', lineHeight: 1.5, fontStyle: 'italic', background: '#fdfdfd', padding: '10px 14px', borderRadius: 10, borderLeft: `3px solid ${m.color || '#1a8fff'}` }}>
+                          "{m.text}"
+                        </div>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                          <div style={{ display: 'flex', gap: 12 }}>
+                            <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
+                              <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 10 }}></i>
+                              {m.animation || 'none'}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
+                              <i className="fa-solid fa-sparkles" style={{ fontSize: 10 }}></i>
+                              {m.particles || 'none'}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
+                              <i className="fa-solid fa-up-down-left-right" style={{ fontSize: 10 }}></i>
+                              {m.position} / {m.size}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 14 }}>
+                            <button 
+                              onClick={() => setPreviewMsg({ ...m, es: m.text, en: m.text })} 
+                              className="app-btn"
+                              style={{ all: 'unset', color: '#ff9800', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+                            >
+                              <i className="fa-solid fa-eye"></i> {lang === 'es' ? 'Previsualizar' : 'Preview'}
+                            </button>
+                            <button onClick={() => handleStartEditMsg(m)} className="app-btn" style={{ all: 'unset', color: '#1a8fff', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                              <i className="fa-solid fa-pen-to-square"></i> {lang === 'es' ? 'Editar' : 'Edit'}
+                            </button>
+                            <button onClick={() => setMsgToDelete(m)} className="app-btn" style={{ all: 'unset', color: '#e53e3e', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                              <i className="fa-solid fa-trash"></i> {lang === 'es' ? 'Borrar' : 'Delete'}
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
-                        <i className="fa-solid fa-sparkles" style={{ fontSize: 10 }}></i>
-                        {m.particles || 'none'}
+                    );
+                  })}
+
+                    {totalItems === 0 && (
+                      <div style={{ textAlign: 'center', padding: '40px 0', color: '#a0aec0', fontStyle: 'italic', fontSize: 14 }}>
+                        {lang === 'es' ? 'No hay mensajes creados' : 'No messages created'}
                       </div>
-                      <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
-                        <i className="fa-solid fa-up-down-left-right" style={{ fontSize: 10 }}></i>
-                        {m.position} / {m.size}
+                    )}
+
+                    {totalPages > 1 && (
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 14, marginTop: 24, background: '#f8fafc', padding: '10px 16px', borderRadius: 12, border: '1px solid #edf2f7' }}>
+                        <button 
+                          disabled={currentPage === 1}
+                          onClick={() => { window.playClickSound && window.playClickSound(); setCurrentPage(p => Math.max(1, p - 1)); }}
+                          className="app-btn"
+                          style={{ ...btn, padding: '8px 14px', background: currentPage === 1 ? '#e2e8f0' : '#1a8fff', color: currentPage === 1 ? '#a0aec0' : '#fff', border: 'none', borderRadius: 8, cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: 700 }}
+                        >
+                          <i className="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568', minWidth: 100, textAlign: 'center' }}>
+                          {lang === 'es' ? `Página ${currentPage} de ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
+                        </span>
+                        <button 
+                          disabled={currentPage === totalPages}
+                          onClick={() => { window.playClickSound && window.playClickSound(); setCurrentPage(p => Math.min(totalPages, p + 1)); }}
+                          className="app-btn"
+                          style={{ ...btn, padding: '8px 14px', background: currentPage === totalPages ? '#e2e8f0' : '#1a8fff', color: currentPage === totalPages ? '#a0aec0' : '#fff', border: 'none', borderRadius: 8, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: 700 }}
+                        >
+                          <i className="fa-solid fa-chevron-right"></i>
+                        </button>
                       </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 14 }}>
-                      <button 
-                        onClick={() => setPreviewMsg({ ...m, es: m.text, en: m.text })} 
-                        className="app-btn"
-                        style={{ all: 'unset', color: '#ff9800', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
-                      >
-                        <i className="fa-solid fa-eye"></i> {lang === 'es' ? 'Previsualizar' : 'Preview'}
-                      </button>
-                      <button onClick={() => setEditingMsg(m)} className="app-btn" style={{ all: 'unset', color: '#1a8fff', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
-                        <i className="fa-solid fa-pen-to-square"></i> {lang === 'es' ? 'Editar' : 'Edit'}
-                      </button>
-                      <button onClick={() => setMsgToDelete(m)} className="app-btn" style={{ all: 'unset', color: '#e53e3e', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
-                        <i className="fa-solid fa-trash"></i> {lang === 'es' ? 'Borrar' : 'Delete'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {customMessages.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: '#a0aec0', fontStyle: 'italic', fontSize: 14 }}>
-                  {lang === 'es' ? 'No hay mensajes creados' : 'No messages created'}
-                </div>
-              )}
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -612,25 +1062,265 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
 
       {/* Create/Edit Message Modal */}
       {(showCreateModal || editingMsg) && (
-        <Modal onClose={() => { setShowCreateModal(false); setEditingMsg(null); }} maxWidth={550}>
+        <Modal onClose={() => { setShowCreateModal(false); setEditingMsg(null); setCreateMode(null); }} maxWidth={550} persistent={true}>
           <div style={{ padding: '4px' }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fff7ed', color: '#ff9800', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <i className="fa-solid fa-bullhorn"></i>
+            {showCreateModal && createMode === null ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fff7ed', color: '#ff9800', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <i className="fa-solid fa-bullhorn"></i>
+                  </div>
+                  {lang === 'es' ? 'Crear nuevo mensaje' : 'Create new message'}
+                </div>
+                
+                <div style={{ fontSize: 14, color: '#4a5568', lineHeight: 1.5, textAlign: 'left' }}>
+                  {lang === 'es' 
+                    ? 'Elige cómo deseas crear tu nuevo mensaje personalizado:' 
+                    : 'Choose how you want to create your new custom message:'}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+                  <div 
+                    onClick={() => setCreateMode('manual')}
+                    style={{
+                      border: '2px solid #e2e8f0',
+                      borderRadius: 16,
+                      padding: 20,
+                      cursor: 'pointer',
+                      background: '#fff',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 12,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+                      textAlign: 'center'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#1a8fff'; e.currentTarget.style.transform = 'scale(1.02)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.transform = 'scale(1)'; }}
+                  >
+                    <div style={{ width: 50, height: 50, borderRadius: '50%', background: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                      <i className="fa-solid fa-pen-to-square"></i>
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: '#1e293b' }}>
+                      {lang === 'es' ? 'Mensaje manual' : 'Manual Message'}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.4 }}>
+                      {lang === 'es' 
+                        ? 'Configura cada detalle de tu mensaje: emisor, texto, tiempos y estilos personalizados.' 
+                        : 'Configure every detail of your message: sender, text, timing, and custom styles.'}
+                    </div>
+                  </div>
+
+                  <div 
+                    onClick={() => {
+                      setCreateMode('random');
+                      handleRandomizeEverything();
+                    }}
+                    style={{
+                      border: '2px solid #e2e8f0',
+                      borderRadius: 16,
+                      padding: 20,
+                      cursor: 'pointer',
+                      background: '#fff',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 12,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+                      textAlign: 'center'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#7e22ce'; e.currentTarget.style.transform = 'scale(1.02)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.transform = 'scale(1)'; }}
+                  >
+                    <div style={{ width: 50, height: 50, borderRadius: '50%', background: '#faf5ff', color: '#7e22ce', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                      <i className="fa-solid fa-shuffle"></i>
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: '#1e293b' }}>
+                      {lang === 'es' ? 'Mensaje aleatorio' : 'Random Message'}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.4 }}>
+                      {lang === 'es' 
+                        ? 'Genera un mensaje con emisor, texto y estilos divertidos totalmente al azar con un clic.' 
+                        : 'Generate a message with a random sender, text, and fun styles completely at random in one click.'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                  <button onClick={() => setShowCreateModal(false)} className="app-btn" style={{ ...btn, height: 40, padding: '0 20px', background: '#f1f5f9', color: '#64748b' }}>
+                    {lang === 'es' ? 'Cancelar' : 'Cancel'}
+                  </button>
+                </div>
               </div>
-              {editingMsg ? (lang === 'es' ? 'Editar mensaje' : 'Edit message') : (lang === 'es' ? 'Crear nuevo mensaje' : 'Create new message')}
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Nombre del Emisor' : 'Sender Name'}</div>
-                <input 
-                  type="text" 
-                  className="app-input"
-                  placeholder={lang === 'es' ? 'ej. Cris' : 'e.g. Cris'}
-                  value={editingMsg ? editingMsg.who : newMsgName}
-                  onChange={e => editingMsg ? setEditingMsg({...editingMsg, who: e.target.value}) : setNewMsgName(e.target.value)}
-                />
+            ) : (
+              <>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fff7ed', color: '#ff9800', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <i className="fa-solid fa-bullhorn"></i>
+                  </div>
+                  {editingMsg 
+                    ? (lang === 'es' ? 'Editar mensaje' : 'Edit message') 
+                    : (createMode === 'random' 
+                       ? (lang === 'es' ? 'Crear mensaje completamente aleatorio' : 'Create Random Message') 
+                       : (lang === 'es' ? 'Crear nuevo mensaje' : 'Create new message'))}
+                </div>
+
+                {/* If createMode is random, render a large, styled banner button at the top */}
+                {!editingMsg && createMode === 'random' && (
+                  <div style={{ marginBottom: 16, background: '#faf5ff', border: '1px dashed #d8b4fe', borderRadius: 12, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#f3e8ff', color: '#7e22ce', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
+                        <i className="fa-solid fa-dice"></i>
+                      </div>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: '#581c87' }}>
+                          {lang === 'es' ? 'Modo Completamente Aleatorio' : 'Fully Random Mode'}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#7e22ce' }}>
+                          {lang === 'es' ? 'Genera emisor, texto y estilos al azar.' : 'Shuffling sender, text, timing and visual style.'}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRandomizeEverything}
+                      className="app-btn"
+                      style={{
+                        ...btn,
+                        height: 36,
+                        padding: '0 16px',
+                        background: '#7e22ce',
+                        color: '#fff',
+                        boxShadow: '0 4px 10px rgba(126,34,206,0.2)',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6
+                      }}
+                    >
+                      <i className="fa-solid fa-shuffle"></i>
+                      {lang === 'es' ? 'Generar todo aleatorio' : 'Randomize Everything'}
+                    </button>
+                  </div>
+                )}
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                {/* Avatar Box */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{ fontSize: 11, color: '#718096', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avatar</div>
+                  <div 
+                    onClick={() => {
+                      if (!avatarLoading) {
+                        fileInputRef.current && fileInputRef.current.click();
+                      }
+                    }}
+                    onMouseEnter={() => setAvatarHover(true)}
+                    onMouseLeave={() => setAvatarHover(false)}
+                    style={{
+                      width: 58,
+                      height: 58,
+                      borderRadius: '50%',
+                      border: '2px dashed #cbd5e1',
+                      background: '#f8fafc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: avatarLoading ? 'not-allowed' : 'pointer',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                    }}
+                    className="hover-border-primary"
+                  >
+                    {avatarLoading ? (
+                      <i className="fa-solid fa-circle-notch fa-spin" style={{ color: '#1a8fff', fontSize: 18 }}></i>
+                    ) : (() => {
+                      const currentAvatarUrl = getAvatarUrl(
+                        editingMsg ? editingMsg.who : newMsgName,
+                        editingMsg ? editingMsg.image : newMsgImage,
+                        editingMsg ? editingMsg.id : undefined
+                      );
+                      return (
+                        <>
+                          {currentAvatarUrl ? (
+                            <img src={currentAvatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <i className="fa-solid fa-user-plus" style={{ color: '#94a3b8', fontSize: 20 }}></i>
+                          )}
+                          {avatarHover && (
+                            <div style={{
+                              position: 'absolute',
+                              inset: 0,
+                              background: 'rgba(0, 0, 0, 0.4)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#fff',
+                              zIndex: 2,
+                              transition: 'opacity 0.2s'
+                            }}>
+                              <i className="fa-solid fa-pen" style={{ fontSize: 14 }}></i>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                  
+                  {(() => {
+                    const hasCustomImage = editingMsg ? !!editingMsg.image : !!newMsgImage;
+                    if (hasCustomImage) {
+                      return (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (editingMsg) {
+                              setEditingMsg({ ...editingMsg, image: null });
+                            } else {
+                              setNewMsgImage(null);
+                            }
+                          }}
+                          style={{
+                            all: 'unset',
+                            fontSize: 10,
+                            color: '#e53e3e',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            textDecoration: 'underline'
+                          }}
+                        >
+                          {lang === 'es' ? 'Eliminar' : 'Remove'}
+                        </button>
+                      );
+                    }
+                    return null;
+                  })()}
+                  
+                  <input 
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".png,.jpg,.jpeg,.gif"
+                    style={{ display: 'none' }}
+                    onChange={handleAvatarUpload}
+                  />
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Nombre del Emisor' : 'Sender Name'}</div>
+                  <input 
+                    type="text" 
+                    className="app-input"
+                    placeholder={lang === 'es' ? 'ej. Cris' : 'e.g. Cris'}
+                    value={editingMsg ? editingMsg.who : newMsgName}
+                    onChange={e => editingMsg ? setEditingMsg({...editingMsg, who: e.target.value}) : setNewMsgName(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div>
@@ -649,22 +1339,143 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                <div>
-                  <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Minuto de juego' : 'Playtime Minute'}</div>
-                  <input 
-                    type="number" 
-                    min={1}
-                    className="app-input"
-                    value={editingMsg ? editingMsg.milestone : newMsgMilestone}
-                    onChange={e => {
-                      const val = parseInt(e.target.value) || 1;
-                      editingMsg ? setEditingMsg({...editingMsg, milestone: val}) : setNewMsgMilestone(val);
-                    }}
-                  />
+              {/* Controls: Mensaje Aleatorio & Jefe Checkbox */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '4px 0' }}>
+                {/* Mensaje Aleatorio Toggle */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '12px 16px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1a3a5a' }}>
+                      {lang === 'es' ? 'Mensaje Aleatorio' : 'Random Message'}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#64748b' }}>
+                      {lang === 'es' ? 'Intervalo 5-10 min' : '5-10 min interval'}
+                    </div>
+                  </div>
+                  <label style={{ position: 'relative', display: 'inline-block', width: 42, height: 22, cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={editingMsg ? editingMsg.isRandom : newMsgIsRandom}
+                      onChange={e => {
+                        const val = e.target.checked;
+                        if (editingMsg) {
+                          setEditingMsg({ ...editingMsg, isRandom: val });
+                        } else {
+                          setNewMsgIsRandom(val);
+                        }
+                      }}
+                      style={{ opacity: 0, width: 0, height: 0 }} 
+                    />
+                    <span style={{
+                      position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                      backgroundColor: (editingMsg ? editingMsg.isRandom : newMsgIsRandom) ? '#1a8fff' : '#cbd5e1',
+                      transition: 'all 200ms ease', borderRadius: 22,
+                      boxShadow: (editingMsg ? editingMsg.isRandom : newMsgIsRandom) ? '0 2px 6px rgba(26,143,255,0.25)' : 'none'
+                    }}>
+                      <span style={{
+                        position: 'absolute', content: '""', height: 16, width: 16, left: 3, bottom: 3,
+                        backgroundColor: 'white', transition: 'all 200ms ease', borderRadius: '50%',
+                        transform: (editingMsg ? editingMsg.isRandom : newMsgIsRandom) ? 'translateX(20px)' : 'none',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
+                      }} />
+                    </span>
+                  </label>
                 </div>
+
+                {/* Jefe Checkbox Switch */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fffbeb', padding: '12px 16px', borderRadius: 12, border: '1px solid #fef3c7' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#b45309' }}>
+                        {lang === 'es' ? '👑 Jefe' : '👑 Boss'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 10, color: '#d97706' }}>
+                      {lang === 'es' ? 'Tiempo fijo' : 'Fixed playtime'}
+                    </div>
+                  </div>
+                  <label style={{ position: 'relative', display: 'inline-block', width: 42, height: 22, cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={editingMsg ? !editingMsg.isRandom : !newMsgIsRandom}
+                      onChange={e => {
+                        const val = !e.target.checked;
+                        if (editingMsg) {
+                          setEditingMsg({ ...editingMsg, isRandom: val });
+                        } else {
+                          setNewMsgIsRandom(val);
+                        }
+                      }}
+                      style={{ opacity: 0, width: 0, height: 0 }} 
+                    />
+                    <span style={{
+                      position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                      backgroundColor: (editingMsg ? !editingMsg.isRandom : !newMsgIsRandom) ? '#ff9800' : '#cbd5e1',
+                      transition: 'all 200ms ease', borderRadius: 22,
+                      boxShadow: (editingMsg ? !editingMsg.isRandom : !newMsgIsRandom) ? '0 2px 6px rgba(255,152,0,0.25)' : 'none'
+                    }}>
+                      <span style={{
+                        position: 'absolute', content: '""', height: 16, width: 16, left: 3, bottom: 3,
+                        backgroundColor: 'white', transition: 'all 200ms ease', borderRadius: '50%',
+                        transform: (editingMsg ? !editingMsg.isRandom : !newMsgIsRandom) ? 'translateX(20px)' : 'none',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Playtime settings (Disabled when random) & Name Color */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+                {(() => {
+                  const isRand = editingMsg ? editingMsg.isRandom : newMsgIsRandom;
+                  return (
+                    <div style={{ opacity: isRand ? 0.45 : 1, pointerEvents: isRand ? 'none' : 'auto', transition: 'all 200ms ease', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ fontSize: 11, color: '#718096', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {lang === 'es' ? 'Tiempo de Juego' : 'Playtime Milestone'}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input 
+                          type="number" 
+                          min={1}
+                          disabled={isRand}
+                          className="app-input"
+                          style={{ flex: 1, height: 42 }}
+                          value={editingMsg ? editingMsg.playtimeVal : newMsgPlaytimeVal}
+                          onChange={e => {
+                            const val = parseInt(e.target.value) || 1;
+                            if (editingMsg) {
+                              setEditingMsg({...editingMsg, playtimeVal: val});
+                            } else {
+                              setNewMsgPlaytimeVal(val);
+                            }
+                          }}
+                        />
+                        <select 
+                          disabled={isRand}
+                          className="app-select"
+                          style={{ width: 100, height: 42 }}
+                          value={editingMsg ? editingMsg.playtimeUnit : newMsgPlaytimeUnit}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (editingMsg) {
+                              setEditingMsg({...editingMsg, playtimeUnit: val});
+                            } else {
+                              setNewMsgPlaytimeUnit(val);
+                            }
+                          }}
+                        >
+                          <option value="minutes">{lang === 'es' ? 'Min' : 'Min'}</option>
+                          <option value="hours">{lang === 'es' ? 'Hrs' : 'Hrs'}</option>
+                        </select>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div>
-                  <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Color del Nombre' : 'Name Color'}</div>
+                  <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {lang === 'es' ? 'Color del Nombre' : 'Name Color'}
+                  </div>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <input 
                       type="color" 
@@ -672,7 +1483,9 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                       onChange={e => editingMsg ? setEditingMsg({...editingMsg, color: e.target.value}) : setNewMsgColor(e.target.value)} 
                       style={{ width: 36, height: 36, border: '2px solid #e2e8f0', borderRadius: '50%', cursor: 'pointer', background: '#fff', overflow: 'hidden', padding: 0 }} 
                     />
-                    <div style={{ fontSize: 13, color: '#1a3a5a', fontWeight: 700, fontFamily: 'monospace', background: '#f1f5f9', padding: '6px 10px', borderRadius: 10 }}>{editingMsg ? editingMsg.color : newMsgColor}</div>
+                    <div style={{ fontSize: 13, color: '#1a3a5a', fontWeight: 700, fontFamily: 'monospace', background: '#f1f5f9', padding: '6px 10px', borderRadius: 10 }}>
+                      {editingMsg ? editingMsg.color : newMsgColor}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -714,6 +1527,83 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 </div>
               </div>
 
+              {/* Randomize Parameters Button */}
+              {(editingMsg || createMode !== 'random') && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -4 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const positions = ['top', 'center', 'bottom'];
+                      const sizes = ['small', 'medium', 'large'];
+                      const animations = ['pulse', 'shake', 'float', 'rainbow'];
+                      const particlesOptions = ['stars', 'teeth', 'fire', 'confetti'];
+                      
+                      const randPos = positions[Math.floor(Math.random() * positions.length)];
+                      const randSize = sizes[Math.floor(Math.random() * sizes.length)];
+                      const randAnim = animations[Math.floor(Math.random() * animations.length)];
+                      const randPart = particlesOptions[Math.floor(Math.random() * particlesOptions.length)];
+                      
+                      // Generate vibrant color (HSL vibrant conversion)
+                      const h = Math.floor(Math.random() * 360);
+                      const s = Math.floor(Math.random() * 25) + 75; // 75-100%
+                      const l = Math.floor(Math.random() * 20) + 45; // 45-65%
+                      const sPct = s / 100;
+                      const lPct = l / 100;
+                      const c = (1 - Math.abs(2 * lPct - 1)) * sPct;
+                      const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+                      const m = lPct - c / 2;
+                      let r = 0, g = 0, b = 0;
+                      if (h >= 0 && h < 60) { r = c; g = x; b = 0; }
+                      else if (h >= 60 && h < 120) { r = x; g = c; b = 0; }
+                      else if (h >= 120 && h < 180) { r = 0; g = c; b = x; }
+                      else if (h >= 180 && h < 240) { r = 0; g = x; b = c; }
+                      else if (h >= 240 && h < 300) { r = x; g = 0; b = c; }
+                      else if (h >= 300 && h < 360) { r = c; g = 0; b = x; }
+                      const toHex = (val) => {
+                        const hex = Math.round((val + m) * 255).toString(16);
+                        return hex.length === 1 ? '0' + hex : hex;
+                      };
+                      const randColor = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+
+                      if (editingMsg) {
+                        setEditingMsg({
+                          ...editingMsg,
+                          position: randPos,
+                          size: randSize,
+                          animation: randAnim,
+                          particles: randPart,
+                          color: randColor
+                        });
+                      } else {
+                        setNewMsgPos(randPos);
+                        setNewMsgSize(randSize);
+                        setNewMsgAnim(randAnim);
+                        setNewMsgParticles(randPart);
+                        setNewMsgColor(randColor);
+                      }
+                    }}
+                    className="app-btn"
+                    style={{
+                      ...btn,
+                      height: 36,
+                      padding: '0 14px',
+                      background: '#f8fafc',
+                      color: '#475569',
+                      border: '1px solid #cbd5e1',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <i className="fa-solid fa-dice" style={{ color: '#1a8fff', fontSize: 15 }}></i>
+                    {lang === 'es' ? 'Parámetros aleatorios' : 'Randomize Style'}
+                  </button>
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
                 <button onClick={() => { setShowCreateModal(false); setEditingMsg(null); }} className="app-btn" style={{ ...btn, flex: 1, height: 46, background: '#f1f5f9', color: '#64748b', fontSize: 14, fontWeight: 700 }}>
                   {lang === 'es' ? 'Cancelar' : 'Cancel'}
@@ -721,25 +1611,65 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 <button 
                   onClick={() => {
                     if (editingMsg) {
-                      if (!editingMsg.who || !editingMsg.text) return;
-                      const updated = customMessages.map(m => m.id === editingMsg.id ? editingMsg : m);
+                      if (!editingMsg.text) return;
+                      // Fallback name if left empty:
+                      let who = editingMsg.who ? editingMsg.who.trim() : '';
+                      if (!who) {
+                        const names = window.EMPLOYEE_NAMES || ['Dani'];
+                        who = names[Math.floor(Math.random() * names.length)];
+                      }
+                      
+                      const milestone = editingMsg.isRandom 
+                        ? -1 
+                        : (editingMsg.playtimeUnit === 'hours' ? editingMsg.playtimeVal * 60 : editingMsg.playtimeVal);
+
+                      const updatedMsg = {
+                        ...editingMsg,
+                        who,
+                        milestone
+                      };
+                      // Delete temporary properties we added for the form
+                      delete updatedMsg.isRandom;
+                      delete updatedMsg.playtimeVal;
+                      delete updatedMsg.playtimeUnit;
+
+                      const updated = customMessages.map(m => m.id === editingMsg.id ? updatedMsg : m);
                       setCustomMessages(updated);
                       saveMessagesToCloud(updated);
                       setEditingMsg(null);
                       setSuccessNote(lang === 'es' ? '¡Mensaje actualizado!' : 'Message updated!');
                       setTimeout(() => setSuccessNote(''), 3000);
                     } else {
-                      if (!newMsgName || !newMsgText) return;
+                      if (!newMsgText) return;
+                      // Fallback name if left empty:
+                      let who = newMsgName ? newMsgName.trim() : '';
+                      if (!who) {
+                        const names = window.EMPLOYEE_NAMES || ['Dani'];
+                        who = names[Math.floor(Math.random() * names.length)];
+                      }
+
+                      const milestone = newMsgIsRandom 
+                        ? -1 
+                        : (newMsgPlaytimeUnit === 'hours' ? newMsgPlaytimeVal * 60 : newMsgPlaytimeVal);
+
                       const updated = [...customMessages, {
                         id: Math.random().toString(36).substr(2, 9),
-                        who: newMsgName, text: newMsgText, milestone: newMsgMilestone,
-                        color: newMsgColor, position: newMsgPos, size: newMsgSize,
-                        animation: newMsgAnim, particles: newMsgParticles,
+                        who,
+                        text: newMsgText,
+                        milestone,
+                        color: newMsgColor,
+                        position: newMsgPos,
+                        size: newMsgSize,
+                        animation: newMsgAnim,
+                        particles: newMsgParticles,
+                        image: newMsgImage,
                         createdAt: Date.now()
                       }];
                       setCustomMessages(updated);
                       saveMessagesToCloud(updated);
-                      setNewMsgName(''); setNewMsgText('');
+                      setNewMsgName('');
+                      setNewMsgText('');
+                      setNewMsgImage(null);
                       setShowCreateModal(false);
                       setSuccessNote(lang === 'es' ? '¡Mensaje creado!' : 'Message created!');
                       setTimeout(() => setSuccessNote(''), 3000);
@@ -753,8 +1683,10 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 </button>
               </div>
             </div>
-          </div>
-        </Modal>
+            </>
+          )}
+        </div>
+      </Modal>
       )}
 
       {/* Delete Milestone Message Confirmation */}

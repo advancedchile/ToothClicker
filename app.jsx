@@ -184,6 +184,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [musicTime, setMusicTime] = useState(0);
   const lastTimeUpdate = useRef(0);
   const [tabsMenuOpen, setTabsMenuOpen] = useState(false);
+  const [tabViewOpen, setTabViewOpen] = useState(false);
   const [musicDuration, setMusicDuration] = useState(0);
   const sessionStartMinutes = useRef(null);
 
@@ -354,6 +355,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   });
   const [customMessages, setCustomMessages] = useState([]);
   const customLastShownRef = useRef({}); // { msgId: timestamp }
+  const shownFixedMessagesRef = useRef(new Set());
 
   // Live CPS tracker — updates every 200ms for smooth feedback
   useEffect(() => {
@@ -659,64 +661,141 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     }
   }, [state.totalClicks, state.totalEarned, state.lifetimeEarned, state.generators, state.prestige, state.goldenClicks, state.clickUpgrades, state.timePlayed, state.feedbackSent]);
 
-  // Handle Custom Milestone Messages
+  // Track continuous play session time
+  const sessionStartTime = useRef(null);
   useEffect(() => {
-    if (bossMsg || customMessages.length === 0 || sessionStartMinutes.current === null) return;
-    const elapsedMinutes = (state.timePlayed || 0) / 60;
-    
-    // Find messages whose milestone has been reached but haven't been shown
-    // AND were reached during THIS session (to avoid offline spam)
-    const pending = customMessages.filter(m => {
-      return elapsedMinutes >= m.milestone && 
-             m.milestone >= sessionStartMinutes.current &&
-             !shownMilestones.has('custom-' + m.id);
-    });
-
-    if (pending.length > 0) {
-      // Pick the highest milestone reached that is still pending
-      const pick = pending.sort((a, b) => b.milestone - a.milestone)[0];
-      
-      setBossMsg({ 
-        who: pick.who, 
-        es: pick.text, 
-        en: pick.text, 
-        isCustom: true,
-        milestone: pick.milestone,
-        color: pick.color,
-        position: pick.position,
-        size: pick.size,
-        animation: pick.animation,
-        particles: pick.particles
-      });
-
-      // Mark as shown both in local state and persistent state
-      setShownMilestones(prev => {
-        const next = new Set(prev);
-        next.add('custom-' + pick.id);
-        return next;
-      });
-      setState(s => ({
-        ...s,
-        shownMilestones: Array.from(new Set([...(s.shownMilestones || []), 'custom-' + pick.id]))
-      }));
+    if (sessionStartTime.current === null && state.timePlayed > 0) {
+      sessionStartTime.current = state.timePlayed;
     }
-  }, [state.timePlayed, bossMsg, customMessages, shownMilestones]);
+    // Synchronize play time in minutes with the administration panel
+    if (typeof window !== 'undefined') {
+      window.__timePlayed = state.timePlayed / 60;
+    }
+  }, [state.timePlayed]);
+
+  // Handle 1-Hour Continuous Session Authoritative Boss Messages
+  const lastHourTriggeredRef = useRef(0);
+  useEffect(() => {
+    if (sessionStartTime.current === null) return;
+    const elapsedSeconds = Math.max(0, state.timePlayed - sessionStartTime.current);
+    const hourCount = Math.floor(elapsedSeconds / 3600); // 3600 seconds = 1 hour
+    
+    if (hourCount > 0 && hourCount > lastHourTriggeredRef.current) {
+      lastHourTriggeredRef.current = hourCount;
+      if (window.AUTHORITATIVE_BOSS_MESSAGES) {
+        const pick = window.AUTHORITATIVE_BOSS_MESSAGES[Math.floor(Math.random() * window.AUTHORITATIVE_BOSS_MESSAGES.length)];
+        const formattedText = window.replaceHoras(pick.text, hourCount);
+        setBossMsg({
+          who: pick.who,
+          es: formattedText,
+          en: formattedText,
+          isCustom: true,
+          milestone: hourCount * 60,
+          color: pick.color,
+          position: 'center',
+          size: 'large',
+          animation: 'rainbow',
+          particles: 'fire'
+        });
+      }
+    }
+  }, [state.timePlayed]);
+
+  // Handle Random Spacing Scheduler (5-10 min)
+  useEffect(() => {
+    const randomPool = customMessages.filter(m => m.milestone === -1);
+    if (randomPool.length === 0) return;
+    let timeoutId;
+    
+    function triggerRandomBossMessage() {
+      const pick = randomPool[Math.floor(Math.random() * randomPool.length)];
+      setBossMsg({
+        who: pick.who,
+        es: pick.text,
+        en: pick.text,
+        isCustom: true,
+        milestone: -1,
+        color: pick.color || '#1a8fff',
+        position: pick.position || 'bottom',
+        size: pick.size || 'medium',
+        animation: pick.animation || 'none',
+        particles: pick.particles || 'none'
+      });
+    }
+
+    function scheduleNext() {
+      // Spacing between 5 and 10 minutes (in ms)
+      const randomDelay = (5 + Math.random() * 5) * 60 * 1000;
+      timeoutId = setTimeout(() => {
+        triggerRandomBossMessage();
+        scheduleNext();
+      }, randomDelay);
+    }
+
+    // Initial delay: first message appears randomly between 5 and 7 minutes after entering
+    const initialDelay = (5 + Math.random() * 2) * 60 * 1000;
+    timeoutId = setTimeout(() => {
+      triggerRandomBossMessage();
+      scheduleNext();
+    }, initialDelay);
+
+    return () => clearTimeout(timeoutId);
+  }, [customMessages]);
+
+  // Handle Fixed Playtime Custom Messages (milestone >= 0)
+  useEffect(() => {
+    if (customMessages.length === 0) return;
+    const currentMin = Math.floor(state.timePlayed / 60);
+    customMessages.forEach(m => {
+      if (typeof m.milestone === 'number' && m.milestone >= 0 && m.milestone === currentMin) {
+        if (!shownFixedMessagesRef.current.has(m.id)) {
+          shownFixedMessagesRef.current.add(m.id);
+          setBossMsg({
+            who: m.who,
+            es: m.text,
+            en: m.text,
+            isCustom: true,
+            milestone: m.milestone,
+            color: m.color || '#1a8fff',
+            position: m.position || 'bottom',
+            size: m.size || 'medium',
+            animation: m.animation || 'none',
+            particles: m.particles || 'none'
+          });
+        }
+      }
+    });
+  }, [state.timePlayed, customMessages]);
 
   // Load custom messages on mount
   useEffect(() => {
     window.cloudLoadCustomMessages().then(res => {
       let msgs = res.ok ? res.messages : [];
-      if (msgs.length === 0) {
-        msgs = [
-          { id: 'm1', who: 'Dani', text: 'qué bueno que ya estás "trabajando". el ticket de QA del flujo de pagos sigue sin tocar, eh.', milestone: 1, createdAt: Date.now() },
-          { id: 'm2', who: 'Memo', text: 'lindo el clicker. el endpoint /auth lleva 1 minuto rompiendo staging. pero tú dale.', milestone: 2, createdAt: Date.now() + 1 },
-          { id: 'm3', who: 'José María', text: 'el cliente acaba de entrar al call. yo le digo que estás "validando hipótesis", ¿sale?', milestone: 3, createdAt: Date.now() + 2 },
-          { id: 'm4', who: 'Dani', text: '5 minutos clickeando. yo llevo 5 reportando el mismo bug del onboarding. coincidencia, seguro.', milestone: 5, createdAt: Date.now() + 3 },
-          { id: 'm5', who: 'Memo', text: 'la build sigue rota. tu rama también. pero qué bonito clickeas.', milestone: 10, createdAt: Date.now() + 4 },
-          { id: 'm6', who: 'José María', text: 'el prospecto preguntó por features. inventé 3. te las paso después, suerte.', milestone: 15, createdAt: Date.now() + 5 },
-          { id: 'm7', who: 'Dani', text: '1 hora. ya escribí el bug report de tu productividad. severity: blocker.', milestone: 60, createdAt: Date.now() + 6 }
-        ];
+      
+      // Force all seeded messages that currently have a positive milestone in the old database to milestone: -1 (Random/Collaborator)
+      // Since seed IDs are not persisted in the database (they are stored as autogenerated UUIDs), we identify the old seed list
+      // by checking if the number of messages with non-random milestones (milestone !== -1) is very large (> 100).
+      const oldSeedCount = msgs.filter(m => m.milestone !== -1).length;
+      if (oldSeedCount > 100) {
+        let migrated = msgs.map(m => ({ ...m, milestone: -1 }));
+        window.cloudSaveCustomMessages(migrated);
+        msgs = migrated;
+      } else if (msgs.length < 600 && window.getBossMessagesSeed) {
+        // Fallback for new empty databases
+        const seed = window.getBossMessagesSeed();
+        window.cloudSaveCustomMessages(seed);
+        msgs = seed;
       }
+
+      // Apply name fallback to any message missing a name using window.EMPLOYEE_NAMES
+      const names = window.EMPLOYEE_NAMES || ['Dani'];
+      msgs = msgs.map(m => {
+        if (!m.who || !m.who.trim()) {
+          const randomName = names[Math.floor(Math.random() * names.length)];
+          return { ...m, who: randomName };
+        }
+        return m;
+      });
       setCustomMessages(msgs);
     });
   }, []);
@@ -776,7 +855,15 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       const now = Date.now();
       clickTimesRef.current = [...clickTimesRef.current.filter(t => now - t < 1000), now];
       const cps = clickTimesRef.current.length;
-      const maxCPS = (() => { try { return parseInt(localStorage.getItem('admin_cps_threshold')) || 20; } catch(e) { return 20; } })();
+      const maxCPS = (() => {
+        try {
+          const enabled = localStorage.getItem('admin_cps_limit_enabled') !== 'false';
+          if (!enabled) return 999999;
+          return parseInt(localStorage.getItem('admin_cps_threshold')) || 20;
+        } catch(e) {
+          return 20;
+        }
+      })();
       if (cps >= maxCPS && cheatLevel === 0) {
         const banResult = window.AntiCheat.applyBan(username);
         if (banResult) {
@@ -1226,15 +1313,15 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               onMouseLeave={() => setIsMainMouseDown(false)}
               onTouchStart={(e) => { handleClick(e); setIsMainMouseDown(true); }}
               onTouchEnd={() => setIsMainMouseDown(false)}
-              style={{ position: 'relative', cursor: 'pointer', zIndex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', width: 240, height: 240 }}
+              style={{ position: 'relative', cursor: 'pointer', zIndex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', width: 280, height: 280 }}
             >
-              <window.ToothbrushRing count={state.generators.brush} radius={120} />
+              <window.ToothbrushRing count={state.generators.brush} radius={140} />
               <img 
                 src={currentToothImg} 
                 alt="tooth" 
                 className="mobile-main-tooth"
                 style={{
-                  width: 240, height: 240, objectFit: 'contain', position: 'relative', zIndex: 5,
+                  width: 280, height: 280, objectFit: 'contain', position: 'relative', zIndex: 5,
                   filter: holdBonusUntil > Date.now() ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : goldenMult > 1 ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : crystalMult > 1 ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))'
                 }}
               />
@@ -1338,12 +1425,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             <div className="mobile-menu-divider" />
 
 
-            <button className="mobile-menu-item" onClick={() => { setMenuOpen(false); setShowResetConfirm(true); }}>
+            <button className="mobile-menu-item danger" onClick={() => { setMenuOpen(false); setShowResetConfirm(true); }}>
               <i className="fa-solid fa-trash"></i>
               <span className="mobile-menu-item-text">{t.reset}</span>
             </button>
 
-            <button className="mobile-menu-item danger" onClick={() => { onLogout && onLogout(); setMenuOpen(false); }}>
+            <button className="mobile-menu-item" onClick={() => { onLogout && onLogout(); setMenuOpen(false); }}>
               <i className="fa-solid fa-right-from-bracket"></i>
               <span className="mobile-menu-item-text">{t.logout}</span>
             </button>
@@ -1367,13 +1454,334 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             ].map((item) => (
               <button 
                 key={item.id} 
-                className={`mobile-tab-item ${tab === item.id ? 'active' : ''}`} 
-                onClick={() => { setTab(item.id); setTabsMenuOpen(false); }}
+                className={`mobile-tab-item ${tabViewOpen && tab === item.id ? 'active' : ''}`} 
+                onClick={() => { setTab(item.id); setTabsMenuOpen(false); setTabViewOpen(true); }}
               >
                 <i className={item.icon}></i>
                 <span className="mobile-tab-label">{item.label}</span>
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Mobile Tab View Bottom Sheet */}
+        <div 
+          className={`mobile-tab-view-overlay ${tabViewOpen ? 'open' : ''}`}
+          onClick={() => setTabViewOpen(false)}
+        >
+          <div className="mobile-tab-view-sheet" onClick={e => e.stopPropagation()}>
+            <div className="mobile-tab-view-header">
+              <div className="mobile-tab-view-title">
+                <i className={
+                  tab === 'generators' ? 'fa-solid fa-industry' :
+                  tab === 'click' ? 'fa-solid fa-hand-pointer' :
+                  tab === 'achievements' ? 'fa-solid fa-trophy' :
+                  tab === 'prestige' ? 'fa-solid fa-crown' :
+                  tab === 'skills' ? 'fa-solid fa-graduation-cap' :
+                  tab === 'leaderboard' ? 'fa-solid fa-ranking-star' :
+                  'fa-solid fa-chart-line'
+                }></i>
+                <span>
+                  {tab === 'generators' ? t.tabGen :
+                   tab === 'click' ? t.tabClick :
+                   tab === 'achievements' ? t.tabAch :
+                   tab === 'prestige' ? t.tabPrestige :
+                   tab === 'skills' ? (lang === 'es' ? 'Academia' : 'Academy') :
+                   tab === 'leaderboard' ? t.tabLeaderboard :
+                   t.tabStats}
+                </span>
+              </div>
+              <button className="mobile-tab-view-close" onClick={() => setTabViewOpen(false)}>
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            
+            <div className="mobile-tab-view-body">
+              {tab === 'generators' && (
+                <div>
+                  <div style={{ marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'var(--spacing-4)', flexWrap: 'wrap' }}>
+                    <div>
+                      <div className="t-heading-m">{t.generatorsTitle}</div>
+                      <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{t.generatorsSub}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 3, background: 'var(--bg-3)', padding: 3, borderRadius: 'var(--radius-s)', flexShrink: 0 }}>
+                      {[1, 10, 25, 50, 100, 1000].map((q) => (
+                        <button key={q} onClick={() => { window.playClickSound && window.playClickSound(); setBuyQty(q); }} style={{
+                          all: 'unset', boxSizing: 'border-box', padding: '5px 9px', borderRadius: 6,
+                          fontSize: 12, fontWeight: buyQty === q ? 700 : 500, cursor: 'pointer',
+                          background: buyQty === q ? 'var(--primary-i100)' : 'transparent',
+                          color: buyQty === q ? '#fff' : 'var(--fg-2)',
+                          transition: 'all 120ms ease', fontFamily: 'var(--font-sans)'
+                        }}>x{q}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {genStatus.map((g) => (
+                      <window.GeneratorRow key={g.gen.id} gen={g.gen} owned={g.owned} cost={g.cost} canAfford={g.canAfford} unlocked={g.unlocked} revealed={g.revealed} production={g.production} nextProduction={g.nextProduction} lang={lang} totalTeeth={state.totalEarned} buyQty={buyQty} actualQty={g.actualQty} onBuy={() => buyGenerator(g.gen.id, buyQty)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {tab === 'click' && (
+                <div>
+                  <div style={{ marginBottom: 'var(--spacing-4)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', flexWrap: 'wrap' }}>
+                      <div>
+                        <div className="t-heading-m">{t.clickPowerTitle}</div>
+                        <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{t.clickPowerSub}</div>
+                      </div>
+                      <select
+                        value={clickFilter}
+                        onChange={(e) => setClickFilter(e.target.value)}
+                        style={{
+                          fontFamily: 'inherit',
+                          fontSize: 'var(--t-body-s-size, 13px)',
+                          background: 'var(--neutral-i005)',
+                          color: 'var(--fg-1)',
+                          border: '1px solid var(--neutral-i020)',
+                          borderRadius: 6,
+                          padding: '4px 10px',
+                          cursor: 'pointer',
+                          outline: 'none',
+                        }}
+                      >
+                        <option value="all">{t.upgradeFilterAll}</option>
+                        <option value="unlocked">{t.upgradeFilterUnlocked}</option>
+                        <option value="locked">{t.upgradeFilterLocked}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
+                    {filteredClickStatus.map((c) => (
+                      <window.ClickUpgradeRow key={c.up.id} up={c.up} purchased={c.purchased} unlocked={c.unlocked} canAfford={c.canAfford} lang={lang} totalTeeth={state.totalEarned} onBuy={() => buyClickUpgrade(c.up.id)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {tab === 'achievements' && (
+                <div>
+                  <div style={{ marginBottom: 'var(--spacing-4)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', flexWrap: 'wrap' }}>
+                      <div>
+                        <div className="t-heading-m">{t.achTitle}</div>
+                        <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{t.achSub}</div>
+                      </div>
+                      <select
+                        value={clickFilter}
+                        onChange={(e) => setClickFilter(e.target.value)}
+                        style={{
+                          fontFamily: 'inherit',
+                          fontSize: 'var(--t-body-s-size, 13px)',
+                          background: 'var(--neutral-i005)',
+                          color: 'var(--fg-1)',
+                          border: '1px solid var(--neutral-i020)',
+                          borderRadius: 6,
+                          padding: '4px 10px',
+                          cursor: 'pointer',
+                          outline: 'none',
+                        }}
+                      >
+                        <option value="all">{t.upgradeFilterAll}</option>
+                        <option value="unlocked">{t.upgradeFilterUnlocked}</option>
+                        <option value="locked">{t.upgradeFilterLocked}</option>
+                        <option value="new">{lang === 'es' ? 'Nuevos' : 'New'}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: 'var(--spacing-2)' }}>
+                    {window.ACHIEVEMENTS.filter(a => {
+                      if (clickFilter === 'new') return !!state.newAchievementIds?.[a.id];
+                      if (clickFilter === 'unlocked') return !!state.achievements[a.id];
+                      if (clickFilter === 'locked') return !state.achievements[a.id];
+                      return true;
+                    }).map((a) => (
+                      <window.AchievementCard 
+                        key={a.id} 
+                        ach={{ ...a, isNew: !!state.newAchievementIds?.[a.id] }} 
+                        unlocked={!!state.achievements[a.id]} 
+                        lang={lang} 
+                        onHover={(ach, pos, unlocked) => {
+                          setGlobalTooltip({ type: 'ach', data: ach, pos, unlocked });
+                          if (state.newAchievementIds?.[ach.id]) markAchievementSeen(ach.id);
+                        }} 
+                        onLeave={() => setGlobalTooltip(null)} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {tab === 'prestige' && (
+                <div>
+                  <div style={{ marginBottom: 'var(--spacing-4)' }}>
+                    <div className="t-heading-m" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <i className="fa-solid fa-crown" style={{ color: 'var(--warning-i100)' }}></i>{t.prestigeTitle}
+                    </div>
+                    <div className="t-body-m" style={{ color: 'var(--fg-3)', marginTop: 4 }}>{t.prestigeDesc}</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-4)' }}>
+                    <window.StatTile label={t.prestigeHave} value={fmt(state.prestige)} icon="fa-solid fa-crown" accent="var(--warning-i130)" onHelpEnter={(e) => setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'La cantidad de Sonrisas doradas que posees actualmente. Cada una multiplica pasivamente toda tu ganancia de dientes por un 5%. ¡No se pierden al prestigiar!' : 'The amount of Golden smiles you currently own. Each one passively multiplies all your teeth earnings by 5%. They are not lost upon prestiging!', pos: {x: e.clientX, y: e.clientY} })} onHelpLeave={() => setGlobalTooltip(null)} />
+                    <window.StatTile label={lang === 'es' ? 'Veces prestigiado' : 'Times prestiged'} value={fmt(state.prestigeCount || 0)} icon="fa-solid fa-rotate" accent="var(--warning-i100)" onHelpEnter={(e) => setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'El número total de veces que has reiniciado tu progreso a cambio de Sonrisas doradas. Mientras más lo hagas, irás descubriendo nuevas evoluciones de dientes.' : 'The total number of times you have reset your progress in exchange for Golden smiles. Doing this unlocks new teeth evolutions.', pos: {x: e.clientX, y: e.clientY} })} onHelpLeave={() => setGlobalTooltip(null)} />
+                    <window.StatTile label={t.prestigeEarn} value={`+${fmt(prestigeGain)}`} icon="fa-solid fa-plus" accent="var(--positive-i100)" onHelpEnter={(e) => setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'La cantidad exacta de Sonrisas doradas que ganarás si decides hacer el prestigio en este preciso momento. Recuerda que cada sonrisa requiere cada vez más dientes.' : 'The exact amount of Golden smiles you\'ll earn if you choose to prestige right now. Remember, each smile requires more and more teeth.', pos: {x: e.clientX, y: e.clientY} })} onHelpLeave={() => setGlobalTooltip(null)} />
+                    <window.StatTile label={t.prestigeBonus} value={`+${fmt((prestigeMult - 1) * 100)}%`} icon="fa-solid fa-chart-line" accent="var(--alternative-i100)" onHelpEnter={(e) => setGlobalTooltip({ type: 'text', text: lang === 'es' ? 'El multiplicador total de ganancia que te otorgan tus Sonrisas doradas. Por ejemplo, si tienes 20 Sonrisas, obtendrás un +100% (el doble) de todos los dientes.' : 'The total earnings multiplier granted by your Golden smiles. For example, owning 20 Smiles grants you a +100% (double) boost to all teeth.', pos: {x: e.clientX, y: e.clientY} })} onHelpLeave={() => setGlobalTooltip(null)} />
+                  </div>
+                  <button onClick={() => { setTabViewOpen(false); setShowPrestigeConfirm(true); }} disabled={prestigeGain <= 0} style={{ all: 'unset', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 'var(--spacing-4) var(--spacing-6)', background: prestigeGain > 0 ? 'var(--warning-i100)' : 'var(--bg-3)', color: prestigeGain > 0 ? 'var(--warning-i150)' : 'var(--fg-4)', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 15, cursor: prestigeGain > 0 ? 'pointer' : 'not-allowed', width: '100%', transition: 'background 150ms' }}>
+                    <i className="fa-solid fa-crown"></i>
+                    {prestigeGain > 0 ? t.prestigeBtn : (lang === 'es' ? `Necesitas ${fmt(prestigeReq)} dientes totales` : `You need ${fmt(prestigeReq)} total teeth`)}
+                  </button>
+
+                  {/* Tooth progression gallery */}
+                  <div style={{ marginTop: 'var(--spacing-6)' }}>
+                    <div className="t-heading-xs" style={{ color: 'var(--fg-2)', marginBottom: 'var(--spacing-3)' }}>
+                      {lang === 'es' ? 'Evolución del diente' : 'Tooth evolution'}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--spacing-2)' }}>
+                      {window.TOOTH_STAGES.map((s, i) => {
+                        const unlocked = (state.prestigeCount || 0) >= s.prestige;
+                        const isCurrent = (state.selectedTooth || 0) === i && unlocked;
+                        return (
+                          <div key={i} 
+                            onClick={() => { if (unlocked) { window.playClickSound && window.playClickSound(); setState((prev) => ({ ...prev, selectedTooth: i })); } }} 
+                            style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 'var(--spacing-2)', borderRadius: 'var(--radius-m)', cursor: unlocked ? 'pointer' : 'default', background: isCurrent ? 'var(--primary-i010)' : unlocked ? 'var(--bg-2)' : 'var(--bg-3)', border: `1px solid ${isCurrent ? 'var(--primary-i100)' : unlocked ? 'var(--border-subtle)' : 'var(--border-subtle)'}`, transition: 'all 150ms' }}>
+                            <div style={{ relative: true, width: 48, height: 48 }}>
+                              <img src={s.img} alt="" style={{ width: 48, height: 48, objectFit: 'contain', opacity: unlocked ? 1 : 0.2, filter: unlocked ? 'none' : 'grayscale(1)' }} />
+                              {!unlocked && (
+                                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <i className="fa-solid fa-lock" style={{ fontSize: 14, color: 'var(--fg-4)' }}></i>
+                                </div>
+                              )}
+                              {isCurrent && (
+                                <div style={{ position: 'absolute', top: 0, right: 0, width: 12, height: 12, borderRadius: '50%', background: 'var(--primary-i100)', border: '2px solid white' }} />
+                              )}
+                            </div>
+                            <div className="t-body-xs" style={{ color: unlocked ? 'var(--fg-2)' : 'var(--fg-4)', textAlign: 'center', lineHeight: 1.2, fontSize: 9, fontWeight: isCurrent ? 600 : 400 }}>
+                              {unlocked ? (s[lang] || s.es).split(' ').slice(1).join(' ') || s[lang] || s.es : `x${s.prestige}`}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {tab === 'skills' && (
+                <div>
+                  <div style={{ marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                    <div>
+                      <div className="t-heading-m">{lang === 'es' ? 'Academia Dental' : 'Dental Academy'}</div>
+                      <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Premios académicos por tus logros y nivel.' : 'Academic rewards for your achievements and level.'}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, background: 'var(--bg-3)', padding: 3, borderRadius: 8 }}>
+                      {['all', 'not_bought', 'bought'].map(f => (
+                        <button key={f} onClick={() => setAcademyFilter(f)} style={{
+                          all: 'unset', boxSizing: 'border-box', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                          background: academyFilter === f ? 'var(--primary-i100)' : 'transparent',
+                          color: academyFilter === f ? '#fff' : 'var(--fg-2)', transition: 'all 150ms'
+                        }}>
+                          {f === 'all' ? (lang === 'es' ? 'Todos' : 'All') : 
+                           f === 'not_bought' ? (lang === 'es' ? 'No comprados' : 'Not bought') : 
+                           (lang === 'es' ? 'Comprados' : 'Bought')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {[...(window.LEVEL_UPGRADES || []), ...(window.XP_UPGRADES || [])].filter(up => {
+                      const purchased = !!state.xpUpgrades[up.id];
+                      const isUnlocked = up.achievementId ? !!state.achievements[up.achievementId] : (state.level >= up.levelReq);
+                      
+                      if (academyFilter === 'not_bought') return !purchased && isUnlocked;
+                      if (academyFilter === 'bought') return purchased;
+                      
+                      return isUnlocked || purchased; 
+                    })
+                    .map(up => {
+                      const purchased = !!state.xpUpgrades[up.id];
+                      const cost = up.baseCost;
+                      const canAfford = state.teeth >= cost;
+                      const isSpecial = up.isLevelSpecial;
+                      
+                      return (
+                        <div key={up.id} style={{ 
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', 
+                          background: purchased ? 'var(--positive-i005)' : (isSpecial ? 'var(--warning-i005)' : 'var(--bg-1)'), 
+                          border: purchased ? '1px solid var(--positive-i020)' : (isSpecial ? '1px solid var(--warning-i030)' : '1px solid var(--primary-i020)'), 
+                          borderRadius: 12,
+                          transition: 'all 200ms'
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: purchased ? 'var(--positive-i100)' : 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {up.name[lang]}
+                              </div>
+                              {isSpecial && <i className="fa-solid fa-star" style={{ fontSize: 10, color: 'var(--warning-i100)' }}></i>}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2, lineHeight: 1.3 }}>
+                              {up.desc[lang]}
+                            </div>
+                          </div>
+                          <button 
+                            disabled={purchased || !canAfford}
+                            onClick={() => buyXpUpgrade(up.id)}
+                            style={{
+                              all: 'unset', boxSizing: 'border-box', padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, 
+                              cursor: (purchased || !canAfford) ? 'not-allowed' : 'pointer',
+                              background: purchased ? 'var(--positive-i100)' : (canAfford ? 'var(--primary-i100)' : 'var(--bg-3)'),
+                              color: (purchased || canAfford) ? '#fff' : 'var(--fg-3)',
+                              minWidth: 90, textAlign: 'center', transition: 'all 150ms'
+                            }}
+                          >
+                            {purchased ? (lang === 'es' ? 'Completado' : 'Completed') : fmt(cost)}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {tab === 'leaderboard' && (
+                <window.LeaderboardPanel username={username} lang={lang} />
+              )}
+
+              {tab === 'stats' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)' }}>
+                  <div>
+                    <div className="t-heading-m">{t.statsTitle}</div>
+                    <div className="t-body-s" style={{ color: 'var(--fg-3)', marginTop: 2 }}>{lang === 'es' ? 'Todo lo que pasó en tu consulta.' : 'Everything that happened in your practice.'}</div>
+                  </div>
+                  <window.StatsGroup title={lang === 'es' ? 'Producción' : 'Production'} icon="fa-solid fa-gauge-high" accent="var(--primary-i100)" rows={[
+                    { label: t.currentTeeth, value: fmt(state.teeth), strong: true },
+                    { label: t.perSecond, value: fmt(perSecond, true), color: 'var(--positive-i100)' },
+                    { label: t.perClick, value: fmt(perClick, true), color: 'var(--alternative-i100)' },
+                    { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: `x${fmt(Math.floor(globalMult * 100) / 100)}`, color: 'var(--warning-i130)' },
+                    { label: lang === 'es' ? 'Récord CPS' : 'CPS Record', value: fmt(state.maxCPS || 0), color: 'var(--positive-i100)' }
+                  ]} />
+                  <window.StatsGroup title={lang === 'es' ? 'Progreso' : 'Progress'} icon="fa-solid fa-chart-line" accent="var(--positive-i100)" rows={[
+                    { label: t.totalTeeth, value: fmt(state.totalEarned), strong: true },
+                    { label: t.totalClicks, value: fmt(state.totalClicks) },
+                    { label: lang === 'es' ? 'Generadores totales' : 'Total generators', value: fmt(Object.values(state.generators || {}).reduce((a, b) => a + (b || 0), 0)) },
+                    { label: lang === 'es' ? 'Mejoras compradas' : 'Upgrades bought', value: `${Object.values(state.clickUpgrades || {}).filter(Boolean).length}/${window.CLICK_UPGRADES.length}` },
+                    { label: lang === 'es' ? 'Logros' : 'Achievements', value: `${Object.keys(state.achievements || {}).length}/${window.ACHIEVEMENTS.length}` }
+                  ]} />
+                  <window.StatsGroup title={t.prestige || 'Prestigio'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
+                    { label: t.prestigeHave, value: fmt(state.prestige), strong: true },
+                    { label: lang === 'es' ? 'Veces prestigiado' : 'Times prestiged', value: fmt(state.prestigeCount || 0), color: 'var(--warning-i100)' },
+                    { label: lang === 'es' ? 'Próxima ganancia' : 'Next gain', value: `+${fmt(prestigeGain)}` },
+                    { label: lang === 'es' ? 'Dientes dorados' : 'Golden teeth', value: fmt(state.goldenClicks), color: 'var(--warning-i100)' }
+                  ]} />
+                  <window.StatsGroup title={lang === 'es' ? 'Tiempo' : 'Time'} icon="fa-solid fa-clock" accent="var(--fg-2)" rows={[
+                    { label: t.timePlayed, value: window.formatTime(state.timePlayed), strong: true },
+                    { label: lang === 'es' ? 'Empezaste' : 'Started', value: new Date(state.startedAt || Date.now()).toLocaleDateString(lang === 'es' ? 'es' : 'en') },
+                    { label: lang === 'es' ? 'Sesión actual' : 'Current session', value: window.formatTime(Math.max(0, (state.timePlayed || 0) - (bootRef.current?.saved?.timePlayed || 0))) }
+                  ]} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -2593,8 +3001,13 @@ function App() {
 
       try {
         const setRes = await window.cloudFetchSettings();
-        if (setRes.ok && setRes.settings && setRes.settings.cpsThreshold) {
-          localStorage.setItem('admin_cps_threshold', setRes.settings.cpsThreshold.toString());
+        if (setRes.ok && setRes.settings) {
+          if (setRes.settings.cpsThreshold) {
+            localStorage.setItem('admin_cps_threshold', setRes.settings.cpsThreshold.toString());
+          }
+          if (setRes.settings.cpsLimitEnabled !== undefined) {
+            localStorage.setItem('admin_cps_limit_enabled', setRes.settings.cpsLimitEnabled.toString());
+          }
         }
       } catch (e) {}
     };
@@ -2603,8 +3016,10 @@ function App() {
     const id = setInterval(syncData, 15000);
     return () => clearInterval(id);
   }, [username, sessionId]);
-  // Keep window.__lang in sync (used by UserPill)
-  useEffect(() => {window.__lang = lang;}, [lang]);
+  useEffect(() => {
+    window.__lang = lang;
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const [banErrorMsg, setBanErrorMsg] = useState(null);
 

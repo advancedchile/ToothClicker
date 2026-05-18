@@ -381,6 +381,18 @@
     </div>
   </div>
 
+  <!-- Global Landscape Mobile Warning -->
+  <div class="mobile-landscape-warning">
+    <div class="mobile-landscape-warning-box">
+      <div class="mobile-landscape-warning-icon">📱🔄</div>
+      <h2>Modo no optimizado / Unoptimized Mode</h2>
+      <p class="warning-es">El juego está optimizado para jugarlo en modo portrait (vertical).</p>
+      <p class="warning-en">The game is optimized to be played in portrait (vertical) mode.</p>
+      <p class="mobile-landscape-warning-sub warning-es">Si quieres una mejor experiencia, por favor juega desde la versión desktop o gira tu dispositivo.</p>
+      <p class="mobile-landscape-warning-sub warning-en">If you want a better experience, please play from the desktop version or rotate your device.</p>
+    </div>
+  </div>
+
   <script>
     window.onerror = function (msg, url, line, col, error) {
       var errDiv = document.createElement('div');
@@ -420,6 +432,7 @@
   <!-- Load order: utils (constants/helpers) → content → game → cloud → components → music → boss-marquee → falling-teeth → feedback → admin → gate → anti-cheat → admin-debug → app → tweaks/upgrades -->
   <script type="text/babel" src="utils.jsx?v=0.6.1"></script>
   <script type="text/babel" src="content.jsx?v=0.6.1"></script>
+  <script type="text/babel" src="messages-seed.jsx?v=0.6.1"></script>
   <script type="text/babel" src="game.jsx?v=0.6.1"></script>
   <script type="text/babel" src="cloud.jsx?v=0.6.1"></script>
   <script type="text/babel" src="components.jsx?v=0.6.1"></script>

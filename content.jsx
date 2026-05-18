@@ -3,16 +3,23 @@
 // ==========================================================================
 
 // ── App Version (single source of truth) ──────────────────────────────────
-const APP_VERSION = 'v0.5.1-beta';
-const VERSION_DATE = '2026-05-11';
+const APP_VERSION = 'v0.5.5-beta';
+const VERSION_DATE = '2026-05-18';
 
 const VERSION_HISTORY = [
+  {
+    v: 'v0.5.5-beta',
+    date: '2026-05-18',
+    es: 'Control Panel & Avatares Premium: Creación de mensajes manual vs. aleatorio único, toggle de límite de CPS en pestaña Admin, buscador de emisores corregido sin solapamiento, y soporte de avatares grandes de 70x70px con hovers de edición.',
+    en: 'Control Panel & Premium Avatars: Manual vs unique random message flows, CPS limit toggle in Admin tab, search input layout fix, and 70x70px circular avatar uploads with edit hover overlay.',
+    latest: true,
+  },
   {
     v: 'v0.5.1-beta',
     date: '2026-05-11',
     es: 'Reproductor Musical: Implementación de reproductor global dinámico, corrección de bugs de renderizado del menú tour y simulación de partículas completada.',
     en: 'Music Player: Implemented dynamic global music player, fixed tour menu rendering bugs, and completed particle simulation.',
-    latest: true,
+    latest: false,
   },
   {
     v: 'v0.0.35-beta',

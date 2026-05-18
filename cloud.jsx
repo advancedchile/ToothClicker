@@ -264,13 +264,24 @@ async function cloudLoadCustomMessages() {
     if (!_supabase) throw new Error('No Supabase');
     const { data, error } = await _supabase.from('custom_messages').select('*').order('created_at', { ascending: false });
     if (error) throw error;
-    const messages = data.map(m => ({
-      name: m.name,
-      text: m.text,
-      milestone: m.milestone,
-      color: m.color,
-      createdAt: new Date(m.created_at).getTime()
-    }));
+    const messages = data.map(m => {
+      let cleanText = m.text || '';
+      let image = null;
+      if (cleanText.includes("||image:")) {
+        const parts = cleanText.split("||image:");
+        cleanText = parts[0];
+        image = parts[1] || null;
+      }
+      return {
+        id: m.id || Math.random().toString(36).substr(2, 9),
+        who: m.name,
+        text: cleanText,
+        image: image,
+        milestone: m.milestone,
+        color: m.color,
+        createdAt: new Date(m.created_at).getTime()
+      };
+    });
     return { ok: true, messages, source: 'cloud' };
   } catch (e) {
     const local = localStorage.getItem('tc_custom_messages_v1');
@@ -284,13 +295,16 @@ async function cloudSaveCustomMessages(messages) {
     if (!_supabase) return { ok: true, source: 'local' };
     
     await _supabase.from('custom_messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    const { error } = await _supabase.from('custom_messages').insert(messages.map(m => ({
-      name: m.name,
-      text: m.text,
-      milestone: m.milestone,
-      color: m.color,
-      created_at: m.createdAt ? new Date(m.createdAt).toISOString() : new Date().toISOString()
-    })));
+    const { error } = await _supabase.from('custom_messages').insert(messages.map(m => {
+      const dbText = m.text + (m.image ? "||image:" + m.image : "");
+      return {
+        name: m.name || m.who,
+        text: dbText,
+        milestone: m.milestone,
+        color: m.color,
+        created_at: m.createdAt ? new Date(m.createdAt).toISOString() : new Date().toISOString()
+      };
+    }));
     if (error) throw error;
     return { ok: true, source: 'cloud' };
   } catch (e) { return { ok: true, source: 'local', warning: e.message }; }

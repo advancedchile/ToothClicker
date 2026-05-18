@@ -1,6 +1,44 @@
 const { useState, useEffect, useRef, useMemo } = React;
 const NAME_COLORS = ['oklch(0.6 0.22 25)', 'oklch(0.55 0.25 295)', 'oklch(0.6 0.2 250)'];
 
+const VALID_CHARS = [
+  'ale', 'carlos', 'andrea', 'cami', 'chalo', 'cote', 'cotefi', 'cris',
+  'dani', 'daniela', 'fabi', 'fenia', 'gabo', 'gianni', 'james', 'john',
+  'jose_maria', 'juan', 'juanmi', 'juli', 'leo', 'lucho', 'manu', 'mari',
+  'martin', 'mati', 'may', 'nico_flecha', 'nico_ojeda', 'palo', 'pancho',
+  'pascal', 'patito', 'payo', 'rafa', 'sofi', 'tatan', 'tomi', 'vania', 'yisus'
+];
+
+function getAvatarUrl(who, customImage, msgId) {
+  if (customImage) return customImage;
+  if (!who) return null;
+  
+  let norm = who.toLowerCase().trim()
+    .replace(/[áäàâ]/g, 'a')
+    .replace(/[éëèê]/g, 'e')
+    .replace(/[íïìî]/g, 'i')
+    .replace(/[óöòô]/g, 'o')
+    .replace(/[úüùû]/g, 'u')
+    .replace(/ñ/g, 'nia')
+    .replace(/[^a-z0-9]/g, '_')
+    .replace(/__+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  if (norm === 'feña') norm = 'fenia';
+
+  if (norm === 'nico') {
+    const val = typeof msgId === 'string' ? msgId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
+    return val % 2 === 0 ? 'assets/chars/nico_flecha.png' : 'assets/chars/nico_ojeda.png';
+  }
+
+  if (VALID_CHARS.includes(norm)) {
+    if (norm === 'ale') return 'assets/chars/Ale.png';
+    if (norm === 'carlos') return 'assets/chars/Carlos.png';
+    return `assets/chars/${norm}.png`;
+  }
+  return null;
+}
+
 function BossMarquee({ msg, lang, danger, onDismiss }) {
   const [shown, setShown] = useState('');
   const [containerReady, setContainerReady] = useState(false);
@@ -109,10 +147,55 @@ function BossMarquee({ msg, lang, danger, onDismiss }) {
         {/* Glow effect */}
         <div style={{ position: 'absolute', inset: -2, borderRadius: 'inherit', background: `linear-gradient(45deg, ${accentColor}, transparent, ${accentColor})`, opacity: 0.3, zIndex: -1 }}></div>
 
-        <i className={danger ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-info'} style={{ color: iconColor, fontSize: 24, flex: '0 0 auto', filter: `drop-shadow(0 0 8px ${iconColor})` }}></i>
+        {(() => {
+          if (danger) {
+            return <i className="fa-solid fa-triangle-exclamation" style={{ color: iconColor, fontSize: 24, flex: '0 0 auto', filter: `drop-shadow(0 0 8px ${iconColor})` }}></i>;
+          }
+          const avatarUrl = getAvatarUrl(msg.who, msg.image, msg.id);
+          if (avatarUrl) {
+            return (
+              <img
+                src={avatarUrl}
+                alt={msg.who}
+                style={{
+                  width: 70,
+                  height: 70,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  flex: '0 0 auto',
+                  border: `2px solid ${accentColor}`,
+                  boxShadow: `0 0 16px ${accentColor}44`,
+                  filter: `drop-shadow(0 0 4px ${accentColor}44)`
+                }}
+              />
+            );
+          } else {
+            return (
+              <div style={{
+                width: 70,
+                height: 70,
+                borderRadius: '50%',
+                background: '#1e293b',
+                border: `2px solid ${accentColor}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: iconColor,
+                flex: '0 0 auto',
+                boxShadow: `0 0 16px ${accentColor}44`
+              }}>
+                <i className="fa-solid fa-user" style={{ fontSize: 28 }}></i>
+              </div>
+            );
+          }
+        })()}
         <div style={{ fontSize: 'inherit', color: textColor, fontFamily: 'var(--font-sans)', lineHeight: 1.5, fontWeight: 500, textAlign: 'left', flex: 1, minWidth: 0 }}>
-          <span style={{ color: finalNameColor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: `1px solid ${finalNameColor}44`, paddingBottom: 2 }}>{msg.who} {sayWord}:</span>{' '}
-          <span style={{ display: 'block', marginTop: 4 }}>
+          {!messageBody.startsWith(msg.who + ' dice') && !messageBody.startsWith(msg.who + ' says') && (
+            <span style={{ color: finalNameColor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: `1px solid ${finalNameColor}44`, paddingBottom: 2 }}>
+              {msg.who} {sayWord}:
+            </span>
+          )}
+          <span style={{ display: 'block', marginTop: (!messageBody.startsWith(msg.who + ' dice') && !messageBody.startsWith(msg.who + ' says')) ? 4 : 0 }}>
             {containerReady && (<>
               {shown}
               {shown.length < messageBody.length && <span style={{ display: 'inline-block', width: 2, height: '1em', background: textColor, marginLeft: 1, verticalAlign: 'middle', animation: 'cursorBlink 0.8s steps(1) infinite' }}></span>}

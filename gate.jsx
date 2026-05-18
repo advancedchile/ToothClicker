@@ -81,7 +81,7 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
     </div>
   );
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: noScroll ? 'visible' : 'auto', maxHeight: noScroll ? 'none' : 520 }}>
+    <div className="leaderboard-body-list" style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: noScroll ? 'visible' : 'auto', maxHeight: noScroll ? 'none' : 520 }}>
       {/* Sort Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '0 4px' }}>
         <button 
@@ -121,7 +121,7 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
           {lang === 'es' ? 'POR DIENTES' : 'BY TEETH'}
         </button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: `36px 1fr 90px 140px ${extraColumns}`, gap: 'var(--spacing-3)', padding: '0 var(--spacing-3)', color: 'var(--fg-3)', marginBottom: 2 }} className="t-mini-caps">
+      <div className="leaderboard-header-row t-mini-caps" style={{ display: 'grid', gridTemplateColumns: `36px 1fr 90px 140px ${extraColumns}`, gap: 'var(--spacing-3)', padding: '0 var(--spacing-3)', color: 'var(--fg-3)', marginBottom: 2 }}>
         <div>{t.lbRank}</div><div>{t.lbPlayer}</div>
         <div style={{ textAlign: 'right' }}>{t.lbPrestige}</div>
         <div style={{ textAlign: 'right' }}>{t.lbTotal}</div>
@@ -131,38 +131,46 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
         const isCurrent = currentUser && r.name === currentUser;
         const medal = i === 0 ? '#FFC220' : i === 1 ? '#A6B5C5' : i === 2 ? '#E8A06E' : null;
         return (
-          <div key={r.name + '-' + i} style={{ display: 'grid', gridTemplateColumns: `36px 1fr 90px 140px ${extraColumns}`, gap: 'var(--spacing-3)', alignItems: 'center', padding: '10px var(--spacing-3)', background: isCurrent ? 'var(--primary-i010)' : 'var(--bg-1)', border: `1px solid ${isCurrent ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 'var(--radius-s)' }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: medal || 'var(--bg-3)', color: medal ? '#fff' : 'var(--fg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{i + 1}</div>
-            <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-              {window.TOOTH_STAGES && <img src={window.getToothStage(r.prestigeCount || 0).img} alt="" style={{ width: 40, height: 40, objectFit: 'contain', flexShrink: 0 }} />}
-              <div style={{ minWidth: 0 }}>
+          <div key={r.name + '-' + i} className={`leaderboard-row ${isCurrent ? 'current-player' : ''}`} style={{ display: 'grid', gridTemplateColumns: `36px 1fr 90px 140px ${extraColumns}`, gap: 'var(--spacing-3)', alignItems: 'center', padding: '10px var(--spacing-3)', background: isCurrent ? 'var(--primary-i010)' : 'var(--bg-1)', border: `1px solid ${isCurrent ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 'var(--radius-s)' }}>
+            <div className="leaderboard-rank-num" style={{ width: 28, height: 28, borderRadius: '50%', background: medal || 'var(--bg-3)', color: medal ? '#fff' : 'var(--fg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{i + 1}</div>
+            <div className="leaderboard-player-col" style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="leaderboard-tooth-wrapper" style={{ position: 'relative', width: 40, height: 40, flexShrink: 0 }}>
+                {window.TOOTH_STAGES && <img src={window.getToothStage(r.prestigeCount || 0).img} alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />}
+                {(() => {
+                  const timeSince = Date.now() - r.updatedAt;
+                  const online = r.isOnline !== false && timeSince < 60000;
+                  return (
+                    <div style={{ 
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%', 
+                      background: online ? '#22C55E' : '#94A3B8', 
+                      boxShadow: online ? '0 0 6px #22C55E' : 'none', 
+                      border: '1.5px solid var(--bg-1)',
+                      zIndex: 2
+                    }} />
+                  );
+                })()}
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="t-heading-xs" style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {(() => {
-                    const timeSince = Date.now() - r.updatedAt;
-                    const online = r.isOnline !== false && timeSince < 60000;
-                    return (
-                      <div style={{ 
-                        width: 8, height: 8, borderRadius: '50%', 
-                        background: online ? '#22C55E' : '#94A3B8', 
-                        boxShadow: online ? '0 0 6px #22C55E' : 'none', 
-                        flexShrink: 0 
-                      }} />
-                    );
-                  })()}
                   {r.name}
                   {isCurrent && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: 'var(--primary-i100)', color: '#fff', padding: '2px 6px', borderRadius: 999 }}>{t.lbYou}</span>}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--primary-i100)', fontWeight: 600, marginBottom: 2 }}>
+                <div style={{ fontSize: 10, color: 'var(--primary-i100)', fontWeight: 600, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {r.clinicName ? r.clinicName : (lang === 'es' ? `Clínica de ${r.name}` : `${r.name}'s Clinic`)}
                   <span style={{ marginLeft: 8, color: 'var(--fg-3)', fontWeight: 400 }}>• Niv. {r.level || 0}</span>
                 </div>
               </div>
             </div>
-            <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--warning-i130)', fontWeight: 600 }}>
+            <div className="leaderboard-prestige-col" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--warning-i130)', fontWeight: 600 }}>
               <i className="fa-solid fa-crown" style={{ color: 'var(--warning-i100)', fontSize: 11, marginRight: 4 }}></i>
               {window.formatNum(r.prestigeCount || 0)}
             </div>
-            <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--primary-i100)', fontWeight: 600 }}>{window.formatNum(r.totalEarned || 0)}</div>
+            <div className="leaderboard-total-col" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--primary-i100)', fontWeight: 600 }}>{window.formatNum(r.totalEarned || 0)}</div>
             {renderRowExtra && renderRowExtra(r)}
           </div>
         );
@@ -512,12 +520,32 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
         <div style={{ marginTop: 4, fontSize: 11, color: 'rgba(80,110,150,0.3)', fontFamily: 'var(--font-sans)', letterSpacing: 0.2 }}>{window.APP_VERSION || 'v0.5.5-beta'}</div>
       </div>
 
-      {showLb && (
+      {showLb && window.innerWidth > 768 && (
         <window.Modal onClose={() => setShowLb(false)} maxWidth={640}>
           <LeaderboardHeader lb={lb} lang={lang} />
           <LeaderboardBody lb={lb} lang={lang} currentUser={null} />
         </window.Modal>
       )}
+
+      <div 
+        className={`mobile-tab-view-overlay ${showLb && window.innerWidth <= 768 ? 'open' : ''}`}
+        onClick={() => setShowLb(false)}
+      >
+        <div className="mobile-tab-view-sheet" onClick={e => e.stopPropagation()}>
+          <div className="mobile-tab-view-header">
+            <div className="mobile-tab-view-title">
+              <i className="fa-solid fa-ranking-star"></i>
+              <span>{lang === 'es' ? 'Ranking Global' : 'Global Ranking'}</span>
+            </div>
+            <button className="mobile-tab-view-close" onClick={() => setShowLb(false)}>&times;</button>
+          </div>
+          <div className="mobile-tab-view-body">
+            {showLb && window.innerWidth <= 768 && (
+              <LeaderboardPanel username={deviceUser || null} lang={lang} />
+            )}
+          </div>
+        </div>
+      </div>
 
       {showAdminPw && (
         <AdminPasswordModal
