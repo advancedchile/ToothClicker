@@ -36,6 +36,27 @@ function MenuItem({ icon, label, onClick, danger, trailing }) {
 }
 function MenuDivider() {return <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 2px' }} />;}
 
+const getAbsoluteSrc = (src) => {
+  if (!src) return '';
+  if (src.startsWith('http')) return src;
+  
+  let base = '';
+  if (window.location.hostname.includes('github.io')) {
+    base = '/ToothClicker/';
+  } else {
+    base = window.location.pathname;
+    if (!base.endsWith('/')) {
+      const parts = base.split('/');
+      parts.pop();
+      base = parts.join('/') + '/';
+    }
+  }
+  
+  const origin = window.location.origin;
+  const cleanBase = base.startsWith('/') ? base : '/' + base;
+  return `${origin}${cleanBase}${src.startsWith('/') ? src.slice(1) : src}`;
+};
+
 function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange }) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
   const isAdmin = username === 'James';
@@ -221,7 +242,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             .map((f, i) => ({
               id: f.sha, // Use GitHub SHA as stable ID
               title: f.name.replace(/_/g, ' ').replace('.mp3', ''),
-              src: f.path
+              src: f.download_url || f.path
             }));
           if (mp3s.length > 0) {
             setTracks(mp3s);
@@ -251,40 +272,56 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
   // Handle Play/Change Track (Fade-in ONLY on entry)
   useEffect(() => {
-    if (audioRef.current && isMusicPlaying) {
-      const targetVol = musicMuted ? 0 : musicVolume;
-      
-      if (!initialFadeDone.current) {
-        audioRef.current.volume = 0;
-        audioRef.current.play().catch(e => {
-          console.error('Initial audio play blocked:', e);
-          setIsMusicPlaying(false);
-        });
+    const audio = audioRef.current;
+    if (!audio) return;
 
-        // Initial fade in effect
-        let cur = 0;
-        const step = 0.02;
-        const interval = setInterval(() => {
-          cur += step;
-          if (cur >= targetVol) {
-            if (audioRef.current) audioRef.current.volume = targetVol;
-            initialFadeDone.current = true;
-            clearInterval(interval);
-          } else {
-            if (audioRef.current) audioRef.current.volume = cur;
-          }
-        }, 50);
-        return () => clearInterval(interval);
-      } else {
-        // Regular track change or resume - instant volume sync
-        audioRef.current.volume = targetVol;
-        audioRef.current.play().catch(e => {
-          console.error('Audio play blocked:', e);
-          // Don't set isMusicPlaying(false) here, let it stay true so UI shows it's trying to play
-        });
+    if (isMusicPlaying) {
+      const targetVol = musicMuted ? 0 : musicVolume;
+      const absoluteSrc = getAbsoluteSrc(currentTrack?.src);
+
+      // 1. If the source changed, update it
+      if (audio.src !== absoluteSrc && absoluteSrc) {
+        audio.src = absoluteSrc;
+        audio.load();
+        initialFadeDone.current = false;
       }
-    } else if (audioRef.current && !isMusicPlaying) {
-      audioRef.current.pause();
+
+      // 2. Play the audio if it is paused
+      if (audio.paused) {
+        if (!initialFadeDone.current) {
+          audio.volume = 0;
+          audio.play()
+            .then(() => {
+              // Fade in
+              let cur = 0;
+              const step = 0.02;
+              const interval = setInterval(() => {
+                cur += step;
+                if (cur >= targetVol) {
+                  audio.volume = targetVol;
+                  initialFadeDone.current = true;
+                  clearInterval(interval);
+                } else {
+                  audio.volume = cur;
+                }
+              }, 50);
+              return () => clearInterval(interval);
+            })
+            .catch(e => {
+              console.warn('Asynchronous fade-in play blocked:', e);
+            });
+        } else {
+          audio.volume = targetVol;
+          audio.play().catch(e => {
+            console.warn('Asynchronous resume play blocked:', e);
+          });
+        }
+      } else {
+        // If already playing, just ensure the volume is correct
+        audio.volume = targetVol;
+      }
+    } else {
+      audio.pause();
     }
   }, [isMusicPlaying, currentTrack]);
 
@@ -1952,7 +1989,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
       <audio 
         ref={audioRef}
-        src={currentTrack?.src || ''}
+        src={currentTrack ? getAbsoluteSrc(currentTrack.src) : ''}
         preload="auto"
         style={{ display: 'none' }}
         onTimeUpdate={(e) => setMusicTime(e.target.currentTime)}
@@ -1966,20 +2003,28 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             setIsMusicPlaying(false);
             e.target.currentTime = 0;
           } else if (isShuffle) {
-            // Shuffle (with or without Loop) = random next
             let nextIdx = Math.floor(Math.random() * tracks.length);
-            setCurrentTrack(tracks[nextIdx]);
+            const nextTrack = tracks[nextIdx];
+            setCurrentTrack(nextTrack);
+            if (audioRef.current) {
+              audioRef.current.src = getAbsoluteSrc(nextTrack.src);
+              audioRef.current.load();
+              audioRef.current.volume = musicMuted ? 0 : musicVolume;
+              audioRef.current.play().catch(err => console.log('Ended shuffle play blocked:', err));
+            }
           } else if (isLoop) {
-            // Loop alone = repeat current
             e.target.currentTime = 0;
             e.target.play().catch(err => { console.error('Loop play blocked:', err); setIsMusicPlaying(false); });
           } else {
-            // Neither = next in order
-            setCurrentTrack(curr => {
-              const idx = tracks.findIndex(t => t.id === curr.id);
-              const next = tracks[(idx + 1) % tracks.length];
-              return next;
-            });
+            const idx = tracks.findIndex(t => t.id === currentTrack.id);
+            const nextTrack = tracks[(idx + 1) % tracks.length];
+            setCurrentTrack(nextTrack);
+            if (audioRef.current) {
+              audioRef.current.src = getAbsoluteSrc(nextTrack.src);
+              audioRef.current.load();
+              audioRef.current.volume = musicMuted ? 0 : musicVolume;
+              audioRef.current.play().catch(err => console.log('Ended next play blocked:', err));
+            }
           }
         }}
       />
@@ -2026,12 +2071,24 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             setIsMusicPlaying(true); 
             // Unlock/Play directly in click handler for mobile
             if (audioRef.current) {
-              audioRef.current.src = t.src; // Force source update immediately
+              audioRef.current.src = getAbsoluteSrc(t.src); // Force source update immediately with absolute path
               audioRef.current.load(); // Required on some mobile browsers after src change
+              audioRef.current.volume = musicMuted ? 0 : musicVolume;
               audioRef.current.play().catch(e => console.log('Gesture play:', e));
             }
           }}
-          onPlayRandom={handlePlayRandom}
+          onPlayRandom={() => {
+            if (tracks.length === 0) return;
+            const random = tracks[Math.floor(Math.random() * tracks.length)];
+            setCurrentTrack(random);
+            setIsMusicPlaying(true);
+            if (audioRef.current) {
+              audioRef.current.src = getAbsoluteSrc(random.src);
+              audioRef.current.load();
+              audioRef.current.volume = musicMuted ? 0 : musicVolume;
+              audioRef.current.play().catch(e => console.log('Random play gesture fail:', e));
+            }
+          }}
           isPlaying={isMusicPlaying}
           onTogglePlay={() => { 
             const next = !isMusicPlaying;
@@ -2039,9 +2096,14 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             setIsMusicPlaying(next); 
             if (audioRef.current) {
               if (next) {
+                const absSrc = getAbsoluteSrc(currentTrack.src);
+                if (audioRef.current.src !== absSrc) {
+                  audioRef.current.src = absSrc;
+                  audioRef.current.load();
+                }
+                audioRef.current.volume = musicMuted ? 0 : musicVolume;
                 audioRef.current.play().catch(e => {
                    console.log('Toggle play fail:', e);
-                   // Fallback: try to load and play again
                    audioRef.current.load();
                    audioRef.current.play().catch(p => console.log('Retry play fail:', p));
                 });

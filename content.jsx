@@ -601,6 +601,9 @@ function formatTime(s) {
 function playTone(freq, dur = 0.08, type = 'sine', vol = 0.05) {
   try {
     const ctx = window._audioCtx || (window._audioCtx = new (window.AudioContext || window.webkitAudioContext)());
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = type; osc.frequency.value = freq; gain.gain.value = vol;
