@@ -1247,38 +1247,38 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               <div className="mobile-click-gain">+{fmt(perClick, true)} {t.teeth} / click</div>
            </div>
 
+           <div className="mobile-upgrades-row">
+              {(window.STORE_UPGRADES || []).filter(up => {
+                 if (state.storeUpgrades[up.id]) return false;
+                 if (up.type === 'generator') return (state.generators[up.targetId] || 0) >= up.milestone;
+                 return state.totalEarned >= up.requirement;
+              }).map(up => {
+                 const canAfford = state.teeth >= up.cost;
+                 return (
+                   <div 
+                     key={up.id} 
+                     className={`mobile-upgrade-slot ${!canAfford ? 'disabled' : ''}`} 
+                     style={{ 
+                       borderColor: canAfford ? up.color : 'var(--neutral-i020)', 
+                       color: canAfford ? up.color : 'var(--fg-3)', 
+                       cursor: canAfford ? 'pointer' : 'not-allowed' 
+                     }} 
+                     onClick={() => buyStoreUpgrade(up)}
+                   >
+                     <i className={`fa-solid ${up.icon}`}></i>
+                   </div>
+                 );
+              })}
+              {/* Placeholder if none available */}
+              {((window.STORE_UPGRADES || []).filter(up => !state.storeUpgrades[up.id] && (up.type === 'generator' ? (state.generators[up.targetId] || 0) >= up.milestone : state.totalEarned >= up.requirement)).length === 0) && (
+                <div className="mobile-upgrade-slot disabled" style={{ opacity: 0.3, borderColor: 'var(--neutral-i020)', color: 'var(--fg-4)' }}>
+                  <i className="fa-solid fa-lock"></i>
+                </div>
+              )}
+           </div>
+
            {floats.map((f) =>
               <div key={f.id} style={{ position: 'absolute', left: f.x, top: f.y, pointerEvents: 'none', color: '#000000', fontWeight: 900, fontSize: 18, textShadow: '-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 2px 4px rgba(0,0,0,0.2)', animation: 'clickPop 600ms ease-out forwards', fontVariantNumeric: 'tabular-nums', '--tx': `${f.tx}px`, zIndex: 100 }}>+{fmt(f.gain, true)}</div>
-           )}
-        </section>
-
-        <section className="mobile-upgrades-row">
-           {(window.STORE_UPGRADES || []).filter(up => {
-              if (state.storeUpgrades[up.id]) return false;
-              if (up.type === 'generator') return (state.generators[up.targetId] || 0) >= up.milestone;
-              return state.totalEarned >= up.requirement;
-           }).map(up => {
-              const canAfford = state.teeth >= up.cost;
-              return (
-                <div 
-                  key={up.id} 
-                  className={`mobile-upgrade-slot ${!canAfford ? 'disabled' : ''}`} 
-                  style={{ 
-                    borderColor: canAfford ? up.color : 'var(--neutral-i020)', 
-                    color: canAfford ? up.color : 'var(--fg-3)', 
-                    cursor: canAfford ? 'pointer' : 'not-allowed' 
-                  }} 
-                  onClick={() => buyStoreUpgrade(up)}
-                >
-                  <i className={`fa-solid ${up.icon}`}></i>
-                </div>
-              );
-           })}
-           {/* Placeholder if none available */}
-           {((window.STORE_UPGRADES || []).filter(up => !state.storeUpgrades[up.id] && (up.type === 'generator' ? (state.generators[up.targetId] || 0) >= up.milestone : state.totalEarned >= up.requirement)).length === 0) && (
-             <div className="mobile-upgrade-slot disabled" style={{ opacity: 0.3, borderColor: 'var(--neutral-i020)', color: 'var(--fg-4)' }}>
-               <i className="fa-solid fa-lock"></i>
-             </div>
            )}
         </section>
 
