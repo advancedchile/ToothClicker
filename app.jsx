@@ -182,6 +182,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [musicMuted, setMusicMuted] = useState(() => saved?.musicSettings?.muted ?? false);
   const [playMode, setPlayMode] = useState(() => saved?.musicSettings?.playMode ?? 'shuffle');
   const [musicTime, setMusicTime] = useState(0);
+  const lastTimeUpdate = useRef(0);
   const [tabsMenuOpen, setTabsMenuOpen] = useState(false);
   const [musicDuration, setMusicDuration] = useState(0);
   const sessionStartMinutes = useRef(null);
@@ -1994,7 +1995,14 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         src={currentTrack ? getAbsoluteSrc(currentTrack.src) : ''}
         preload="auto"
         style={{ display: 'none' }}
-        onTimeUpdate={(e) => setMusicTime(e.target.currentTime)}
+        onTimeUpdate={(e) => {
+          const now = Date.now();
+          const t = e.target.currentTime;
+          if (now - lastTimeUpdate.current > 330 || Math.abs(t - musicTime) > 1 || t === 0) {
+            setMusicTime(t);
+            lastTimeUpdate.current = now;
+          }
+        }}
         onLoadedMetadata={(e) => setMusicDuration(e.target.duration)}
         onEnded={(e) => {
           const isLoop = playMode.includes('loop');

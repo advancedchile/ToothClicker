@@ -94,12 +94,15 @@ function MusicPlayerModal({
       <style>{`
         .music-slider { height: 2px; -webkit-appearance: none; background: var(--border-subtle); border-radius: 1px; outline: none; }
         .music-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; border-radius: 50%; background: var(--primary-i100); cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        @keyframes discRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes discRotate { 
+          from { transform: rotate(0deg) translate3d(0,0,0); } 
+          to { transform: rotate(360deg) translate3d(0,0,0); } 
+        }
       `}</style>
       <div style={{ paddingBottom: 16, borderBottom: '1px solid var(--border-subtle)', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 className="t-heading-s" style={{ margin: 0 }}>{lang === 'es' ? 'Reproductor de Música' : 'Music Player'}</h2>
-        <button onClick={onClose} style={{ all: 'unset', cursor: 'pointer', color: 'var(--fg-3)' }}>
-          <i className="fa-solid fa-xmark" style={{ fontSize: 18 }}></i>
+        <button onClick={onClose} style={{ all: 'unset', cursor: 'pointer', color: 'var(--fg-3)', padding: 12, margin: -12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <i className="fa-solid fa-xmark" style={{ fontSize: 20 }}></i>
         </button>
       </div>
       
@@ -206,7 +209,9 @@ function MusicPlayerModal({
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   overflow: 'hidden',
                   border: isCurrent ? '2px solid var(--primary-i100)' : '1px solid var(--border-subtle)',
-                  animation: isPlayingThis ? 'discRotate 4s linear infinite' : 'none'
+                  animation: isPlayingThis ? 'discRotate 4s linear infinite' : 'none',
+                  willChange: 'transform',
+                  transform: 'translate3d(0,0,0)'
                 }}>
                   <img src={t.cover || 'https://img.icons8.com/color/96/music-record.png'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
