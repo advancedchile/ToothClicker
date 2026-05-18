@@ -10,8 +10,8 @@ const VERSION_HISTORY = [
   {
     v: 'v0.5.5-beta',
     date: '2026-05-18',
-    es: 'Control Panel & Avatares Premium: Creación de mensajes manual vs. aleatorio único, toggle de límite de CPS en pestaña Admin, buscador de emisores corregido sin solapamiento, y soporte de avatares grandes de 70x70px con hovers de edición.',
-    en: 'Control Panel & Premium Avatars: Manual vs unique random message flows, CPS limit toggle in Admin tab, search input layout fix, and 70x70px circular avatar uploads with edit hover overlay.',
+    es: 'Versión móvil disponible. Ahora los mensajes de líderes y colaboradores tienen una imagen personalizada. Optimización de la academia. Premios por logros y niveles. Mejoras en la seguridad de login y signup',
+    en: 'Mobile version available. Leader and collaborator messages now feature custom avatar images. Academy optimization. Achievement and level rewards. Login and signup security enhancements.',
     latest: true,
   },
   {

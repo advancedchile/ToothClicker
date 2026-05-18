@@ -546,8 +546,8 @@ function AboutModal({ onClose, lang }) {
   if (showLog) return <VersionLogModal onClose={() => setShowLog(false)} lang={lang} />;
 
   return (
-    <window.Modal onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 300, maxWidth: 360, minHeight: 0 }}>
+    <window.Modal onClose={onClose} maxWidth={650}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 300, maxWidth: 600, minHeight: 0 }}>
         <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 180, objectFit: 'contain', marginBottom: 8, flexShrink: 0 }} />
         <div style={{ fontSize: 15, fontWeight: 600, color: '#333', fontFamily: 'var(--font-sans)', marginBottom: 16, flexShrink: 0, padding: "20px 0px" }}>
           {lang === 'es' ? 'Creado por Jaime Arias' : 'Created by Jaime Arias'}
