@@ -364,6 +364,10 @@ function buildClickUpgrades() {
       up.en = enName + ' ' + romanize(Math.floor(i / 14) + 1);
       up.desc_es = `×1.75 poder de click`;
       up.desc_en = `×1.75 click power`;
+    } else if (type === 'perAch') {
+      up.value = 1.5;
+      up.es = esName + ' ' + romanize(Math.floor(i / 14) + 1);
+      up.en = enName + ' ' + romanize(Math.floor(i / 14) + 1);
       up.desc_es = `+1.5 % al click por cada logro desbloqueado`;
       up.desc_en = `+1.5 % to click per achievement unlocked`;
     } else if (type === 'timeBonus') {
