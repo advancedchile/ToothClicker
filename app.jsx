@@ -1986,6 +1986,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           </div>
         </section>
       </main>
+        </div>
+      )}
 
       <audio 
         ref={audioRef}
@@ -2039,25 +2041,25 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         </div>
       )}
 
-      <MusicFloatingBtn 
-        isPlaying={isMusicPlaying} 
-        onClick={() => setMusicModalOpen(true)} 
-        currentTrack={currentTrack} 
-        currentTime={musicTime} 
-        duration={musicDuration}
-        lang={lang}
-        onHover={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          setGlobalTooltip({
-            type: 'text',
-            text: isMusicPlaying ? (lang === 'es' ? 'Reproduciendo' : 'Playing') : (lang === 'es' ? 'Click para escuchar música.' : 'Click to play music.'),
-            pos: { x: rect.left + rect.width / 2, y: rect.top - 8 },
-            direction: 'up'
-          });
-        }}
-        onLeave={() => setGlobalTooltip(null)}
-      />
-        </div>
+      {!isMobile && (
+        <MusicFloatingBtn 
+          isPlaying={isMusicPlaying} 
+          onClick={() => setMusicModalOpen(true)} 
+          currentTrack={currentTrack} 
+          currentTime={musicTime} 
+          duration={musicDuration}
+          lang={lang}
+          onHover={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setGlobalTooltip({
+              type: 'text',
+              text: isMusicPlaying ? (lang === 'es' ? 'Reproduciendo' : 'Playing') : (lang === 'es' ? 'Click para escuchar música.' : 'Click to play music.'),
+              pos: { x: rect.left + rect.width / 2, y: rect.top - 8 },
+              direction: 'up'
+            });
+          }}
+          onLeave={() => setGlobalTooltip(null)}
+        />
       )}
       {musicModalOpen && (
         <MusicPlayerModal
