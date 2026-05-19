@@ -555,7 +555,7 @@ function AboutModal({ onClose, lang }) {
         <div style={{ width: '100%', borderTop: '1.5px dashed #d0dce8', marginBottom: 16, flexShrink: 0 }} />
         <div style={{ width: '100%' }}>
           {(() => {
-            const latest = versions.find((v) => v.latest);
+            const latest = versions[0];
             if (!latest) return null;
             return (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
