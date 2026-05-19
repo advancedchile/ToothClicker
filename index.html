@@ -144,9 +144,9 @@
     }
 
     @keyframes auroraMove {
-      0% { background-position: 0% 50%; transform: scale(1) rotate(0deg); }
-      50% { background-position: 100% 50%; transform: scale(1.1) rotate(2deg); }
-      100% { background-position: 0% 50%; transform: scale(1) rotate(0deg); }
+      0% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+      50% { transform: translate3d(2%, 2%, 0) scale(1.15) rotate(3deg); }
+      100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
     }
 
     .aurora-container {
@@ -159,7 +159,7 @@
         rgba(180, 70, 255, 0.3),
         rgba(0, 255, 200, 0.3)
       );
-      background-size: 300% 300%;
+      background-size: 150% 150%;
       filter: blur(60px);
       animation: auroraMove 30s ease-in-out infinite;
       z-index: 0;
@@ -167,6 +167,8 @@
       mix-blend-mode: screen;
       opacity: var(--aurora-opacity, 0);
       transition: opacity 2s ease-in-out;
+      will-change: transform, opacity;
+      transform: translate3d(0, 0, 0);
     }
 
     @keyframes goldSpin {

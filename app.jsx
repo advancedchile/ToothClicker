@@ -141,6 +141,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   if (typeof window !== 'undefined') {window.__numFormat = numFormat;window.__lang = lang;}
   const fmt = useCallback((n, kd = false) => window.formatNumWithMode(n, numFormat, lang, kd), [numFormat, lang]);
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem(SOUND_KEY) !== '0');
+  const [visualEffects, setVisualEffects] = useState(() => localStorage.getItem('tooth-clicker-visual-effects') !== '0');
   const [tab, setTab] = useState('generators');
   const [floats, setFloats] = useState([]);
   const [golden, setGolden] = useState(null);
@@ -150,6 +151,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [saveFlash, setSaveFlash] = useState(false);
   const [showPrestigeConfirm, setShowPrestigeConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showSpinningBrushes, setShowSpinningBrushes] = useState(() => localStorage.getItem('tooth-clicker-show-spinning-brushes') !== '0');
   const [menuOpen, setMenuOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState(null); // { x, y }
   const [showCuriosityModal, setShowCuriosityModal] = useState(false);
@@ -1188,10 +1191,20 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
   const toggleSound = useCallback(() => {setSoundOn((s) => {localStorage.setItem(SOUND_KEY, s ? '0' : '1');return !s;});}, []);
 
+  const toggleVisualEffects = useCallback(() => {setVisualEffects((v) => {localStorage.setItem('tooth-clicker-visual-effects', v ? '0' : '1');return !v;});}, []);
+
   const cycleNumFormat = useCallback(() => {
     const order = ['short', 'long', 'engineering', 'scientific'];
     setNumFormatLocal((m) => {const next = order[(order.indexOf(m) + 1) % order.length];try {localStorage.setItem(NUMFMT_KEY, next);} catch (e) {}onNumFormatChange && onNumFormatChange(next);return next;});
   }, [onNumFormatChange]);
+
+  const toggleSpinningBrushes = useCallback(() => {
+    setShowSpinningBrushes((s) => {
+      const n = !s;
+      localStorage.setItem('tooth-clicker-show-spinning-brushes', n ? '1' : '0');
+      return n;
+    });
+  }, []);
 
   const genStatus = window.GENERATORS.map((g) => {
     const owned = state.generators[g.id] || 0;
@@ -1315,7 +1328,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               onTouchEnd={() => setIsMainMouseDown(false)}
               style={{ position: 'relative', cursor: 'pointer', zIndex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', width: 280, height: 280 }}
             >
-              <window.ToothbrushRing count={state.generators.brush} radius={140} />
+              {showSpinningBrushes && <window.ToothbrushRing count={state.generators.brush} radius={140} />}
               <img 
                 src={currentToothImg} 
                 alt="tooth" 
@@ -1396,20 +1409,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           onClick={() => setMenuOpen(false)}
         >
           <div className="mobile-menu-drawer" onClick={e => e.stopPropagation()}>
-            <button className="mobile-menu-item" onClick={() => { toggleSound(); setMenuOpen(false); }}>
-              <i className={`fa-solid ${soundOn ? 'fa-volume-high' : 'fa-volume-xmark'}`}></i>
-              <span className="mobile-menu-item-text">{soundOn ? t.soundOn : t.soundOff}</span>
-            </button>
-
-            <button className="mobile-menu-item" onClick={() => { toggleLang(); setMenuOpen(false); }}>
-              <i className="fa-solid fa-language"></i>
-              <span className="mobile-menu-item-text">{lang === 'es' ? 'Español' : 'English'}</span>
-            </button>
-
-            <button className="mobile-menu-item" onClick={() => { cycleNumFormat(); setMenuOpen(false); }}>
-              <i className="fa-solid fa-hashtag"></i>
-              <span className="mobile-menu-item-text">{lang === 'es' ? 'Formato numérico' : 'Number format'}</span>
-              <span className="mobile-menu-item-trailing">{{ short: '1.2M', long: lang === 'es' ? 'millón' : 'million', engineering: '1.2e6', scientific: '10^6' }[numFormat]} →</span>
+            <button className="mobile-menu-item" onClick={() => { setMenuOpen(false); setShowSettingsModal(true); }}>
+              <i className="fa-solid fa-sliders"></i>
+              <span className="mobile-menu-item-text">{lang === 'es' ? 'Configuración' : 'Settings'}</span>
             </button>
 
             <button className="mobile-menu-item" onClick={() => { setMenuOpen(false); setShowAbout(true); }}>
@@ -1425,10 +1427,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             <div className="mobile-menu-divider" />
 
 
-            <button className="mobile-menu-item danger" onClick={() => { setMenuOpen(false); setShowResetConfirm(true); }}>
-              <i className="fa-solid fa-trash"></i>
-              <span className="mobile-menu-item-text">{t.reset}</span>
-            </button>
+
 
             <button className="mobile-menu-item" onClick={() => { onLogout && onLogout(); setMenuOpen(false); }}>
               <i className="fa-solid fa-right-from-bracket"></i>
@@ -1890,9 +1889,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           </button>
           {menuOpen &&
           <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, minWidth: 260, background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', boxShadow: 'var(--elevation-20)', padding: 6, zIndex: 20, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <window.MenuItem icon={soundOn ? 'fa-volume-high' : 'fa-volume-xmark'} label={soundOn ? t.soundOn : t.soundOff} onClick={toggleSound} />
-              <window.MenuItem icon="fa-language" label={lang === 'es' ? 'Español' : 'English'} trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'EN →' : 'ES →'}</span>} onClick={toggleLang} />
-              <window.MenuItem icon="fa-hashtag" label={lang === 'es' ? 'Formato numérico' : 'Number format'} trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{{ short: '1.2M', long: lang === 'es' ? 'millón' : 'million', engineering: '1.2e6', scientific: '10^6' }[numFormat]} →</span>} onClick={cycleNumFormat} />
+              <window.MenuItem icon="fa-sliders" label={lang === 'es' ? 'Configuración' : 'Settings'} onClick={() => { setMenuOpen(false); setShowSettingsModal(true); }} />
               <window.MenuItem icon="fa-circle-info" label={lang === 'es' ? 'Acerca de' : 'About'} onClick={() => {setMenuOpen(false);setShowAbout(true);}} />
               <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => {setMenuOpen(false);setShowFeedbackModal(true);}} />
               <window.MenuDivider />
@@ -1919,7 +1916,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 } catch (e) {}
                 onLogout && onLogout();
               }} />
-              <window.MenuItem icon="fa-trash" label={t.reset} danger onClick={() => {setMenuOpen(false);setShowResetConfirm(true);}} />
+
             </div>
           }
         </div>
@@ -1929,7 +1926,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         {/* LEFT */}
         <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)', alignSelf: 'start', position: 'sticky', top: 'var(--spacing-6)' }}>
           <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-m)', padding: 'var(--spacing-8) var(--spacing-6)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-5)', boxShadow: 'var(--elevation-10)', overflow: 'hidden', position: 'relative' }}>
-            <FallingTeethSimulation clickPulse={clickPulse} totalGenerators={Object.values(state.generators || {}).reduce((a, b) => a + b, 0)} toothImg={currentToothImg} />
+            {visualEffects && (
+              <FallingTeethSimulation clickPulse={clickPulse} totalGenerators={Object.values(state.generators || {}).reduce((a, b) => a + b, 0)} toothImg={currentToothImg} />
+            )}
             {username === 'James' && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 4 }}>
                 <button onClick={() => { 
@@ -2027,7 +2026,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               )}
             </div>
             <div style={{ position: 'relative', width: '100%', height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
-                <div className="aurora-container" style={{ '--aurora-opacity': auroraOpacity, zIndex: -1, mixBlendMode: 'soft-light' }} />
+                {visualEffects && (
+                  <div className="aurora-container" style={{ '--aurora-opacity': auroraOpacity, zIndex: -1, mixBlendMode: 'soft-light' }} />
+                )}
                 <div style={{
                   position: 'absolute', top: '50%', left: '50%', width: 1200, height: 1200,
                   pointerEvents: 'none', zIndex: 0,
@@ -2037,7 +2038,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                   transition: 'opacity 1.2s ease-out',
                   animation: 'rotateSun 40s linear infinite'
                 }} />
-                <window.ToothbrushRing count={state.generators.brush} />
+                {showSpinningBrushes && <window.ToothbrushRing count={state.generators.brush} />}
                 <div 
                   id="main-tooth-target"
                   onMouseDown={(e) => { handleClick(e); setIsMainMouseDown(true); }}
@@ -2405,7 +2406,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       <audio 
         ref={audioRef}
         src={currentTrack ? getAbsoluteSrc(currentTrack.src) : ''}
-        preload="auto"
+        preload="none"
         style={{ display: 'none' }}
         onTimeUpdate={(e) => {
           const now = Date.now();
@@ -2484,6 +2485,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       {musicModalOpen && (
         <MusicPlayerModal
           lang={lang}
+          visualEffects={visualEffects}
           onClose={() => setMusicModalOpen(false)}
           tracks={tracks}
           currentTrack={currentTrack}
@@ -2662,6 +2664,159 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         </Modal>
       }
 
+      {showSettingsModal && (
+        <Modal onClose={() => setShowSettingsModal(false)} maxWidth={480}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--spacing-3)', marginBottom: 'var(--spacing-4)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <i className="fa-solid fa-gear" style={{ fontSize: 20, color: 'var(--primary-i100)', animation: 'spin 12s linear infinite' }}></i>
+              <span className="t-heading-m" style={{ fontWeight: 700 }}>{lang === 'es' ? 'Configuración del juego' : 'Game Settings'}</span>
+            </div>
+            <button onClick={() => { window.playClickSound && window.playClickSound(); setShowSettingsModal(false); }} style={{ all: 'unset', cursor: 'pointer', color: 'var(--fg-3)', transition: 'color 0.2s', padding: 4 }}>
+              <i className="fa-solid fa-xmark" style={{ fontSize: 18 }}></i>
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)', overflowY: 'auto', paddingRight: 4, maxHeight: 'calc(100vh - 200px)' }}>
+            {/* The 3 switches list separated by dividers */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* Sound Toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <i className={`fa-solid ${soundOn ? 'fa-volume-high' : 'fa-volume-xmark'}`} style={{ color: soundOn ? 'var(--primary-i100)' : 'var(--fg-3)', fontSize: 16, width: 20, textAlign: 'center' }}></i>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{lang === 'es' ? 'Efectos de sonido' : 'Sound Effects'}</span>
+                    <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{lang === 'es' ? 'Activa/desactiva los sonidos al hacer click y comprar' : 'Enable/disable click and purchase sounds'}</span>
+                  </div>
+                </div>
+                <label className="settings-switch">
+                  <input 
+                    type="checkbox" 
+                    checked={soundOn} 
+                    onChange={() => { window.playClickSound && window.playClickSound(); toggleSound(); }} 
+                  />
+                  <span className="settings-slider" />
+                </label>
+              </div>
+
+              <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+
+              {/* Visual Effects Toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <i className={`fa-solid ${visualEffects ? 'fa-wand-magic-sparkles' : 'fa-wand-magic'}`} style={{ color: visualEffects ? 'var(--primary-i100)' : 'var(--fg-3)', fontSize: 16, width: 20, textAlign: 'center' }}></i>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{lang === 'es' ? 'Simulaciones y partículas' : 'Simulations & Particles'}</span>
+                    <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{lang === 'es' ? 'Activa/desactiva la lluvia de dientes y animaciones globales' : 'Enable/disable falling teeth and global animations'}</span>
+                  </div>
+                </div>
+                <label className="settings-switch">
+                  <input 
+                    type="checkbox" 
+                    checked={visualEffects} 
+                    onChange={() => { window.playClickSound && window.playClickSound(); toggleVisualEffects(); }} 
+                  />
+                  <span className="settings-slider" />
+                </label>
+              </div>
+
+              <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+
+              {/* Orbiting Toothbrushes Toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <i className="fa-solid fa-broom" style={{ color: showSpinningBrushes ? 'var(--primary-i100)' : 'var(--fg-3)', fontSize: 16, width: 20, textAlign: 'center' }}></i>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{lang === 'es' ? 'Mostrar cepillos girando' : 'Show spinning toothbrushes'}</span>
+                    <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{lang === 'es' ? 'Muestra u oculta los cepillos orbitando alrededor del diente central' : 'Show or hide orbiting brushes around the central tooth'}</span>
+                  </div>
+                </div>
+                <label className="settings-switch">
+                  <input 
+                    type="checkbox" 
+                    checked={showSpinningBrushes} 
+                    onChange={() => { window.playClickSound && window.playClickSound(); toggleSpinningBrushes(); }} 
+                  />
+                  <span className="settings-slider" />
+                </label>
+              </div>
+            </div>
+
+            <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0' }} />
+
+            {/* Language Settings */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button 
+                onClick={() => { if (lang !== 'es') { window.playClickSound && window.playClickSound(); toggleLang(); } }}
+                style={{ 
+                  flex: 1, padding: '10px 16px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  background: lang === 'es' ? 'var(--primary-i010)' : 'var(--bg-3)',
+                  color: lang === 'es' ? 'var(--primary-i100)' : 'var(--fg-2)',
+                  border: lang === 'es' ? '1.5px solid var(--primary-i050)' : '1.5px solid var(--border-subtle)',
+                  transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                }}
+              >
+                <span style={{ fontSize: 16 }}>🇪🇸</span> Español
+              </button>
+              <button 
+                onClick={() => { if (lang !== 'en') { window.playClickSound && window.playClickSound(); toggleLang(); } }}
+                style={{ 
+                  flex: 1, padding: '10px 16px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  background: lang === 'en' ? 'var(--primary-i010)' : 'var(--bg-3)',
+                  color: lang === 'en' ? 'var(--primary-i100)' : 'var(--fg-2)',
+                  border: lang === 'en' ? '1.5px solid var(--primary-i050)' : '1.5px solid var(--border-subtle)',
+                  transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                }}
+              >
+                <span style={{ fontSize: 16 }}>🇺🇸</span> English
+              </button>
+            </div>
+
+            {/* Numeric Format Settings */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
+              <div className="form-label">{lang === 'es' ? 'Formato Numérico' : 'Number Format'}</div>
+              <select 
+                className="app-select" 
+                value={numFormat} 
+                onChange={(e) => { 
+                  window.playClickSound && window.playClickSound(); 
+                  const val = e.target.value;
+                  setNumFormatLocal(val);
+                  localStorage.setItem(NUMFMT_KEY, val);
+                  onNumFormatChange && onNumFormatChange(val);
+                }}
+                style={{ width: '100%', height: 46 }}
+              >
+                <option value="short">{lang === 'es' ? 'Corto (Abreviado - 1.2M)' : 'Short (Abbreviated - 1.2M)'}</option>
+                <option value="long">{lang === 'es' ? 'Largo (Completo - 1.2 Millón)' : 'Long (Full - 1.2 Million)'}</option>
+                <option value="engineering">{lang === 'es' ? 'Ingeniería (1.2e6)' : 'Engineering (1.2e6)'}</option>
+                <option value="scientific">{lang === 'es' ? 'Científico (1.2 x 10^6)' : 'Scientific (1.2 x 10^6)'}</option>
+              </select>
+            </div>
+
+            <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0' }} />
+
+            {/* Danger Zone: Reset Account */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed var(--negative-i050)', background: 'var(--negative-i005)', padding: '12px 16px', borderRadius: 12, gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--negative-i130)' }}>{lang === 'es' ? 'Eliminar cuenta' : 'Delete Account'}</span>
+                <span style={{ fontSize: 10, color: 'var(--negative-i130)', opacity: 0.85, lineHeight: 1.3 }}>{lang === 'es' ? 'Borra permanentemente tu progreso, usuario y ranking.' : 'Permanently erase all progress, user and rank.'}</span>
+              </div>
+              <button 
+                onClick={() => { window.playClickSound && window.playClickSound(); setShowResetConfirm(true); }} 
+                className="app-btn"
+                style={{ 
+                  all: 'unset', cursor: 'pointer', padding: '8px 14px', borderRadius: 8, background: 'var(--negative-i100)', color: '#fff', 
+                  fontSize: 12, fontWeight: 700, boxShadow: '0 2px 4px rgba(225,29,36,0.2)', transition: 'background 0.2s',
+                  whiteSpace: 'nowrap', flexShrink: 0
+                }}
+              >
+                {t.reset}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {showResetConfirm &&
       <Modal onClose={() => setShowResetConfirm(false)}>
           <div style={{ width: 54, height: 54, borderRadius: 'var(--radius-s)', background: 'var(--negative-i010)', color: 'var(--negative-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--spacing-3)' }}>
@@ -2797,9 +2952,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
       {contextMenu && (
         <div style={{ position: 'fixed', left: contextMenu.x, top: contextMenu.y, minWidth: 260, background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', boxShadow: 'var(--elevation-20)', padding: 6, zIndex: 10000, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <window.MenuItem icon={soundOn ? 'fa-volume-high' : 'fa-volume-xmark'} label={soundOn ? t.soundOn : t.soundOff} onClick={() => { window.playClickSound && window.playClickSound(); toggleSound(); }} />
-          <window.MenuItem icon="fa-language" label={lang === 'es' ? 'Español' : 'English'} trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'EN →' : 'ES →'}</span>} onClick={() => { window.playClickSound && window.playClickSound(); toggleLang(); }} />
-          <window.MenuItem icon="fa-hashtag" label={lang === 'es' ? 'Formato numérico' : 'Number format'} trailing={<span className="t-mini-caps" style={{ color: 'var(--fg-3)' }}>{{ short: '1.2M', long: lang === 'es' ? 'millón' : 'million', engineering: '1.2e6', scientific: '10^6' }[numFormat]} →</span>} onClick={() => { window.playClickSound && window.playClickSound(); cycleNumFormat(); }} />
+          <window.MenuItem icon="fa-sliders" label={lang === 'es' ? 'Configuración' : 'Settings'} onClick={() => { window.playClickSound && window.playClickSound(); setShowSettingsModal(true); }} />
           <window.MenuItem icon="fa-circle-info" label={lang === 'es' ? 'Acerca de' : 'About'} onClick={() => { window.playClickSound && window.playClickSound(); setShowAbout(true); }} />
           <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => { window.playClickSound && window.playClickSound(); setShowFeedbackModal(true); }} />
           <window.MenuDivider />
@@ -2827,7 +2980,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             } catch (e) {}
             onLogout && onLogout();
           }} />
-          <window.MenuItem icon="fa-trash" label={t.reset} danger onClick={() => { window.playClickSound && window.playClickSound(); setShowResetConfirm(true); }} />
+
         </div>
       )}
 
@@ -2927,6 +3080,28 @@ function App() {
   const [sessionId, setSessionId] = useState(() => localStorage.getItem(SESSION_ID_KEY) || null);
   const [sessionTerminated, setSessionTerminated] = useState(false);
   const [savedState, setSavedState] = useState(null);
+
+  const [appVersion, setAppVersion] = useState(() => window.APP_VERSION || 'v0.5.5-beta');
+
+  // Load dynamic version history from Supabase settings on startup
+  useEffect(() => {
+    const loadDynamicVersion = async () => {
+      try {
+        if (window.cloudFetchVersionMetadata) {
+          const res = await window.cloudFetchVersionMetadata();
+          if (res.ok && res.history && res.history.length > 0) {
+            console.log("[VersionSync] Loaded dynamic version:", res.history[0].v);
+            window.VERSION_HISTORY = res.history;
+            window.APP_VERSION = res.history[0].v;
+            setAppVersion(res.history[0].v);
+          }
+        }
+      } catch (e) {
+        console.warn("[VersionSync] Failed to load dynamic version history", e);
+      }
+    };
+    loadDynamicVersion();
+  }, []);
 
   // Global reset check and settings sync
   useEffect(() => {

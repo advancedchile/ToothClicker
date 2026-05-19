@@ -511,19 +511,19 @@ function VersionLogModal({ onClose, lang }) {
   }));
 
   return (
-    <window.Modal onClose={onClose} maxWidth={420}>
+    <window.Modal onClose={onClose} maxWidth={650}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
         <i className="fa-solid fa-clock-rotate-left" style={{ color: '#1a8fff', fontSize: 20 }}></i>
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--fg-1)', fontFamily: 'var(--font-sans)' }}>{lang === 'es' ? 'Historial de Versiones' : 'Version History'}</div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', maxHeight: 400, paddingRight: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', flex: 1, minHeight: 0, paddingRight: 6 }}>
         {versions.map((v, i) => (
           <div key={v.v + i} style={{ borderLeft: '2px solid #e1e8ef', paddingLeft: 16, paddingBottom: 4 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: '#1a8fff', background: 'rgba(26,143,255,0.1)', padding: '2px 8px', borderRadius: 6, fontFamily: 'var(--font-sans)' }}>{v.v}</span>
               {v.date && <span style={{ fontSize: 10, color: '#8aaacc', fontFamily: 'var(--font-sans)' }}>{v.date}</span>}
             </div>
-            <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>{v.desc}</div>
+            <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, fontFamily: 'var(--font-sans)', whiteSpace: 'pre-wrap' }}>{v.desc}</div>
           </div>
         ))}
       </div>
@@ -546,7 +546,7 @@ function AboutModal({ onClose, lang }) {
   if (showLog) return <VersionLogModal onClose={() => setShowLog(false)} lang={lang} />;
 
   return (
-    <window.Modal onClose={onClose} maxWidth={650}>
+    <window.Modal onClose={onClose} maxWidth={480}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 300, maxWidth: 600, minHeight: 0 }}>
         <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 180, objectFit: 'contain', marginBottom: 8, flexShrink: 0 }} />
         <div style={{ fontSize: 15, fontWeight: 600, color: '#333', fontFamily: 'var(--font-sans)', marginBottom: 16, flexShrink: 0, padding: "20px 0px" }}>

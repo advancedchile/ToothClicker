@@ -405,8 +405,12 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
 
   const handleSubmit = async (e) => {
     e && e.preventDefault();
-    const cleanName = name.trim();
-    if (!cleanName || nameReserved || loading) return;
+    const cleanInput = name.trim();
+    if (!cleanInput || nameReserved || loading) return;
+
+    // Case-insensitive matching to use existing DB casing or capitalize the first letter for new users
+    const matchingScoreUser = (lb.scores || []).find(s => s.name.toLowerCase() === cleanInput.toLowerCase());
+    const cleanName = matchingScoreUser ? matchingScoreUser.name : (cleanInput.charAt(0).toUpperCase() + cleanInput.slice(1));
 
     // 1. Honeypot check: Bots automatically fill all visible/hidden text fields
     if (websiteField.trim() !== '') {
@@ -475,7 +479,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#e8f2fb', fontFamily: "'PixelifySans', var(--font-sans)" }}>
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(uploads/background-e5bd6167.png)', backgroundSize: 'cover', backgroundPosition: 'center', pointerEvents: 'none' }} />
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(uploads/background-e5bd6167.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', pointerEvents: 'none' }} />
 
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 24px 24px', width: '100%', maxWidth: 400 }}>
 
@@ -609,25 +613,18 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
         )}
 
         {/* Public user pills */}
-        {deviceUser && users.length > 0 && (
-
+        {deviceUser && (
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-            {deviceUser && (
-              <div style={{ fontSize: 12, color: 'rgba(80,110,150,0.65)', fontFamily: 'var(--font-sans)', textAlign: 'center', marginBottom: 2 }}>
-                {lang === 'es' ? 'Selecciona un perfil' : 'Select a profile'}
-              </div>
-            )}
-            {users.map(u => (
-              <UserPill 
-                key={u} 
-                name={u} 
-                onSelect={onSelectUser} 
-                isOwn={u === deviceUser} 
-                onLogout={onLogoutDeviceUser}
-                isOnline={(lb.scores || []).some(s => s.name === u && (Date.now() - s.updatedAt) < 120000)}
-              />
-
-            ))}
+            <div style={{ fontSize: 12, color: 'rgba(80,110,150,0.65)', fontFamily: 'var(--font-sans)', textAlign: 'center', marginBottom: 2 }}>
+              {lang === 'es' ? 'Tu perfil activo' : 'Your active profile'}
+            </div>
+            <UserPill 
+              name={deviceUser} 
+              onSelect={onSelectUser} 
+              isOwn={true} 
+              onLogout={onLogoutDeviceUser}
+              isOnline={(lb.scores || []).some(s => s.name === deviceUser && (Date.now() - s.updatedAt) < 120000)}
+            />
           </div>
         )}
 

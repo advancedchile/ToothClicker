@@ -340,6 +340,35 @@ async function cloudClearAllPlayers() {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
+// ── Version Control settings ────────────────────────────────────────────────
+async function cloudFetchVersionMetadata() {
+  try {
+    if (!_supabase) return { ok: true, history: [], latestSha: '' };
+    const { data: vHist } = await _supabase.from('settings').select('value').eq('key', 'version_history').single();
+    const { data: vSha } = await _supabase.from('settings').select('value').eq('key', 'latest_commit_sha').single();
+    return {
+      ok: true,
+      history: vHist ? vHist.value : [],
+      latestSha: vSha ? vSha.value : ''
+    };
+  } catch (e) {
+    return { ok: false, error: e.message, history: [], latestSha: '' };
+  }
+}
+
+async function cloudSaveVersionHistory(history, latestSha) {
+  try {
+    if (!_supabase) return { ok: false };
+    const { error: err1 } = await _supabase.from('settings').upsert({ key: 'version_history', value: history });
+    if (err1) throw err1;
+    const { error: err2 } = await _supabase.from('settings').upsert({ key: 'latest_commit_sha', value: latestSha });
+    if (err2) throw err2;
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
 Object.assign(window, {
   cloudLoadAdminAccounts,
   cloudSaveAdminAccounts,
@@ -356,5 +385,7 @@ Object.assign(window, {
   cloudResetAll,
   cloudAuthenticate,
   cloudRegister,
-  cloudFetchPlayer
+  cloudFetchPlayer,
+  cloudFetchVersionMetadata,
+  cloudSaveVersionHistory
 });

@@ -384,3 +384,49 @@ input[type="color"]::-moz-color-swatch {
 .search-input {
   padding-left: 38px !important;
 }
+
+/* Custom premium switch toggle */
+.settings-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+.settings-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.settings-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--neutral-i030);
+  border-radius: 34px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.settings-slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.settings-switch input:checked + .settings-slider {
+  background-color: var(--primary-i100);
+  box-shadow: 0 0 8px rgba(0, 118, 219, 0.3);
+}
+.settings-switch input:checked + .settings-slider::before {
+  transform: translateX(20px);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+

@@ -75,7 +75,7 @@ function MusicPlayerModal({
   muted, onToggleMute,
   playMode, onChangePlayMode,
   currentTime, duration, onSeek,
-  soundOn, toggleSound, lang
+  soundOn, toggleSound, lang, visualEffects = true
 }) {
   const isShuffle = playMode.includes('shuffle');
   const isLoop = playMode.includes('loop');
@@ -209,7 +209,7 @@ function MusicPlayerModal({
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   overflow: 'hidden',
                   border: isCurrent ? '2px solid var(--primary-i100)' : '1px solid var(--border-subtle)',
-                  animation: isPlayingThis ? 'discRotate 4s linear infinite' : 'none',
+                  animation: (isPlayingThis && visualEffects) ? 'discRotate 4s linear infinite' : 'none',
                   willChange: 'transform',
                   transform: 'translate3d(0,0,0)'
                 }}>

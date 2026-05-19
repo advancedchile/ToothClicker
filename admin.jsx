@@ -205,6 +205,103 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [msgSearch, setMsgSearch] = useState('');
 
+  // ── Version Control States ──────────────────────────────────────────────────
+  const [versionsList, setVersionsList] = useState([]);
+  const [versionsLoading, setVersionsLoading] = useState(true);
+  const [dbCommitSha, setDbCommitSha] = useState('');
+  const [gitCommitSha, setGitCommitSha] = useState('');
+  const [pendingCommits, setPendingCommits] = useState([]);
+  const [loadingCommits, setLoadingCommits] = useState(false);
+  const [newVersionString, setNewVersionString] = useState('');
+  const [newVersionDate, setNewVersionDate] = useState('');
+  const [newChangelogEs, setNewChangelogEs] = useState('');
+  const [newChangelogEn, setNewChangelogEn] = useState('');
+  const [isPublishingVersion, setIsPublishingVersion] = useState(false);
+  const [versionSuccessNote, setVersionSuccessNote] = useState('');
+  const [previewLang, setPreviewLang] = useState('es');
+
+  // Semantic Conventional Commit Parser & Elaboration Dictionary
+  const generateChangelogFromCommits = (commitsList) => {
+    if (!commitsList || commitsList.length === 0) return { es: '', en: '' };
+    const esLines = [];
+    const enLines = [];
+    
+    commitsList.forEach(c => {
+      let msg = c.commit && c.commit.message ? c.commit.message.split('\n')[0] : '';
+      msg = msg.trim();
+      if (!msg) return;
+      
+      const prefixRegex = /^(feat|fix|chore|refactor|style|docs|perf|test|build|ci)(\([a-z0-9-_]+\))?:\s*/i;
+      let cleanMsg = msg.replace(prefixRegex, '');
+      cleanMsg = cleanMsg.charAt(0).toUpperCase() + cleanMsg.slice(1);
+      
+      const low = msg.toLowerCase();
+      let esElab = '';
+      let enElab = '';
+      
+      if (low.includes('casing') || low.includes('case-insensitive') || (low.includes('login') && low.includes('james'))) {
+        esElab = "Inicio de sesión insensible a mayúsculas: el juego ahora resuelve automáticamente las discrepancias de mayúsculas/minúsculas en el nombre de la cuenta al iniciar sesión, evitando la creación accidental de cuentas duplicadas.";
+        enElab = "Case-insensitive login resolution: the authentication system now automatically resolves capital/lowercase differences in usernames during login, preventing duplicate account creations.";
+      } 
+      else if (low.includes('settings') || low.includes('configuraci')) {
+        esElab = "Modal de configuración unificado: se agruparon todos los controles de sonido, idioma, efectos de partículas, efectos de cepillos y la opción de eliminación de cuenta en un solo modal premium accesible desde todos los menús del jugador.";
+        enElab = "Unified settings modal: consolidated all audio, language, visual particle, spinning brush toggles, and the account deletion tool into a single premium modal accessible from all player menu context paths.";
+      }
+      else if (low.includes('version') || low.includes('history') || low.includes('log')) {
+        esElab = "Optimización del historial de versiones: se rediseñó el modal de registro de versiones para extenderse a toda la altura disponible de la pantalla, brindando un scroll limpio y una lectura premium similar al reproductor de música.";
+        enElab = "Version history optimization: redesigned the log modal body layout to scale and fill the maximum viewport height dynamically, providing a fluid scrolling experience matching the music player.";
+      }
+      else if (low.includes('delete') || low.includes('wrap') || low.includes('line')) {
+        esElab = "Mejora visual de botones: se ajustó la disposición del botón de eliminación de cuenta con flexbox y propiedades 'nowrap' para asegurar que el texto del botón permanezca en una sola línea en dispositivos móviles.";
+        enElab = "Button layout optimization: refined the delete account button layout using flexbox and white-space overrides to guarantee the button text remains strictly single-lined on narrow and mobile screens.";
+      }
+      else if (low.includes('music') || low.includes('reproductor') || low.includes('song') || low.includes('track')) {
+        esElab = "Mejoras en el reproductor de música: optimizaciones generales en el rendimiento, estabilidad de las pistas, reproducción aleatoria y visualizaciones del disco giratorio.";
+        enElab = "Music player enhancements: general performance optimizations, track loading stability, random shuffle adjustments, and rotating disc visualization fixes.";
+      }
+      else if (low.includes('brush') || low.includes('spinning') || low.includes('cepillo')) {
+        esElab = "Control de cepillos giratorios: se vinculó el efecto visual de los cepillos en órbita a la nueva configuración de la cuenta, permitiendo a los jugadores ocultarlos o mostrarlos para ahorrar recursos.";
+        enElab = "Spinning toothbrush visualization: bound the orbital toothbrush ring rendering to user settings, letting players show or hide orbiting brushes to save device resources.";
+      }
+      else if (low.includes('achieve') || low.includes('logro')) {
+        esElab = "Ampliación de logros: refinamientos en los disparadores de logros por CPS y molares totales, aumentando la estabilidad de la sincronización en la nube.";
+        enElab = "Achievements expansion: refined validation triggers for CPS and total molar achievements, improving cloud sync stability.";
+      }
+      else {
+        let actionEs = 'Actualización';
+        let actionEn = 'Update';
+        if (low.startsWith('feat')) { actionEs = 'Nueva característica'; actionEn = 'New feature'; }
+        else if (low.startsWith('fix')) { actionEs = 'Corrección de error'; actionEn = 'Bug fix'; }
+        else if (low.startsWith('chore') || low.startsWith('refactor')) { actionEs = 'Optimización interna'; actionEn = 'Performance optimization'; }
+        else if (low.startsWith('style') || low.startsWith('css')) { actionEs = 'Mejora visual'; actionEn = 'Visual enhancement'; }
+        
+        esElab = `${actionEs}: ${cleanMsg}`;
+        enElab = `${actionEn}: ${cleanMsg}`;
+      }
+      
+      esLines.push(esElab);
+      enLines.push(enElab);
+    });
+    
+    return {
+      es: esLines.map(l => `• ${l}`).join('\n'),
+      en: enLines.map(l => `• ${l}`).join('\n')
+    };
+  };
+
+  const suggestNextVersion = (current) => {
+    if (!current) return 'v0.1.0-beta';
+    const match = current.match(/^v?(\d+)\.(\d+)\.(\d+)(-.+)?$/i);
+    if (match) {
+      const major = parseInt(match[1]);
+      const minor = parseInt(match[2]);
+      const patch = parseInt(match[3]);
+      const suffix = match[4] || '';
+      return `v${major}.${minor}.${patch + 1}${suffix}`;
+    }
+    return current + '-new';
+  };
+
   useEffect(() => {
     setCurrentPage(1);
   }, [msgFilter, adminTab, customMessages.length, msgSearch]);
@@ -248,20 +345,88 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
       setCustomMessages(msgs);
       setMessagesLoading(false);
     });
-    // 5. Settings (CPS Threshold, etc.)
-    window.cloudFetchSettings().then(res => {
-      if (res.ok && res.settings) {
-        if (res.settings.cpsThreshold) {
-          setCpsThreshold(res.settings.cpsThreshold);
-          try { localStorage.setItem('admin_cps_threshold', res.settings.cpsThreshold); } catch(e) {}
+    // 6. Version History and dynamic settings from Supabase
+    if (window.cloudFetchVersionMetadata) {
+      window.cloudFetchVersionMetadata().then(res => {
+        if (res.ok) {
+          setVersionsList(res.history || []);
+          setDbCommitSha(res.latestSha || '');
         }
-        if (res.settings.cpsLimitEnabled !== undefined) {
-          setCpsLimitEnabled(res.settings.cpsLimitEnabled);
-          try { localStorage.setItem('admin_cps_limit_enabled', res.settings.cpsLimitEnabled.toString()); } catch(e) {}
-        }
-      }
-    });
+        setVersionsLoading(false);
+      });
+    } else {
+      setVersionsLoading(false);
+    }
   }, []);
+
+  // Fetch latest GitHub Commit
+  useEffect(() => {
+    fetch('https://api.github.com/repos/advancedchile/ToothClicker/commits?sha=main&per_page=1')
+      .then(r => {
+        if (!r.ok) throw new Error("HTTP error " + r.status);
+        return r.json();
+      })
+      .then(data => {
+        if (data && data[0] && data[0].sha) {
+          setGitCommitSha(data[0].sha);
+        }
+      })
+      .catch(err => console.warn("Failed to fetch latest GitHub commit:", err));
+  }, [adminTab]);
+
+  // Fetch commit comparison if they don't match
+  useEffect(() => {
+    if (!gitCommitSha) return;
+    
+    if (!dbCommitSha) {
+      // First-time setup: fetch last 3 commits from GitHub to prefill
+      setLoadingCommits(true);
+      fetch('https://api.github.com/repos/advancedchile/ToothClicker/commits?sha=main&per_page=3')
+        .then(r => r.json())
+        .then(data => {
+          if (data && Array.isArray(data)) {
+            setPendingCommits(data);
+            const generated = generateChangelogFromCommits(data);
+            setNewChangelogEs(generated.es);
+            setNewChangelogEn(generated.en);
+            const currentVersion = window.APP_VERSION || 'v0.5.5-beta';
+            setNewVersionString(currentVersion);
+            setNewVersionDate(new Date().toISOString().split('T')[0]);
+          }
+          setLoadingCommits(false);
+        })
+        .catch(err => {
+          console.warn("Failed to fetch default commits:", err);
+          setLoadingCommits(false);
+        });
+      return;
+    }
+
+    if (dbCommitSha === gitCommitSha) {
+      setPendingCommits([]);
+      return;
+    }
+    setLoadingCommits(true);
+    fetch(`https://api.github.com/repos/advancedchile/ToothClicker/compare/${dbCommitSha}...${gitCommitSha}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.commits) {
+          setPendingCommits(data.commits);
+          const generated = generateChangelogFromCommits(data.commits);
+          setNewChangelogEs(generated.es);
+          setNewChangelogEn(generated.en);
+          const currentVersion = window.APP_VERSION || 'v0.5.5-beta';
+          const nextVer = suggestNextVersion(currentVersion);
+          setNewVersionString(nextVer);
+          setNewVersionDate(new Date().toISOString().split('T')[0]);
+        }
+        setLoadingCommits(false);
+      })
+      .catch(err => {
+        console.warn("Failed to fetch commit comparison:", err);
+        setLoadingCommits(false);
+      });
+  }, [dbCommitSha, gitCommitSha]);
 
   const saveMessagesToCloud = (updatedList) => {
     setIsSavingMessages(true);
@@ -435,7 +600,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#e8f2fb', fontFamily: "'PixelifySans', var(--font-sans)", position: 'relative', overflow: 'hidden' }}>
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(uploads/background-e5bd6167.png)', backgroundSize: 'cover', backgroundPosition: 'center', pointerEvents: 'none', opacity: 0.45 }} />
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(uploads/background-e5bd6167.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', pointerEvents: 'none', opacity: 0.45 }} />
 
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 900, margin: '0 auto', padding: '32px 20px 56px' }}>
         {/* Header */}
@@ -462,6 +627,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
             { id: 'leaderboard', label: lang === 'es' ? 'Jugadores' : 'Players', icon: 'fa-users' },
             { id: 'feedback', label: 'Feedback', icon: 'fa-comments' },
             { id: 'messages', label: 'Mensajes', icon: 'fa-bullhorn' },
+            { id: 'versions', label: lang === 'es' ? 'Versiones' : 'Versions', icon: 'fa-code-branch' },
             { id: 'danger', label: lang === 'es' ? 'Zona Peligrosa' : 'Danger Zone', icon: 'fa-triangle-exclamation' },
           ].map(t => (
             <button key={t.id} onClick={() => { window.playClickSound && window.playClickSound(); setAdminTab(t.id); }} className="app-btn" style={{
@@ -475,6 +641,55 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
             </button>
           ))}
         </div>
+
+        {/* GitHub updates notification snackbar */}
+        {pendingCommits.length > 0 && adminTab !== 'versions' && (
+          <div style={{
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: '#fff',
+            borderRadius: 16,
+            padding: '16px 20px',
+            marginBottom: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 4px 16px rgba(16,185,129,0.22)',
+            animation: 'slideDown 0.3s ease-out',
+            fontFamily: "'PixelifySans', var(--font-sans)"
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                <i className="fa-solid fa-code-branch fa-bounce"></i>
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>
+                  {lang === 'es' ? '¡Nuevas actualizaciones en GitHub detectadas!' : 'New updates on GitHub detected!'}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.85, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+                  {lang === 'es' 
+                    ? `Hay ${pendingCommits.length} commit${pendingCommits.length === 1 ? '' : 's'} pendiente${pendingCommits.length === 1 ? '' : 's'} por documentar.`
+                    : `There ${pendingCommits.length === 1 ? 'is' : 'are'} ${pendingCommits.length} commit${pendingCommits.length === 1 ? '' : 's'} pending to be documented.`}
+                </div>
+              </div>
+            </div>
+            <button 
+              onClick={() => { window.playClickSound && window.playClickSound(); setAdminTab('versions'); }} 
+              className="app-btn"
+              style={{
+                ...btn,
+                background: '#fff',
+                color: '#059669',
+                padding: '8px 16px',
+                fontSize: 13,
+                borderRadius: 8,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}
+            >
+              <i className="fa-solid fa-file-signature"></i>
+              {lang === 'es' ? 'Crear Changelog' : 'Create Changelog'}
+            </button>
+          </div>
+        )}
 
         {adminTab === 'accounts' && (
           <>
@@ -1053,6 +1268,320 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                   <i className="fa-solid fa-skull-crossbones"></i> {lang === 'es' ? 'EJECUTAR WIPE TOTAL' : 'EXECUTE TOTAL WIPE'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {adminTab === 'versions' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Sync Status Card */}
+            <div style={card}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <i className="fa-solid fa-code-branch" style={{ color: '#10b981', fontSize: 16 }}></i>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
+                    {lang === 'es' ? 'Sincronización con GitHub' : 'GitHub Repository Sync'}
+                  </span>
+                </div>
+                {versionsLoading ? (
+                  <i className="fa-solid fa-circle-notch fa-spin" style={{ color: '#8aaacc' }}></i>
+                ) : dbCommitSha === gitCommitSha && dbCommitSha ? (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '4px 10px', borderRadius: 20, border: '1px solid #a7f3d0' }}>
+                    <i className="fa-solid fa-check-double" style={{ marginRight: 4 }}></i>
+                    {lang === 'es' ? 'Sincronizado' : 'Synced'}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#d97706', background: '#fffbeb', padding: '4px 10px', borderRadius: 20, border: '1px solid #fde68a' }}>
+                    <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: 4 }}></i>
+                    {lang === 'es' ? 'Actualizaciones Pendientes' : 'Pending Updates'}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
+                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid rgba(100,160,230,0.1)' }}>
+                  <div style={{ fontSize: 10, color: '#8aaacc', textTransform: 'uppercase', fontWeight: 700 }}>{lang === 'es' ? 'Último Commit Documentado' : 'Last Documented Commit'}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#4a5568', fontFamily: 'monospace', marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {dbCommitSha ? dbCommitSha.slice(0, 10) : (lang === 'es' ? 'Sin registrar (Cold start)' : 'Unregistered')}
+                  </div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid rgba(100,160,230,0.1)' }}>
+                  <div style={{ fontSize: 10, color: '#8aaacc', textTransform: 'uppercase', fontWeight: 700 }}>{lang === 'es' ? 'Último Commit en GitHub' : 'Latest Live GitHub Commit'}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#4a5568', fontFamily: 'monospace', marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {gitCommitSha ? gitCommitSha.slice(0, 10) : (lang === 'es' ? 'Obteniendo...' : 'Fetching...')}
+                  </div>
+                </div>
+              </div>
+
+              {pendingCommits.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', marginBottom: 8 }}>
+                    {lang === 'es' ? 'Commits pendientes por documentar:' : 'Commits pending to be documented:'}
+                  </div>
+                  <div style={{ maxHeight: 110, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 4 }}>
+                    {pendingCommits.map((c, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 8, fontSize: 11, color: '#4a5568', background: '#f1f5f9', padding: '6px 10px', borderRadius: 6, borderLeft: '3px solid #10b981' }}>
+                        <span style={{ fontFamily: 'monospace', color: '#10b981', fontWeight: 700 }}>{c.sha.slice(0, 7)}</span>
+                        <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.commit.message.split('\n')[0]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Publication Form & Preview */}
+            {(pendingCommits.length > 0 || versionsList.length === 0) && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'stretch' }}>
+                {/* Form Card */}
+                <div style={card}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                    <i className="fa-solid fa-file-signature" style={{ color: '#1a8fff', fontSize: 15 }}></i>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
+                      {lang === 'es' ? 'Publicar Nueva Versión' : 'Publish New Version'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', display: 'block', marginBottom: 4 }}>
+                        {lang === 'es' ? 'Número de Versión' : 'Version Number'}
+                      </label>
+                      <input 
+                        type="text" 
+                        value={newVersionString} 
+                        onChange={e => setNewVersionString(e.target.value)} 
+                        className="app-input" 
+                        style={{ width: '100%', height: 38, fontSize: 13 }}
+                        placeholder="e.g. v0.5.6-beta" 
+                      />
+                    </div>
+                    <div style={{ width: 140 }}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', display: 'block', marginBottom: 4 }}>
+                        {lang === 'es' ? 'Fecha de Lanzamiento' : 'Release Date'}
+                      </label>
+                      <input 
+                        type="date" 
+                        value={newVersionDate} 
+                        onChange={e => setNewVersionDate(e.target.value)} 
+                        className="app-input" 
+                        style={{ width: '100%', height: 38, fontSize: 13 }} 
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', display: 'block', marginBottom: 4 }}>
+                      {lang === 'es' ? 'Changelog en Español (Una viñeta • por línea)' : 'Changelog in Spanish (One • bullet per line)'}
+                    </label>
+                    <textarea 
+                      value={newChangelogEs} 
+                      onChange={e => setNewChangelogEs(e.target.value)} 
+                      className="app-textarea" 
+                      style={{ width: '100%', height: 110, fontSize: 12, boxSizing: 'border-box', fontFamily: 'var(--font-sans)', lineHeight: 1.4 }} 
+                      placeholder="• Detalle 1..."
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', display: 'block', marginBottom: 4 }}>
+                      {lang === 'es' ? 'Changelog en Inglés (Una viñeta • por línea)' : 'Changelog in English (One • bullet per line)'}
+                    </label>
+                    <textarea 
+                      value={newChangelogEn} 
+                      onChange={e => setNewChangelogEn(e.target.value)} 
+                      className="app-textarea" 
+                      style={{ width: '100%', height: 110, fontSize: 12, boxSizing: 'border-box', fontFamily: 'var(--font-sans)', lineHeight: 1.4 }} 
+                      placeholder="• Detail 1..."
+                    />
+                  </div>
+
+                  <button 
+                    onClick={async () => {
+                      if (!newVersionString.trim()) { alert(lang === 'es' ? 'Ingresa el número de versión' : 'Please enter the version number'); return; }
+                      
+                      setIsPublishingVersion(true);
+                      window.playClickSound && window.playClickSound();
+                      
+                      const newRelease = {
+                        v: newVersionString.trim(),
+                        date: newVersionDate || new Date().toISOString().split('T')[0],
+                        es: newChangelogEs.trim(),
+                        en: newChangelogEn.trim()
+                      };
+                      
+                      const updatedHistory = [newRelease, ...versionsList];
+                      const targetSha = gitCommitSha || dbCommitSha;
+                      
+                      const res = await window.cloudSaveVersionHistory(updatedHistory, targetSha);
+                      setIsPublishingVersion(false);
+                      
+                      if (res.ok) {
+                        setVersionsList(updatedHistory);
+                        setDbCommitSha(targetSha);
+                        setPendingCommits([]);
+                        
+                        // Dynamically update game local state
+                        window.VERSION_HISTORY = updatedHistory;
+                        window.APP_VERSION = newRelease.v;
+                        
+                        // Play positive chime
+                        if (window.playChimeSound) window.playChimeSound();
+                        
+                        setVersionSuccessNote(lang === 'es' ? '¡Versión publicada con éxito!' : 'Version published successfully!');
+                        setTimeout(() => setVersionSuccessNote(''), 4000);
+                      } else {
+                        alert("Error: " + res.error);
+                      }
+                    }} 
+                    disabled={isPublishingVersion}
+                    className="app-btn" 
+                    style={{ ...btn, width: '100%', height: 44, background: '#10b981', color: '#fff', fontSize: 14, boxShadow: '0 4px 12px rgba(16,185,129,0.2)' }}
+                  >
+                    {isPublishingVersion ? (
+                      <>
+                        <i className="fa-solid fa-circle-notch fa-spin"></i>
+                        {lang === 'es' ? 'Publicando...' : 'Publishing...'}
+                      </>
+                    ) : (
+                      <>
+                        <i className="fa-solid fa-cloud-arrow-up"></i>
+                        {lang === 'es' ? 'Publicar Changelog en Staging/Prod' : 'Publish Changelog to Staging/Prod'}
+                      </>
+                    )}
+                  </button>
+                  {versionSuccessNote && (
+                    <div style={{ marginTop: 8, fontSize: 12, color: '#059669', fontWeight: 700, textAlign: 'center', animation: 'fadeIn 0.3s' }}>
+                      <i className="fa-solid fa-circle-check"></i> {versionSuccessNote}
+                    </div>
+                  )}
+                </div>
+
+                {/* High-Fidelity Preview Card */}
+                <div style={{ ...card, display: 'flex', flexDirection: 'column', background: 'rgba(255,255,255,0.95)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, borderBottom: '1px solid rgba(100,160,230,0.15)', paddingBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <i className="fa-solid fa-eye" style={{ color: '#ff9800', fontSize: 14 }}></i>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#1a3a5a' }}>
+                        {lang === 'es' ? 'Previsualización Real-Time' : 'Real-Time Game Preview'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,0.05)', padding: 2, borderRadius: 6 }}>
+                      {['es', 'en'].map(l => (
+                        <button key={l} onClick={() => setPreviewLang(l)} className="app-btn" style={{
+                          ...btn, padding: '2px 8px', fontSize: 9, borderRadius: 4,
+                          background: previewLang === l ? '#1a8fff' : 'transparent',
+                          color: previewLang === l ? '#fff' : '#4a6a8a',
+                          border: 'none'
+                        }}>
+                          {l.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* High Fidelity Game Rendering */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                    <div style={{ 
+                      flex: 1, 
+                      background: 'radial-gradient(circle at center, #1b355a 0%, #0d1b2e 100%)', 
+                      borderRadius: 12, 
+                      padding: 14, 
+                      color: '#fff', 
+                      overflowY: 'auto',
+                      border: '2px solid rgba(26,143,255,0.4)',
+                      boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 6, marginBottom: 10 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#4fc3f7', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ background: 'rgba(79,195,247,0.15)', border: '1px solid #4fc3f7', padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>NEW</span>
+                          {newVersionString || 'vX.Y.Z'}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#90caf9', opacity: 0.8 }}>
+                          {newVersionDate || new Date().toISOString().split('T')[0]}
+                        </div>
+                      </div>
+                      
+                      <div style={{ fontSize: 11, lineHeight: 1.5, color: '#e3f2fd', whiteSpace: 'pre-wrap', textAlign: 'left' }}>
+                        {(previewLang === 'es' ? newChangelogEs : newChangelogEn) ? (
+                          (previewLang === 'es' ? newChangelogEs : newChangelogEn)
+                        ) : (
+                          <span style={{ fontStyle: 'italic', color: '#90caf9', opacity: 0.5 }}>
+                            {lang === 'es' ? 'Escribe o edita los cambios para verlos aquí...' : 'Write or edit updates to see them here...'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Chronological Version Logs List */}
+            <div style={card}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <i className="fa-solid fa-clock-rotate-left" style={{ color: '#ff9800', fontSize: 15 }}></i>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
+                  {lang === 'es' ? 'Historial de Versiones Documentadas' : 'Documented Version History'}
+                  <span style={{ fontSize: 12, fontWeight: 500, color: '#8aaacc', marginLeft: 8 }}>({versionsList.length})</span>
+                </span>
+              </div>
+
+              {versionsList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 0', color: '#8aaacc', fontStyle: 'italic', fontSize: 13 }}>
+                  {lang === 'es' ? 'No hay versiones registradas aún.' : 'No registered versions yet.'}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {versionsList.map((v, index) => (
+                    <div key={index} style={{ padding: 14, background: '#f8fafc', borderRadius: 12, border: '1px solid rgba(100,160,230,0.15)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px dotted rgba(100,160,230,0.3)', paddingBottom: 6, marginBottom: 8 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#1a8fff' }}>
+                          {v.v}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: 11, color: '#8aaacc', fontWeight: 600 }}>{v.date}</span>
+                          <button 
+                            onClick={async () => {
+                              if (confirm(lang === 'es' ? `¿Eliminar la versión ${v.v} del historial?` : `Delete version ${v.v} from history?`)) {
+                                window.playClickSound && window.playClickSound();
+                                const updated = versionsList.filter((item, idx) => idx !== index);
+                                const nextSha = updated.length > 0 ? dbCommitSha : '';
+                                
+                                const res = await window.cloudSaveVersionHistory(updated, nextSha);
+                                if (res.ok) {
+                                  setVersionsList(updated);
+                                  window.VERSION_HISTORY = updated;
+                                  if (updated.length > 0) {
+                                    window.APP_VERSION = updated[0].v;
+                                  }
+                                } else {
+                                  alert("Error: " + res.error);
+                                }
+                              }
+                            }}
+                            className="app-btn"
+                            style={{ ...btn, padding: '4px 8px', background: 'rgba(220,50,50,0.08)', color: '#c33', fontSize: 11, border: '1px solid rgba(220,50,50,0.15)', borderRadius: 6 }}
+                          >
+                            <i className="fa-solid fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, textAlign: 'left' }}>
+                        <div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: '#8aaacc', textTransform: 'uppercase', marginBottom: 4 }}>Español</div>
+                          <div style={{ fontSize: 11, color: '#4a5568', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>{v.es}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: '#8aaacc', textTransform: 'uppercase', marginBottom: 4 }}>English</div>
+                          <div style={{ fontSize: 11, color: '#4a5568', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>{v.en}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
