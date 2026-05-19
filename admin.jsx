@@ -1421,8 +1421,15 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                         setDbCommitSha(targetSha);
                         setPendingCommits([]);
                         
-                        // Dynamically update game local state
-                        window.VERSION_HISTORY = updatedHistory;
+                        // Dynamically update game local state with clean unique merge
+                        const localDefault = window.DEFAULT_VERSION_HISTORY || [];
+                        const merged = [...updatedHistory];
+                        for (const item of localDefault) {
+                          if (!merged.some(m => m.v === item.v)) {
+                            merged.push(item);
+                          }
+                        }
+                        window.VERSION_HISTORY = merged;
                         window.APP_VERSION = newRelease.v;
                         
                         // Play positive chime
@@ -1551,9 +1558,18 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                                 const res = await window.cloudSaveVersionHistory(updated, nextSha);
                                 if (res.ok) {
                                   setVersionsList(updated);
-                                  window.VERSION_HISTORY = updated;
+                                  const localDefault = window.DEFAULT_VERSION_HISTORY || [];
+                                  const merged = [...updated];
+                                  for (const item of localDefault) {
+                                    if (!merged.some(m => m.v === item.v)) {
+                                      merged.push(item);
+                                    }
+                                  }
+                                  window.VERSION_HISTORY = merged;
                                   if (updated.length > 0) {
                                     window.APP_VERSION = updated[0].v;
+                                  } else if (localDefault.length > 0) {
+                                    window.APP_VERSION = localDefault[0].v;
                                   }
                                 } else {
                                   alert("Error: " + res.error);

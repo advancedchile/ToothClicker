@@ -3085,13 +3085,27 @@ function App() {
 
   // Load dynamic version history from Supabase settings on startup
   useEffect(() => {
+    // Backup original hardcoded history
+    if (!window.DEFAULT_VERSION_HISTORY && window.VERSION_HISTORY) {
+      window.DEFAULT_VERSION_HISTORY = [...window.VERSION_HISTORY];
+    }
+
     const loadDynamicVersion = async () => {
       try {
         if (window.cloudFetchVersionMetadata) {
           const res = await window.cloudFetchVersionMetadata();
           if (res.ok && res.history && res.history.length > 0) {
             console.log("[VersionSync] Loaded dynamic version:", res.history[0].v);
-            window.VERSION_HISTORY = res.history;
+            
+            const localDefault = window.DEFAULT_VERSION_HISTORY || [];
+            const merged = [...res.history];
+            for (const item of localDefault) {
+              if (!merged.some(m => m.v === item.v)) {
+                merged.push(item);
+              }
+            }
+            
+            window.VERSION_HISTORY = merged;
             window.APP_VERSION = res.history[0].v;
             setAppVersion(res.history[0].v);
           }
