@@ -29,11 +29,91 @@ function generateXPUpgrades() {
     "Bioethics", "Marketing", "Management", "Nanotechnology", "Biometrics", "Ergonomics", "Pharmacology"
   ];
 
-  // We will map one upgrade to each non-secret achievement roughly
-  // excluding the very first ones to keep it balanced
   const nonSecretAchievements = achievements.filter(a => !a.secret);
   
-  nonSecretAchievements.forEach((ach, i) => {
+  // Helper function to estimate achievement difficulty score
+  const getDifficultyScore = (ach) => {
+    const id = ach.id || '';
+    if (id === 'feedback_first') return 0.5;
+    
+    if (ach.cat === 'clicks') {
+      const idx = parseInt(id.replace('click_', ''), 10);
+      const clickMs = [100, 1000, 5000, 15000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000, 25000000, 50000000, 100000000, 250000000, 500000000, 1000000000, 5000000000, 10000000000];
+      const val = clickMs[idx] || 100;
+      return Math.log10(val) * 2;
+    }
+    
+    if (ach.cat === 'earned') {
+      const idx = parseInt(id.replace('earn_', ''), 10);
+      const earnMs = [1e6, 1e8, 1e10, 1e12, 1e14, 1e16, 1e18, 1e21, 1e24, 1e27, 1e30, 1e35, 1e40, 1e45, 1e50, 1e60, 1e70, 1e80, 1e90, 1e100, 1e120, 1e140, 1e160, 1e180, 1e200, 1e220, 1e250, 1e280, 1e300, 1e308];
+      const val = earnMs[idx] || 1e6;
+      return Math.log10(val);
+    }
+    
+    if (ach.cat === 'gen') {
+      const parts = id.split('_');
+      const qty = parseInt(parts[parts.length - 1], 10) || 25;
+      const genId = parts.slice(1, -1).join('_');
+      const generators = window.GENERATORS || [];
+      const gIdx = generators.findIndex(g => g.id === genId);
+      const g = gIdx >= 0 ? gIdx : 0;
+      return g * 8 + Math.log10(qty) * 2;
+    }
+    
+    if (ach.cat === 'prestige') {
+      const idx = parseInt(id.replace('prest_', ''), 10);
+      const prestMs = [10, 50, 250, 1000, 5000, 25000, 100000, 500000, 1000000, 10000000, 50000000, 100000000];
+      const val = prestMs[idx] || 10;
+      return 14 + Math.log10(val) * 3;
+    }
+    
+    if (ach.cat === 'golden') {
+      const idx = parseInt(id.replace('gold_', ''), 10);
+      const goldMs = [10, 50, 100, 250, 500, 1000, 5000, 10000, 25000, 50000, 100000, 1000000];
+      const val = goldMs[idx] || 10;
+      return Math.log10(val) * 3.5;
+    }
+    
+    if (id.includes('Clicks') || id.includes('clicks')) {
+      const parts = id.split('_');
+      const qty = parseInt(parts[parts.length - 1], 10) || 100;
+      return 6 + Math.log10(qty) * 3;
+    }
+    
+    if (ach.cat === 'time') {
+      const idx = parseInt(id.replace('time_', ''), 10);
+      const timeMs = [3600, 3600*12, 86400, 86400*3, 86400*7, 86400*30, 86400*90, 86400*180, 86400*365, 86400*1000];
+      const val = timeMs[idx] || 3600;
+      return Math.log10(val) * 2.5;
+    }
+    
+    if (ach.cat === 'upgrades') {
+      const idx = parseInt(id.replace('up_', ''), 10);
+      const upMs = [1,5,10,25,50,75,100,110,115,120];
+      const val = upMs[idx] || 1;
+      return Math.log10(val) * 4 + 4;
+    }
+    
+    if (ach.cat === 'meta') {
+      const idx = parseInt(id.replace('ach_', ''), 10);
+      const achMs = [10,25,50,100,150,200,250,275,290,300];
+      const val = achMs[idx] || 10;
+      return Math.log10(val) * 4 + 4;
+    }
+    
+    if (ach.cat === 'speed') {
+      const idx = parseInt(id.replace('speed_', ''), 10);
+      const speedMs = [5, 7, 10, 12, 15, 16, 20, 25, 35, 50, 75, 100];
+      const val = speedMs[idx] || 5;
+      return Math.log2(val) * 3;
+    }
+    
+    return 10;
+  };
+
+  const sortedAchievements = [...nonSecretAchievements].sort((a, b) => getDifficultyScore(a) - getDifficultyScore(b));
+
+  sortedAchievements.forEach((ach, i) => {
     const nIdx = i % namesES.length;
     const tIdx = Math.floor(i / 5) % topicsES.length;
     const difficulty = i + 1; // Used for scaling
@@ -44,13 +124,13 @@ function generateXPUpgrades() {
     let benefitDescES = "", benefitDescEN = "";
 
     if (type === 0) {
-      // XP per click (Increased from 0.1 * tier)
-      xpPerClick = 0.15 * Math.pow(1.05, difficulty);
+      // XP per click (Reduced considerably to fit new level requirements)
+      xpPerClick = 0.02 * Math.pow(1.015, difficulty);
       benefitDescES = `+${xpPerClick.toFixed(2)} XP por click.`;
       benefitDescEN = `+${xpPerClick.toFixed(2)} XP per click.`;
     } else if (type === 1) {
-      // XP passive (Increased from 0.05 * tier)
-      xpPassive = 0.08 * Math.pow(1.05, difficulty);
+      // XP passive (Reduced considerably to fit new level requirements)
+      xpPassive = 0.01 * Math.pow(1.015, difficulty);
       benefitDescES = `+${xpPassive.toFixed(2)} XP/seg pasiva.`;
       benefitDescEN = `+${xpPassive.toFixed(2)} XP/sec passive.`;
     } else {
@@ -97,7 +177,7 @@ function generateLevelUpUpgrades() {
     
     // Level rewards alternate or stack
     const gpsBonus = 0.05 * lvl; // 5% per level, much better!
-    const xpMult = 0.02 * lvl;   // 2% XP mult per level
+    const xpMult = 0.005 * lvl;   // 0.5% XP mult per level
     
     upgrades.push({
       id: `lvl_up_${lvl}`,
@@ -108,8 +188,8 @@ function generateLevelUpUpgrades() {
         en: `Academic Excellence Level ${lvl}`
       },
       desc: {
-        es: `Premio por alcanzar el nivel ${lvl}. +${(gpsBonus * 100).toFixed(0)}% prod. global y +${(xpMult * 100).toFixed(0)}% XP global.`,
-        en: `Award for reaching level ${lvl}. +${(gpsBonus * 100).toFixed(0)}% global prod. and +${(xpMult * 100).toFixed(0)}% global XP.`
+        es: `Premio por alcanzar el nivel ${lvl}. +${(gpsBonus * 100).toFixed(0)}% prod. global y +${(xpMult * 100).toFixed(1)}% XP global.`,
+        en: `Award for reaching level ${lvl}. +${(gpsBonus * 100).toFixed(0)}% global prod. and +${(xpMult * 100).toFixed(1)}% global XP.`
       },
       baseCost: baseCost,
       gpsBonus,

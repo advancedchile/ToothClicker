@@ -345,8 +345,8 @@ const UPGRADE_ICONS = {
 
 function buildClickUpgrades() {
   const out = [];
-  let cost = 1125; // Increased by 125% (original 500 * 2.25)
-  const MULT = 4.2;
+  let cost = 3000; // Increased base cost to make upgrades slightly more expensive
+  const MULT = 5.0; // Increased multiplier from 4.2 to 5.0 to scale requirements higher
   const types = ['flat','flat','flat','mult','mult','flat','perAch','flat','mult','flat','mult','mult','timeBonus','flat'];
   let flatVal = 1;
   const nameIdx = { flat: 0, mult: 0, perGen: 0, perAch: 0, perSec: 0, timeBonus: 0 };

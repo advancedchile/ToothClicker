@@ -167,8 +167,8 @@ function TabBar({ tabs, active, onChange, id }) {
             id={`tab-${t.id}`} 
             onClick={() => { window.playClickSound && window.playClickSound(); onChange(t.id); }} 
             style={{
-              position: 'relative',
               all: 'unset',
+              position: 'relative',
               boxSizing: 'border-box',
               flex: 1,
               background: isActive ? '#1a8fff' : 'transparent', 
@@ -460,6 +460,16 @@ function Toast({ toast, lang }) {
       <div>
         <div className="t-mini-caps" style={{ color: accentText }}>{title}</div>
         <div className="t-heading-xs" style={{ color: '#fff' }}>{toast[lang] || toast.es}</div>
+        {toast.desc_es && (
+          <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>
+            {toast[`desc_${lang}`] || toast.desc_es}
+          </div>
+        )}
+        {isAch && (
+          <div style={{ fontSize: 11, color: '#FFC220', fontWeight: 600, marginTop: 2 }}>
+            {lang === 'es' ? '+1% prod. global permanente' : '+1% permanent global prod.'}
+          </div>
+        )}
       </div>
     </div>);
 }

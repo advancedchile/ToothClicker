@@ -75,7 +75,8 @@ function MusicPlayerModal({
   muted, onToggleMute,
   playMode, onChangePlayMode,
   currentTime, duration, onSeek,
-  soundOn, toggleSound, lang, visualEffects = true
+  soundOn, toggleSound, lang, visualEffects = true,
+  onShareTrack, onHoverShare, onLeaveShare
 }) {
   const isShuffle = playMode.includes('shuffle');
   const isLoop = playMode.includes('loop');
@@ -135,15 +136,7 @@ function MusicPlayerModal({
           </button>
         </div>
         
-        {/* Sound Effects Toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={toggleSound} style={{ all: 'unset', cursor: 'pointer', color: soundOn ? 'var(--positive-i100)' : 'var(--fg-3)', fontSize: 20, display: 'flex', alignItems: 'center' }}>
-            <i className={`fa-solid ${soundOn ? 'fa-toggle-on' : 'fa-toggle-off'}`}></i>
-          </button>
-          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--fg-2)' }}>
-            {lang === 'es' ? 'Efectos de Sonido' : 'Sound Effects'}
-          </div>
-        </div>
+
       </div>
 
       <button 
@@ -222,6 +215,32 @@ function MusicPlayerModal({
               </div>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                 <button
+                  onClick={(e) => { e.stopPropagation(); onShareTrack && onShareTrack(t); }}
+                  onMouseEnter={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    onHoverShare && onHoverShare({ x: rect.left + rect.width / 2, y: rect.top });
+                  }}
+                  onMouseLeave={() => {
+                    onLeaveShare && onLeaveShare();
+                  }}
+                  className="app-btn"
+                  style={{
+                    all: 'unset',
+                    cursor: 'pointer',
+                    color: 'var(--fg-3)',
+                    padding: 6,
+                    borderRadius: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.color = 'var(--primary-i100)'; e.currentTarget.style.background = 'var(--primary-i005)'; }}
+                  onMouseOut={e => { e.currentTarget.style.color = 'var(--fg-3)'; e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <i className="fa-solid fa-share-nodes" style={{ fontSize: 13 }}></i>
+                </button>
                 {isCurrent ? (
                   <div 
                     onClick={(e) => { e.stopPropagation(); onTogglePlay(); }}

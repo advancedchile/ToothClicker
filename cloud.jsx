@@ -26,21 +26,28 @@ async function cloudFetchLeaderboard() {
     const lastResetAt = setRes ? setRes.value : 0;
 
     // Map DB fields to app fields
-    const scores = players.map(p => ({
-      name: p.name,
-      totalEarned: Number(p.total_earned || 0),
-      prestige: Number(p.prestige || 0),
-      prestigeCount: Number(p.prestige_count || 0),
-      timePlayed: Number(p.time_played || 0),
-      clinicName: p.clinic_name || '',
-      level: Number(p.level || 0),
-      teeth: Number(p.teeth || 0),
-      updatedAt: new Date(p.updated_at).getTime(),
-      banUntil: p.ban_until ? new Date(p.ban_until).getTime() : 0,
-      banIndefinite: !!p.ban_indefinite,
-      sessionId: p.save_data ? p.save_data.sessionId : null,
-      isOnline: p.save_data ? p.save_data.isOnline : false
-    }));
+    const scores = players.map(p => {
+      let sd = p.save_data || null;
+      if (typeof sd === 'string') {
+        try { sd = JSON.parse(sd); } catch(e) {}
+      }
+      return {
+        name: p.name,
+        totalEarned: Number(p.total_earned || 0),
+        prestige: Number(p.prestige || 0),
+        prestigeCount: Number(p.prestige_count || 0),
+        timePlayed: Number(p.time_played || 0),
+        clinicName: p.clinic_name || '',
+        level: Number(p.level || 0),
+        teeth: Number(p.teeth || 0),
+        updatedAt: new Date(p.updated_at).getTime(),
+        banUntil: p.ban_until ? new Date(p.ban_until).getTime() : 0,
+        banIndefinite: !!p.ban_indefinite,
+        sessionId: sd ? sd.sessionId : null,
+        isOnline: sd ? sd.isOnline : false,
+        saveData: sd
+      };
+    });
 
     return { ok: true, scores, lastResetAt };
   } catch (e) { 

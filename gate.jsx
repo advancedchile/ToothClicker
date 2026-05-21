@@ -55,6 +55,7 @@ function LeaderboardHeader({ lb, lang }) {
 function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns = "", noScroll = false }) {
   const t = window.STRINGS[lang];
   const [sortBy, setSortBy] = window.useStateG('prestige'); // 'prestige' or 'level'
+  const [selectedPlayer, setSelectedPlayer] = useStateG(null);
   const allRows = lb.scores || [];
   const rows = allRows
     .filter(r => r.name.toLowerCase() !== 'james')
@@ -80,102 +81,152 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
       <div className="t-body-m">{t.lbEmpty}</div>
     </div>
   );
+
+  const gridCols = `36px 1fr 90px 140px 48px ${extraColumns}`;
+
   return (
-    <div className="leaderboard-body-list" style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: noScroll ? 'visible' : 'auto', maxHeight: noScroll ? 'none' : 520 }}>
-      {/* Sort Filters */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '0 4px' }}>
-        <button 
-          onClick={() => { window.playClickSound && window.playClickSound(); setSortBy('prestige'); }}
-          style={{
-            all: 'unset', boxSizing: 'border-box', flex: 1, padding: '8px', borderRadius: 8, textAlign: 'center', fontSize: 10, fontWeight: 700, cursor: 'pointer',
-            background: sortBy === 'prestige' ? 'var(--primary-i100)' : 'var(--bg-3)',
-            color: sortBy === 'prestige' ? '#fff' : 'var(--fg-3)',
-            transition: 'all 150ms', fontFamily: 'var(--font-sans)'
-          }}
-        >
-          <i className="fa-solid fa-crown" style={{ marginRight: 6 }}></i>
-          {lang === 'es' ? 'POR PRESTIGIO' : 'BY PRESTIGE'}
-        </button>
-        <button 
-          onClick={() => { window.playClickSound && window.playClickSound(); setSortBy('level'); }}
-          style={{
-            all: 'unset', boxSizing: 'border-box', flex: 1, padding: '8px', borderRadius: 8, textAlign: 'center', fontSize: 10, fontWeight: 700, cursor: 'pointer',
-            background: sortBy === 'level' ? 'var(--primary-i100)' : 'var(--bg-3)',
-            color: sortBy === 'level' ? '#fff' : 'var(--fg-3)',
-            transition: 'all 150ms', fontFamily: 'var(--font-sans)'
-          }}
-        >
-          <i className="fa-solid fa-graduation-cap" style={{ marginRight: 6 }}></i>
-          {lang === 'es' ? 'POR NIVEL' : 'BY LEVEL'}
-        </button>
-        <button 
-          onClick={() => { window.playClickSound && window.playClickSound(); setSortBy('total'); }}
-          style={{
-            all: 'unset', boxSizing: 'border-box', flex: 1, padding: '8px', borderRadius: 8, textAlign: 'center', fontSize: 10, fontWeight: 700, cursor: 'pointer',
-            background: sortBy === 'total' ? 'var(--primary-i100)' : 'var(--bg-3)',
-            color: sortBy === 'total' ? '#fff' : 'var(--fg-3)',
-            transition: 'all 150ms', fontFamily: 'var(--font-sans)'
-          }}
-        >
-          <i className="fa-solid fa-tooth" style={{ marginRight: 6 }}></i>
-          {lang === 'es' ? 'POR DIENTES' : 'BY TEETH'}
-        </button>
-      </div>
-      <div className="leaderboard-header-row t-mini-caps" style={{ display: 'grid', gridTemplateColumns: `36px 1fr 90px 140px ${extraColumns}`, gap: 'var(--spacing-3)', padding: '0 var(--spacing-3)', color: 'var(--fg-3)', marginBottom: 2 }}>
-        <div>{t.lbRank}</div><div>{t.lbPlayer}</div>
-        <div style={{ textAlign: 'right' }}>{t.lbPrestige}</div>
-        <div style={{ textAlign: 'right' }}>{t.lbTotal}</div>
-        {extraColumns && <div></div>}
-      </div>
-      {rows.map((r, i) => {
-        const isCurrent = currentUser && r.name === currentUser;
-        const medal = i === 0 ? '#FFC220' : i === 1 ? '#A6B5C5' : i === 2 ? '#E8A06E' : null;
-        return (
-          <div key={r.name + '-' + i} className={`leaderboard-row ${isCurrent ? 'current-player' : ''}`} style={{ display: 'grid', gridTemplateColumns: `36px 1fr 90px 140px ${extraColumns}`, gap: 'var(--spacing-3)', alignItems: 'center', padding: '10px var(--spacing-3)', background: isCurrent ? 'var(--primary-i010)' : 'var(--bg-1)', border: `1px solid ${isCurrent ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 'var(--radius-s)' }}>
-            <div className="leaderboard-rank-num" style={{ width: 28, height: 28, borderRadius: '50%', background: medal || 'var(--bg-3)', color: medal ? '#fff' : 'var(--fg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{i + 1}</div>
-            <div className="leaderboard-player-col" style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div className="leaderboard-tooth-wrapper" style={{ position: 'relative', width: 40, height: 40, flexShrink: 0 }}>
-                {window.TOOTH_STAGES && <img src={window.getToothStage(r.prestigeCount || 0).img} alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />}
-                {(() => {
-                  const timeSince = Date.now() - r.updatedAt;
-                  const online = r.isOnline !== false && timeSince < 60000;
-                  return (
-                    <div style={{ 
-                      position: 'absolute',
-                      top: 0,
-                      right: 0,
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%', 
-                      background: online ? '#22C55E' : '#94A3B8', 
-                      boxShadow: online ? '0 0 6px #22C55E' : 'none', 
-                      border: '1.5px solid var(--bg-1)',
-                      zIndex: 2
-                    }} />
-                  );
-                })()}
-              </div>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="t-heading-xs" style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {r.name}
-                  {isCurrent && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: 'var(--primary-i100)', color: '#fff', padding: '2px 6px', borderRadius: 999 }}>{t.lbYou}</span>}
+    <React.Fragment>
+      <div className="leaderboard-body-list" style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: noScroll ? 'visible' : 'auto', maxHeight: noScroll ? 'none' : 520 }}>
+        {/* Sort Filters */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '0 4px' }}>
+          <button 
+            onClick={() => { window.playClickSound && window.playClickSound(); setSortBy('prestige'); }}
+            style={{
+              all: 'unset', boxSizing: 'border-box', flex: 1, padding: '8px', borderRadius: 8, textAlign: 'center', fontSize: 10, fontWeight: 700, cursor: 'pointer',
+              background: sortBy === 'prestige' ? 'var(--primary-i100)' : 'var(--bg-3)',
+              color: sortBy === 'prestige' ? '#fff' : 'var(--fg-3)',
+              transition: 'all 150ms', fontFamily: 'var(--font-sans)'
+            }}
+          >
+            <i className="fa-solid fa-crown" style={{ marginRight: 6 }}></i>
+            {lang === 'es' ? 'POR PRESTIGIO' : 'BY PRESTIGE'}
+          </button>
+          <button 
+            onClick={() => { window.playClickSound && window.playClickSound(); setSortBy('level'); }}
+            style={{
+              all: 'unset', boxSizing: 'border-box', flex: 1, padding: '8px', borderRadius: 8, textAlign: 'center', fontSize: 10, fontWeight: 700, cursor: 'pointer',
+              background: sortBy === 'level' ? 'var(--primary-i100)' : 'var(--bg-3)',
+              color: sortBy === 'level' ? '#fff' : 'var(--fg-3)',
+              transition: 'all 150ms', fontFamily: 'var(--font-sans)'
+            }}
+          >
+            <i className="fa-solid fa-graduation-cap" style={{ marginRight: 6 }}></i>
+            {lang === 'es' ? 'POR NIVEL' : 'BY LEVEL'}
+          </button>
+          <button 
+            onClick={() => { window.playClickSound && window.playClickSound(); setSortBy('total'); }}
+            style={{
+              all: 'unset', boxSizing: 'border-box', flex: 1, padding: '8px', borderRadius: 8, textAlign: 'center', fontSize: 10, fontWeight: 700, cursor: 'pointer',
+              background: sortBy === 'total' ? 'var(--primary-i100)' : 'var(--bg-3)',
+              color: sortBy === 'total' ? '#fff' : 'var(--fg-3)',
+              transition: 'all 150ms', fontFamily: 'var(--font-sans)'
+            }}
+          >
+            <i className="fa-solid fa-tooth" style={{ marginRight: 6 }}></i>
+            {lang === 'es' ? 'POR DIENTES' : 'BY TEETH'}
+          </button>
+        </div>
+        <div className="leaderboard-header-row t-mini-caps" style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 'var(--spacing-3)', padding: '0 var(--spacing-3)', color: 'var(--fg-3)', marginBottom: 2 }}>
+          <div>{t.lbRank}</div><div>{t.lbPlayer}</div>
+          <div style={{ textAlign: 'right' }}>{t.lbPrestige}</div>
+          <div style={{ textAlign: 'right' }}>{t.lbTotal}</div>
+          <div style={{ textAlign: 'center' }}>Info</div>
+          {extraColumns && <div></div>}
+        </div>
+        {rows.map((r, i) => {
+          const isCurrent = currentUser && r.name === currentUser;
+          const medal = i === 0 ? '#FFC220' : i === 1 ? '#A6B5C5' : i === 2 ? '#E8A06E' : null;
+          return (
+            <div key={r.name + '-' + i} className={`leaderboard-row ${isCurrent ? 'current-player' : ''}`} style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 'var(--spacing-3)', alignItems: 'center', padding: '10px var(--spacing-3)', background: isCurrent ? 'var(--primary-i010)' : 'var(--bg-1)', border: `1px solid ${isCurrent ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 'var(--radius-s)' }}>
+              <div className="leaderboard-rank-num" style={{ width: 28, height: 28, borderRadius: '50%', background: medal || 'var(--bg-3)', color: medal ? '#fff' : 'var(--fg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{i + 1}</div>
+              <div className="leaderboard-player-col" style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="leaderboard-tooth-wrapper" style={{ position: 'relative', width: 40, height: 40, flexShrink: 0 }}>
+                  {window.TOOTH_STAGES && <img src={window.getToothStage(r.prestigeCount || 0).img} alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />}
+                  {(() => {
+                    const timeSince = Date.now() - r.updatedAt;
+                    const online = r.isOnline !== false && timeSince < 60000;
+                    return (
+                      <div style={{ 
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%', 
+                        background: online ? '#22C55E' : '#94A3B8', 
+                        boxShadow: online ? '0 0 6px #22C55E' : 'none', 
+                        border: '1.5px solid var(--bg-1)',
+                        zIndex: 2
+                      }} />
+                    );
+                  })()}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--primary-i100)', fontWeight: 600, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {r.clinicName ? r.clinicName : (lang === 'es' ? `Clínica de ${r.name}` : `${r.name}'s Clinic`)}
-                  <span style={{ marginLeft: 8, color: 'var(--fg-3)', fontWeight: 400 }}>• Niv. {r.level || 0}</span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="t-heading-xs" style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {r.name}
+                    {isCurrent && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: 'var(--primary-i100)', color: '#fff', padding: '2px 6px', borderRadius: 999 }}>{t.lbYou}</span>}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--primary-i100)', fontWeight: 600, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {r.clinicName ? r.clinicName : (lang === 'es' ? `Clínica de ${r.name}` : `${r.name}'s Clinic`)}
+                    <span style={{ marginLeft: 8, color: 'var(--fg-3)', fontWeight: 400 }}>• Niv. {r.level || 0}</span>
+                  </div>
                 </div>
               </div>
+              <div className="leaderboard-prestige-col" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--warning-i130)', fontWeight: 600 }}>
+                <i className="fa-solid fa-crown" style={{ color: 'var(--warning-i100)', fontSize: 11, marginRight: 4 }}></i>
+                {window.formatNum(r.prestigeCount || 0)}
+              </div>
+              <div className="leaderboard-total-col" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--primary-i100)', fontWeight: 600 }}>{window.formatNum(r.totalEarned || 0)}</div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    window.playClickSound && window.playClickSound(); 
+                    setSelectedPlayer(r); 
+                  }}
+                  className="leaderboard-info-btn"
+                  onMouseEnter={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    window.setGlobalTooltip && window.setGlobalTooltip({
+                      type: 'text',
+                      text: lang === 'es' ? 'Ver detalles' : 'View details',
+                      pos: { x: rect.left + rect.width / 2, y: rect.top }
+                    });
+                  }}
+                  onMouseLeave={() => {
+                    window.setGlobalTooltip && window.setGlobalTooltip(null);
+                  }}
+                >
+                  <i className="fa-solid fa-info"></i>
+                </button>
+              </div>
+              {renderRowExtra && renderRowExtra(r)}
             </div>
-            <div className="leaderboard-prestige-col" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--warning-i130)', fontWeight: 600 }}>
-              <i className="fa-solid fa-crown" style={{ color: 'var(--warning-i100)', fontSize: 11, marginRight: 4 }}></i>
-              {window.formatNum(r.prestigeCount || 0)}
-            </div>
-            <div className="leaderboard-total-col" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--primary-i100)', fontWeight: 600 }}>{window.formatNum(r.totalEarned || 0)}</div>
-            {renderRowExtra && renderRowExtra(r)}
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+      <div 
+        className={`player-sidebar-overlay ${selectedPlayer ? 'open' : ''}`} 
+        onClick={() => { window.playClickSound && window.playClickSound(); setSelectedPlayer(null); }} 
+      />
+      <div className={`player-sidebar ${selectedPlayer ? 'open' : ''}`}>
+        {selectedPlayer && (
+          <React.Fragment>
+            <button 
+              className="player-sidebar-close" 
+              onClick={() => { window.playClickSound && window.playClickSound(); setSelectedPlayer(null); }} 
+              aria-label="Close"
+            >
+              <i className="fa-solid fa-xmark"></i>
+            </button>
+            <PlayerDetailSidebar 
+              player={selectedPlayer} 
+              lang={lang} 
+            />
+          </React.Fragment>
+        )}
+      </div>
+    </React.Fragment>
   );
 }
 
@@ -202,6 +253,276 @@ function LeaderboardPanel({ username, lang }) {
   };
 
   return <div><LeaderboardHeader lb={{...lb, refresh: handleRefresh}} lang={lang} /><LeaderboardBody lb={lb} lang={lang} currentUser={username} /></div>;
+}
+
+function PlayerDetailSidebar({ player, lang }) {
+  const { name, clinicName, level, teeth, prestigeCount, totalEarned, timePlayed, isOnline, updatedAt, saveData } = player;
+  
+  const stage = window.getToothStage ? window.getToothStage(prestigeCount || 0) : { img: 'uploads/tooth1.png' };
+  const displayClinic = clinicName || (lang === 'es' ? `Clínica de ${name}` : `${name}'s Clinic`);
+  const online = isOnline !== false && (Date.now() - updatedAt) < 60000;
+
+  const stats = React.useMemo(() => {
+    let sd = saveData;
+    if (typeof sd === 'string') {
+      try { sd = JSON.parse(sd); } catch(e) {}
+    }
+    
+    // If saveData is missing or empty for players who have earned teeth, we consider it unsynced and return null.
+    if (!sd || typeof sd !== 'object' || (totalEarned > 0 && !sd.totalClicks && !sd.generators)) {
+      return null;
+    }
+    
+    // Store upgrades multiplier
+    const storeMults = { click: 1, global: 1, gen: {} };
+    const boughtStoreUpgrades = Object.keys(sd.storeUpgrades || {});
+    boughtStoreUpgrades.forEach(id => {
+      const up = (window.STORE_UPGRADES || []).find(u => u.id === id);
+      if (!up) return;
+      if (up.type === 'click') storeMults.click *= up.multiplier;
+      if (up.type === 'global') storeMults.global *= up.multiplier;
+      if (up.type === 'generator') storeMults.gen[up.targetId] = (storeMults.gen[up.targetId] || 1) * up.multiplier;
+    });
+
+    const prestigeMult = 1 + 0.05 * (sd.prestige || 0);
+    const achUnlockedCount = Object.values(sd.achievements || {}).filter(Boolean).length;
+    const achMult = 1 + 0.01 * achUnlockedCount;
+    
+    const xpUpgrades = sd.xpUpgrades || {};
+    const academyGpsMult = (() => {
+      const regular = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (xpUpgrades[up.id] ? (up.gpsBonus || 0) : 0), 0);
+      const special = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (xpUpgrades[up.id] ? (up.gpsBonus || 0) : 0), 0);
+      return 1 + regular + special;
+    })();
+
+    const globalMult = prestigeMult * achMult * storeMults.global * academyGpsMult;
+
+    // Generators production
+    let perSecondRaw = 0;
+    const generatorsObj = sd.generators || {};
+    let totalGenerators = 0;
+    for (const g of window.GENERATORS || []) {
+      const count = generatorsObj[g.id] || 0;
+      totalGenerators += count;
+      let gProd = count * g.baseProduction;
+      if (storeMults.gen[g.id]) gProd *= storeMults.gen[g.id];
+      perSecondRaw += gProd;
+    }
+    const perSecond = perSecondRaw * globalMult;
+
+    // Click power
+    let clickBase = 1;
+    if (window.computeClickPower) {
+      try {
+        clickBase = window.computeClickPower(sd).total;
+      } catch (e) {
+        let flat = 1, mult = 1;
+        const ups = sd.clickUpgrades || {};
+        const playTime = sd.timePlayed || 0;
+        for (const u of window.CLICK_UPGRADES || []) {
+          if (!ups[u.id]) continue;
+          if (u.type === 'flat') flat += u.value;
+          else if (u.type === 'mult') mult *= u.value;
+          else if (u.type === 'perAch') { mult *= (1 + (u.value / 100) * achUnlockedCount); }
+          else if (u.type === 'timeBonus') { if (playTime >= u.threshold) mult *= (1 + u.value / 100); }
+        }
+        clickBase = flat * mult;
+      }
+    }
+    const perClick = clickBase * (storeMults.click || 1) * globalMult;
+
+    return {
+      perSecond,
+      perClick,
+      totalClicks: sd.totalClicks || 0,
+      goldenClicks: sd.goldenClicks || 0,
+      diamondClicks: sd.diamondClicks || 0,
+      crystalClicks: sd.crystalClicks || 0,
+      achievementsCount: achUnlockedCount,
+      clickUpgradesCount: Object.values(sd.clickUpgrades || {}).filter(Boolean).length,
+      academyUpgradesCount: Object.values(sd.xpUpgrades || {}).filter(Boolean).length,
+      totalGenerators,
+      startedAt: sd.startedAt ? new Date(sd.startedAt).toLocaleDateString() : null
+    };
+  }, [saveData, totalEarned]);
+
+  const t = {
+    es: {
+      title: 'Detalles del jugador',
+      general: 'Progreso General',
+      teeth: 'Dientes actuales',
+      totalTeeth: 'Dientes totales',
+      level: 'Nivel',
+      time: 'Tiempo jugado',
+      started: 'Miembro desde',
+      status: 'Estado',
+      online: 'En línea',
+      offline: 'Desconectado',
+      clicks: 'Estadísticas de Clicks',
+      totalClicks: 'Clicks totales',
+      clickPower: 'Poder de click',
+      golden: 'Dientes de oro',
+      diamond: 'Dientes de diamante',
+      crystal: 'Dientes de cristal',
+      upgrades: 'Mejoras y Logros',
+      cps: 'Producción por segundo',
+      generators: 'Generadores',
+      clickUps: 'Mejoras de click',
+      achievements: 'Logros',
+      academy: 'Mejoras de academia',
+      prestigeCount: 'Prestigios',
+      prestigeTimes: prestigeCount === 1 ? '1 prestigio' : `${prestigeCount} prestigios`
+    },
+    en: {
+      title: 'Player Details',
+      general: 'General Progress',
+      teeth: 'Current teeth',
+      totalTeeth: 'All-time teeth',
+      level: 'Level',
+      time: 'Time played',
+      started: 'Member since',
+      status: 'Status',
+      online: 'Online',
+      offline: 'Offline',
+      clicks: 'Click Statistics',
+      totalClicks: 'Total clicks',
+      clickPower: 'Click power',
+      golden: 'Golden teeth',
+      diamond: 'Diamond teeth',
+      crystal: 'Crystal teeth',
+      upgrades: 'Upgrades & Achievements',
+      cps: 'Production per second',
+      generators: 'Generators owned',
+      clickUps: 'Click upgrades',
+      achievements: 'Achievements',
+      academy: 'Academy upgrades',
+      prestigeCount: 'Prestiges',
+      prestigeTimes: prestigeCount === 1 ? '1 prestige' : `${prestigeCount} prestiges`
+    }
+  }[lang] || t.es;
+
+  return (
+    <React.Fragment>
+      <div className="player-sidebar-header">
+        <img src={stage.img} className="player-sidebar-avatar" alt="" />
+        <h2 className="player-sidebar-name">{name}</h2>
+        <div className="player-sidebar-subtitle">
+          <span>{displayClinic}</span>
+          <span className="player-sidebar-prestige-sep">•</span>
+          <span className="player-sidebar-prestige-inline">
+            <i className="fa-solid fa-crown" style={{ color: 'var(--warning-i100)', marginRight: 4 }}></i>
+            {t.prestigeTimes}
+          </span>
+        </div>
+      </div>
+      
+      <div className="player-sidebar-body">
+        {/* Section 1: General Info */}
+        <div className="player-sidebar-section">
+          <h3 className="player-sidebar-section-title">
+            <i className="fa-solid fa-chart-line"></i> {t.general}
+          </h3>
+          <div className="player-sidebar-grid">
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.status}</span>
+              <span className="player-sidebar-card-value" style={{ color: online ? '#22C55E' : '#64748B', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: online ? '#22C55E' : '#64748B', display: 'inline-block' }}></span>
+                {online ? t.online : t.offline}
+              </span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.level}</span>
+              <span className="player-sidebar-card-value">Niv. {level || 0}</span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.teeth}</span>
+              <span className="player-sidebar-card-value">{window.formatNum(teeth || 0)}</span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.totalTeeth}</span>
+              <span className="player-sidebar-card-value">{window.formatNum(totalEarned || 0)}</span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.time}</span>
+              <span className="player-sidebar-card-value">{window.formatTime(timePlayed || 0)}</span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.started}</span>
+              <span className="player-sidebar-card-value">{stats?.startedAt || 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: Click Statistics */}
+        <div className="player-sidebar-section">
+          <h3 className="player-sidebar-section-title">
+            <i className="fa-solid fa-mouse-pointer"></i> {t.clicks}
+          </h3>
+          <div className="player-sidebar-grid">
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.totalClicks}</span>
+              <span className="player-sidebar-card-value">{stats ? window.formatNum(stats.totalClicks) : 'N/A'}</span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.clickPower}</span>
+              <span className="player-sidebar-card-value">{stats ? window.formatNum(stats.perClick) : 'N/A'}</span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.golden}</span>
+              <span className="player-sidebar-card-value">{stats ? window.formatNum(stats.goldenClicks) : 'N/A'}</span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.diamond}</span>
+              <span className="player-sidebar-card-value">{stats ? window.formatNum(stats.diamondClicks) : 'N/A'}</span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.crystal}</span>
+              <span className="player-sidebar-card-value">{stats ? window.formatNum(stats.crystalClicks) : 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Upgrades & Production */}
+        <div className="player-sidebar-section">
+          <h3 className="player-sidebar-section-title">
+            <i className="fa-solid fa-gears"></i> {t.upgrades}
+          </h3>
+          <div className="player-sidebar-grid">
+            <div className="player-sidebar-card" style={{ gridColumn: 'span 2' }}>
+              <span className="player-sidebar-card-label">{t.cps}</span>
+              <span className="player-sidebar-card-value" style={{ color: 'var(--primary-i100)' }}>
+                {stats ? window.formatNum(stats.perSecond) : 'N/A'}
+              </span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.generators}</span>
+              <span className="player-sidebar-card-value">{stats ? window.formatNum(stats.totalGenerators) : 'N/A'}</span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.clickUps}</span>
+              <span className="player-sidebar-card-value">{stats ? stats.clickUpgradesCount : 'N/A'}</span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.achievements}</span>
+              <span className="player-sidebar-card-value">{stats ? stats.achievementsCount : 'N/A'}</span>
+            </div>
+            <div className="player-sidebar-card">
+              <span className="player-sidebar-card-label">{t.academy}</span>
+              <span className="player-sidebar-card-value">{stats ? stats.academyUpgradesCount : 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+
+        {!stats && (
+          <div className="player-sidebar-no-data">
+            {lang === 'es' 
+              ? '* No hay datos de guardado sincronizados recientemente para mostrar más estadísticas.' 
+              : '* No recently synchronized save data to show additional statistics.'}
+          </div>
+        )}
+      </div>
+    </React.Fragment>
+  );
 }
 
 function MiniStat({ label, value, icon, color }) {

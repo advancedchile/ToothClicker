@@ -14,14 +14,65 @@ const {
 } = window;
 
 
-function Modal({ children, onClose, maxWidth, persistent }) {
+function Modal({ children, onClose, maxWidth, persistent, overflowVisible }) {
   return (
     <div onClick={() => !persistent && onClose && onClose()} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, animation: 'fadeIn 150ms ease' }}>
-      <div className="game-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-1)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-m)', boxShadow: 'var(--elevation-30)', maxWidth: maxWidth || 420, width: '92%', animation: 'modalIn 200ms ease', maxHeight: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="game-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-1)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-m)', boxShadow: 'var(--elevation-30)', maxWidth: maxWidth || 420, width: '92%', animation: 'modalIn 200ms ease', maxHeight: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column', overflow: overflowVisible ? 'visible' : 'hidden', position: 'relative' }}>
         {children}
       </div>
     </div>);
 }
+
+function PrestigeConfetti() {
+  const [particles, setParticles] = useState([]);
+  const idRef = useRef(0);
+  const COLORS = ['#FFD700','#FF007A','#00D1FF','#FF4500','#7B61FF','#00E676','#FF6D00','#E040FB'];
+  const spawn = useCallback((count) => {
+    const now = [];
+    for (let i = 0; i < count; i++) {
+      const edge = Math.floor(Math.random() * 4);
+      let x, y;
+      if (edge === 0) { x = Math.random() * 100; y = 0; }        // top
+      else if (edge === 1) { x = Math.random() * 100; y = 100; }  // bottom
+      else if (edge === 2) { x = 0; y = Math.random() * 100; }    // left
+      else { x = 100; y = Math.random() * 100; }                   // right
+      const dx = (Math.random() - 0.5) * 180;
+      const dy = (Math.random() - 0.5) * 180 + 40;
+      const rot = (Math.random() - 0.5) * 720;
+      const w = 5 + Math.random() * 6;
+      const h = 4 + Math.random() * 8;
+      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+      const dur = 1.2 + Math.random() * 0.8;
+      now.push({ id: idRef.current++, x, y, dx, dy, rot, w, h, color, dur });
+    }
+    setParticles(prev => [...prev, ...now]);
+  }, []);
+  useEffect(() => {
+    spawn(25);
+    const iv = setInterval(() => spawn(6), 400);
+    return () => clearInterval(iv);
+  }, [spawn]);
+  useEffect(() => {
+    if (particles.length > 120) {
+      setParticles(prev => prev.slice(-80));
+    }
+  }, [particles.length]);
+  return (
+    <div className="prestige-confetti-container">
+      {particles.map(p => (
+        <div key={p.id} className="prestige-confetti-particle" style={{
+          left: p.x + '%', top: p.y + '%',
+          width: p.w, height: p.h,
+          background: p.color,
+          borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+          animationDuration: p.dur + 's',
+          '--cx': p.dx + 'px', '--cy': p.dy + 'px', '--cr': p.rot + 'deg'
+        }} />
+      ))}
+    </div>
+  );
+}
+
 
 function MenuItem({ icon, label, onClick, danger, trailing }) {
   const [hover, setHover] = useState(false);
@@ -440,6 +491,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   }, []);
 
   const [globalTooltip, setGlobalTooltip] = useState(null);
+  useEffect(() => {
+    window.setGlobalTooltip = setGlobalTooltip;
+    return () => {
+      delete window.setGlobalTooltip;
+    };
+  }, []);
   const [toothParticles, setToothParticles] = useState([]);
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
@@ -480,21 +537,13 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     }
     return v;
   }, [state.generators, storeMults]);
-  const has75Gens = useMemo(() => {
-    return Object.values(state.generators || {}).some(qty => qty >= 75);
-  }, [state.generators]);
-
   const clickBase = useMemo(() => window.computeClickPower(state).total, [state.clickUpgrades, state.achievements, state.timePlayed]);
-  
-  // Click upgrades and store upgrades give 2x if 75+ gens, else 0.2x
-  const upgradeBonus = (clickBase * (storeMults.click || 1)) - 1;
-  const appliedUpgradeBonus = upgradeBonus * (has75Gens ? 2.0 : 0.2);
 
   const crystalMult = crystalFrenzyUntil > Date.now() ? 5 : 1;
   const goldenMult = goldenActiveUntil > Date.now() ? 7 : 1;
   const globalMult = prestigeMult * achMult * goldenMult * crystalMult * storeMults.global * academyGpsMult;
   
-  const perClick = (1 + appliedUpgradeBonus) * globalMult;
+  const perClick = clickBase * (storeMults.click || 1) * globalMult;
   perClickRef.current = perClick;
   // Displayed tooth: player-selected if unlocked, else auto (highest unlocked)
   const autoStage = window.getToothStage(state.prestigeCount || 0);
@@ -521,6 +570,22 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     const k = Math.log(1 + (state.totalEarned * (r - 1)) / (B * Math.pow(r, n))) / Math.log(r);
     return Math.max(0, Math.floor(k));
   }, [state.totalEarned, prestigeReq, state.prestigeCount]);
+
+  const hasAffordableAcademyUpgrades = useMemo(() => {
+    const allUps = [...(window.LEVEL_UPGRADES || []), ...(window.XP_UPGRADES || [])];
+    return allUps.some(up => {
+      const purchased = !!state.xpUpgrades[up.id];
+      const isUnlocked = up.achievementId ? !!state.achievements[up.achievementId] : (state.level >= up.levelReq);
+      const canAfford = state.teeth >= up.baseCost;
+      return !purchased && isUnlocked && canAfford;
+    });
+  }, [state.teeth, state.xpUpgrades, state.achievements, state.level]);
+
+  const anyMobileNotification = useMemo(() => {
+    return Object.keys(state.newAchievementIds || {}).length > 0 ||
+           prestigeGain > 0 ||
+           hasAffordableAcademyUpgrades;
+  }, [state.newAchievementIds, prestigeGain, hasAffordableAcademyUpgrades]);
   
   const auroraOpacity = useMemo(() => {
     const t = state.teeth || 0;
@@ -1122,7 +1187,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     if (prestigeGain <= 0) return;
     const gain = prestigeGain;
     const oldCount = stateRef.current?.prestigeCount || 0;
-    const newCount = oldCount + gain;
+    const newCount = oldCount + 1;
     const oldPrestige = stateRef.current?.prestige || 0;
     const newPrestige = oldPrestige + gain;
     
@@ -1233,8 +1298,14 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   });
 
   const [clickFilter, setClickFilter] = React.useState('all');
-  const clickStatus = window.CLICK_UPGRADES.map((u) => ({ up: u, purchased: !!state.clickUpgrades[u.id], unlocked: state.totalEarned >= u.unlockAt, canAfford: state.teeth >= u.cost }));
+  const clickStatus = window.CLICK_UPGRADES.map((u) => {
+    const purchased = !!state.clickUpgrades[u.id];
+    const unlocked = state.totalEarned >= u.unlockAt;
+    const revealed = unlocked || purchased || state.totalEarned >= u.unlockAt * 0.5 || window.CLICK_UPGRADES.indexOf(u) === 0;
+    return { up: u, purchased, unlocked, revealed, canAfford: state.teeth >= u.cost };
+  });
   const filteredClickStatus = clickStatus.filter((c) => {
+    if (!c.revealed) return false;
     if (clickFilter === 'unlocked') return c.unlocked;
     if (clickFilter === 'locked') return !c.unlocked;
     return true;
@@ -1344,7 +1415,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
            </div>
            <div className="mobile-click-text">
               <div className="mobile-click-me">{liveCPS > 0 ? `${liveCPS} CPS` : (lang === 'es' ? 'Toca el diente' : 'Tap the tooth')}</div>
-              <div className="mobile-click-gain">+{fmt(perClick, true)} {t.teeth} / click</div>
+
            </div>
 
            <div className="mobile-upgrades-row">
@@ -1398,9 +1469,22 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                  ))}
                </div>
             </button>
-             <button className="mobile-hamburger-btn" onClick={() => setTabsMenuOpen(true)}>
-               <i className="fa-solid fa-bars" style={{ color: '#fff' }}></i>
-            </button>
+            <button className="mobile-hamburger-btn" onClick={() => setTabsMenuOpen(true)} style={{ position: 'relative' }}>
+                <i className="fa-solid fa-bars" style={{ color: '#fff' }}></i>
+                {anyMobileNotification && (
+                  <span style={{ 
+                    position: 'absolute', 
+                    top: 6, 
+                    right: 6, 
+                    width: 10, 
+                    height: 10, 
+                    borderRadius: '50%', 
+                    background: '#e11d24', 
+                    border: '2px solid #0076db',
+                    boxShadow: '0 0 0 2px rgba(225,29,36,0.2)'
+                  }}></span>
+                )}
+              </button>
         </footer>
 
         {/* Mobile Menu Overlay (Player Menu) */}
@@ -1445,9 +1529,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             {[
               { id: 'generators', label: t.tabGen, icon: 'fa-solid fa-industry' },
               { id: 'click', label: t.tabClick, icon: 'fa-solid fa-hand-pointer' },
-              { id: 'achievements', label: t.tabAch, icon: 'fa-solid fa-trophy' },
-              { id: 'prestige', label: t.tabPrestige, icon: 'fa-solid fa-crown' },
-              { id: 'skills', label: lang === 'es' ? 'Academia' : 'Academy', icon: 'fa-solid fa-graduation-cap' },
+              { id: 'achievements', label: t.tabAch, icon: 'fa-solid fa-trophy', dot: Object.keys(state.newAchievementIds || {}).length > 0 },
+              { id: 'prestige', label: t.tabPrestige, icon: 'fa-solid fa-crown', dot: prestigeGain > 0 },
+              { id: 'skills', label: lang === 'es' ? 'Academia' : 'Academy', icon: 'fa-solid fa-graduation-cap', dot: hasAffordableAcademyUpgrades },
               { id: 'leaderboard', label: t.tabLeaderboard, icon: 'fa-solid fa-ranking-star' },
               { id: 'stats', label: t.tabStats, icon: 'fa-solid fa-chart-line' }
             ].map((item) => (
@@ -1455,9 +1539,23 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 key={item.id} 
                 className={`mobile-tab-item ${tabViewOpen && tab === item.id ? 'active' : ''}`} 
                 onClick={() => { setTab(item.id); setTabsMenuOpen(false); setTabViewOpen(true); }}
+                style={{ position: 'relative' }}
               >
                 <i className={item.icon}></i>
                 <span className="mobile-tab-label">{item.label}</span>
+                {item.dot && (
+                  <span style={{ 
+                    position: 'absolute', 
+                    top: 18, 
+                    right: 20, 
+                    width: 8, 
+                    height: 8, 
+                    borderRadius: '50%', 
+                    background: '#e11d24', 
+                    border: '1.5px solid #fff',
+                    boxShadow: '0 0 0 2px rgba(225,29,36,0.1)'
+                  }}></span>
+                )}
               </button>
             ))}
           </div>
@@ -1761,7 +1859,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                     { label: lang === 'es' ? 'Récord CPS' : 'CPS Record', value: fmt(state.maxCPS || 0), color: 'var(--positive-i100)' }
                   ]} />
                   <window.StatsGroup title={lang === 'es' ? 'Progreso' : 'Progress'} icon="fa-solid fa-chart-line" accent="var(--positive-i100)" rows={[
-                    { label: t.totalTeeth, value: fmt(state.totalEarned), strong: true },
+                    { label: lang === 'es' ? 'Nivel del jugador' : 'Player level', value: fmt(state.level || 0), strong: true, color: 'var(--primary-i100)' },
+                    { label: lang === 'es' ? 'Experiencia (XP)' : 'Experience (XP)', value: `${(state.xp || 0).toLocaleString(lang === 'es' ? 'es-ES' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${fmt(window.getXPRequired(state.level || 0))}` },
+                    { label: t.totalTeeth, value: fmt(state.totalEarned) },
                     { label: t.totalClicks, value: fmt(state.totalClicks) },
                     { label: lang === 'es' ? 'Generadores totales' : 'Total generators', value: fmt(Object.values(state.generators || {}).reduce((a, b) => a + (b || 0), 0)) },
                     { label: lang === 'es' ? 'Mejoras compradas' : 'Upgrades bought', value: `${Object.values(state.clickUpgrades || {}).filter(Boolean).length}/${window.CLICK_UPGRADES.length}` },
@@ -2004,14 +2104,14 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                     all: 'unset', boxSizing: 'border-box',
                     background: 'var(--bg-1)', border: '2px solid var(--primary-i100)',
                     borderRadius: 8, padding: '4px 12px', width: 'auto', minWidth: 200,
-                    fontSize: 16, fontWeight: 700, color: 'var(--fg-1)', textAlign: 'center',
+                    fontSize: 22, fontWeight: 700, color: 'var(--fg-1)', textAlign: 'center',
                     boxShadow: '0 4px 12px rgba(0,118,219,0.15)',
                     fontFamily: 'var(--font-sans)'
                   }}
                 />
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <span className="t-heading-s" style={{ color: 'var(--fg-1)', letterSpacing: '-0.01em' }}>
+                  <span className="t-heading-l" style={{ color: 'var(--fg-1)', letterSpacing: '-0.01em' }}>
                     {state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)}
                   </span>
                   <button 
@@ -2020,7 +2120,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                     onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-i100)'}
                     onMouseLeave={e => e.currentTarget.style.color = 'var(--fg-3)'}
                   >
-                    <i className="fa-solid fa-pen-to-square" style={{ fontSize: 13 }}></i>
+                    <i className="fa-solid fa-pen-to-square" style={{ fontSize: 16 }}></i>
                   </button>
                 </div>
               )}
@@ -2063,14 +2163,13 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               </div>
               </div>
             <div style={{ textAlign: 'center' }}>
-              <div className="t-heading-m" style={{ 
+              <div className="t-heading-xs" style={{ 
                 color: liveCPS >= 30 ? '#e53935' : liveCPS >= 25 ? '#f57c00' : liveCPS > 0 ? '#43a047' : 'var(--fg-1)',
                 transition: 'color 0.5s ease',
                 animation: liveCPS >= 30 ? 'shake 0.08s linear infinite' : liveCPS >= 25 ? 'shake 0.15s linear infinite' : 'none'
               }}>
                 {liveCPS > 0 ? `${liveCPS} CPS` : t.clickMe}
               </div>
-              <div className="t-body-m" style={{ color: 'var(--fg-3)', marginTop: 4 }}>+{fmt(perClick, true)} {t.teeth} / click</div>
             </div>
           </div>
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -2106,8 +2205,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           { id: 'generators', label: t.tabGen, icon: 'fa-solid fa-industry' },
           { id: 'click', label: t.tabClick, icon: 'fa-solid fa-hand-pointer' },
           { id: 'achievements', label: t.tabAch, icon: 'fa-solid fa-trophy', dot: Object.keys(state.newAchievementIds || {}).length > 0 },
-          { id: 'prestige', label: t.tabPrestige, icon: 'fa-solid fa-crown' },
-          { id: 'skills', label: lang === 'es' ? 'Academia' : 'Academy', icon: 'fa-solid fa-graduation-cap' },
+          { id: 'prestige', label: t.tabPrestige, icon: 'fa-solid fa-crown', dot: prestigeGain > 0 },
+          { id: 'skills', label: lang === 'es' ? 'Academia' : 'Academy', icon: 'fa-solid fa-graduation-cap', dot: hasAffordableAcademyUpgrades },
           { id: 'leaderboard', label: t.tabLeaderboard, icon: 'fa-solid fa-ranking-star' },
           { id: 'stats', label: t.tabStats, icon: 'fa-solid fa-chart-line' }]
           } />
@@ -2378,7 +2477,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             { label: lang === 'es' ? 'Récord CPS' : 'CPS Record', value: fmt(state.maxCPS || 0), color: 'var(--positive-i100)' }]
             } />
               <window.StatsGroup title={lang === 'es' ? 'Progreso' : 'Progress'} icon="fa-solid fa-chart-line" accent="var(--positive-i100)" rows={[
-            { label: t.totalTeeth, value: fmt(state.totalEarned), strong: true },
+            { label: lang === 'es' ? 'Nivel del jugador' : 'Player level', value: fmt(state.level || 0), strong: true, color: 'var(--primary-i100)' },
+            { label: lang === 'es' ? 'Experiencia (XP)' : 'Experience (XP)', value: `${(state.xp || 0).toLocaleString(lang === 'es' ? 'es-ES' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${fmt(window.getXPRequired(state.level || 0))}` },
+            { label: t.totalTeeth, value: fmt(state.totalEarned) },
             { label: t.totalClicks, value: fmt(state.totalClicks) },
             { label: lang === 'es' ? 'Generadores totales' : 'Total generators', value: fmt(Object.values(state.generators || {}).reduce((a, b) => a + (b || 0), 0)) },
             { label: lang === 'es' ? 'Mejoras compradas' : 'Upgrades bought', value: `${Object.values(state.clickUpgrades || {}).filter(Boolean).length}/${window.CLICK_UPGRADES.length}` },
@@ -2547,6 +2648,62 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           onSeek={(t) => { if (audioRef.current) audioRef.current.currentTime = t; }}
           soundOn={soundOn}
           toggleSound={toggleSound}
+          onShareTrack={(track) => {
+            const teethStr = window.formatNumWithMode(state.lifetimeEarned || state.totalEarned || 0, 'short', lang);
+            const url = `${window.location.origin}${window.location.pathname.replace(/\/$/, '')}/player.html?track=${track.id}&teeth=${encodeURIComponent(teethStr)}`;
+            const text = lang === 'es' 
+              ? `Juega ToothClicker, mi clínica ya tiene ${teethStr}.` 
+              : `Play ToothClicker, my clinic already has ${teethStr}.`;
+            
+            const handleCopy = () => {
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                  setToast({ id: 'share_success', es: '¡Enlace de compartir copiado al portapapeles!', en: 'Share link copied to clipboard!' });
+                  setTimeout(() => setToast(null), 3000);
+                }).catch(() => {
+                  fallbackCopy();
+                });
+              } else {
+                fallbackCopy();
+              }
+            };
+
+            const fallbackCopy = () => {
+              const input = document.createElement('input');
+              input.value = url;
+              document.body.appendChild(input);
+              input.select();
+              try {
+                document.execCommand('copy');
+                setToast({ id: 'share_success', es: '¡Enlace de compartir copiado al portapapeles!', en: 'Share link copied to clipboard!' });
+                setTimeout(() => setToast(null), 3000);
+              } catch (e) {
+                console.error('Copy fallback failed', e);
+              }
+              document.body.removeChild(input);
+            };
+
+            if (navigator.share) {
+              navigator.share({
+                title: 'Tooth Clicker',
+                text: text,
+                url: url
+              }).catch(() => {
+                handleCopy();
+              });
+            } else {
+              handleCopy();
+            }
+          }}
+          onHoverShare={(pos) => {
+            setGlobalTooltip({
+              type: 'text',
+              text: lang === 'es' ? 'Compartir enlace' : 'Share link',
+              pos: pos,
+              direction: 'up'
+            });
+          }}
+          onLeaveShare={() => setGlobalTooltip(null)}
         />
 
       )}
@@ -2651,15 +2808,19 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       }
 
       {showPrestigeConfirm &&
-      <Modal onClose={() => setShowPrestigeConfirm(false)}>
-          <div style={{ width: 54, height: 54, borderRadius: 'var(--radius-s)', background: 'var(--warning-i010)', color: 'var(--warning-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--spacing-3)' }}>
-            <i className="fa-solid fa-crown" style={{ fontSize: 22 }}></i>
-          </div>
-          <div className="t-heading-m">{t.prestigeBtn}</div>
-          <div className="t-body-m" style={{ color: 'var(--fg-2)', marginTop: 6 }}>{t.confirmPrestige}</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 'var(--spacing-5)' }}>
-            <button onClick={() => setShowPrestigeConfirm(false)} style={secondaryBtnStyle}>{lang === 'es' ? 'Cancelar' : 'Cancel'}</button>
-            <button onClick={doPrestige} style={{ ...primaryBtnStyle, background: 'var(--warning-i100)', color: 'var(--warning-i150)' }}><i className="fa-solid fa-crown" style={{ marginRight: 6 }}></i>{t.prestigeBtn}</button>
+      <Modal onClose={() => setShowPrestigeConfirm(false)} overflowVisible>
+          <div className="prestige-sunburst"></div>
+          <PrestigeConfetti />
+          <div style={{ position: 'relative', zIndex: 2 }}>
+            <div style={{ width: 54, height: 54, borderRadius: 'var(--radius-s)', background: 'var(--warning-i010)', color: 'var(--warning-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--spacing-3)' }}>
+              <i className="fa-solid fa-crown" style={{ fontSize: 22 }}></i>
+            </div>
+            <div className="t-heading-m">{t.prestigeBtn}</div>
+            <div className="t-body-m" style={{ color: 'var(--fg-2)', marginTop: 6 }}>{t.confirmPrestige}</div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 'var(--spacing-5)' }}>
+              <button onClick={() => setShowPrestigeConfirm(false)} style={secondaryBtnStyle}>{lang === 'es' ? 'Cancelar' : 'Cancel'}</button>
+              <button onClick={doPrestige} style={{ ...primaryBtnStyle, background: 'var(--warning-i100)', color: 'var(--warning-i150)' }}><i className="fa-solid fa-crown" style={{ marginRight: 6 }}></i>{t.prestigeBtn}</button>
+            </div>
           </div>
         </Modal>
       }
@@ -2940,6 +3101,14 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             <>
               <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.data.title}</div>
               <div style={{ opacity: 0.8, fontSize: 11 }}>{globalTooltip.data.desc}</div>
+            </>
+          ) : globalTooltip.type === 'ach' ? (
+            <>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.unlocked ? (globalTooltip.data[lang] || globalTooltip.data.es) : '???'}</div>
+              <div style={{ opacity: 0.8, fontSize: 11, marginBottom: 4 }}>{globalTooltip.data[`desc_${lang}`] || globalTooltip.data.desc_es}</div>
+              <div style={{ color: '#FFC220', fontSize: 11, fontWeight: 600 }}>
+                {lang === 'es' ? '+1% prod. global permanente' : '+1% permanent global prod.'}
+              </div>
             </>
           ) : (
             <>

@@ -430,3 +430,308 @@ input[type="color"]::-moz-color-swatch {
   to { transform: rotate(360deg); }
 }
 
+/* ============================================================
+   Player Detail Sidebar — Premium Styles
+   ============================================================ */
+.player-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+}
+
+.player-sidebar-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.player-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 440px;
+  max-width: 100vw;
+  background: var(--bg-1);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
+  z-index: 2300;
+  transform: translateX(100%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.player-sidebar.open {
+  transform: translateX(0);
+}
+
+.player-sidebar-header {
+  padding: var(--spacing-6);
+  border-bottom: 1px solid var(--border-subtle);
+  background: linear-gradient(135deg, var(--primary-i010) 0%, var(--bg-1) 100%);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-3);
+  box-sizing: border-box;
+}
+
+.player-sidebar-close {
+  all: unset;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-1);
+  border: 1px solid var(--border-subtle);
+  color: var(--fg-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+.player-sidebar-close:hover {
+  background: var(--bg-3);
+  color: var(--fg-1);
+  transform: scale(1.05);
+}
+
+.player-sidebar-avatar {
+  width: 130px;
+  height: 130px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(0, 118, 219, 0.16));
+  transition: transform 0.2s ease;
+}
+.player-sidebar-avatar:hover {
+  transform: scale(1.05);
+}
+
+.player-sidebar-name {
+  font-family: 'PixelifySans', var(--font-sans);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--fg-1);
+  margin: 0;
+}
+
+.player-sidebar-subtitle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--primary-i100);
+  font-weight: 600;
+}
+
+.player-sidebar-prestige-sep {
+  color: var(--fg-3);
+  font-weight: 400;
+}
+
+.player-sidebar-prestige-inline {
+  color: var(--warning-i120);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+
+
+.player-sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+  box-sizing: border-box;
+}
+
+.player-sidebar-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.player-sidebar-section-title {
+  font-family: 'PixelifySans', var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-1);
+  margin-top: 0;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid var(--border-subtle);
+  padding-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.player-sidebar-section-title i {
+  color: var(--primary-i100);
+}
+
+.player-sidebar-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.player-sidebar-grid.full-width {
+  grid-template-columns: 1fr;
+}
+
+.player-sidebar-card {
+  padding: 12px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-m);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.player-sidebar-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.player-sidebar-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--fg-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.player-sidebar-card-value {
+  font-family: 'GameNums', var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg-1);
+  word-break: break-all;
+}
+
+.player-sidebar-no-data {
+  padding: var(--spacing-8) 0;
+  text-align: center;
+  color: var(--fg-3);
+  font-style: italic;
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .player-sidebar {
+    width: 100%;
+    height: 80vh;
+    height: 80dvh;
+    top: auto;
+    bottom: 0;
+    border-radius: 24px 24px 0 0;
+    transform: translateY(100%);
+  }
+  .player-sidebar.open {
+    transform: translateY(0);
+  }
+}
+
+.leaderboard-info-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: transparent;
+  color: var(--fg-3);
+  border: 1.5px solid var(--fg-3);
+  border-radius: 50%;
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+  font-size: 10px;
+  width: 20px;
+  height: 20px;
+}
+
+.leaderboard-info-btn:hover {
+  color: var(--primary-i100);
+  border-color: var(--primary-i100);
+  transform: scale(1.1);
+}
+
+.leaderboard-info-btn:active {
+  transform: scale(0.95);
+}
+
+
+/* ── Prestige Modal: Sunburst ── */
+@keyframes spin-sunburst {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.prestige-sunburst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 260%;
+  height: 260%;
+  pointer-events: none;
+  z-index: -1;
+  animation: spin-sunburst 18s linear infinite;
+  background: repeating-conic-gradient(
+    rgba(255, 200, 50, 0.18) 0deg,
+    transparent 12deg,
+    transparent 24deg
+  );
+  mask-image: radial-gradient(circle, rgba(0,0,0,0.7) 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle, rgba(0,0,0,0.7) 20%, transparent 70%);
+  border-radius: 50%;
+}
+
+/* ── Prestige Modal: Confetti Particles ── */
+.prestige-confetti-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 1;
+}
+
+.prestige-confetti-particle {
+  position: absolute;
+  border-radius: 2px;
+  opacity: 0;
+  animation: confetti-burst 1.6s ease-out forwards;
+}
+
+@keyframes confetti-burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--cx), var(--cy)) rotate(var(--cr)) scale(0.3);
+  }
+}

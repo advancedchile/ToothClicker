@@ -47,7 +47,7 @@
     align-items: center;
     gap: 8px;
     font-family: 'PixelifySans', sans-serif;
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 700;
     color: #1a1a1b;
   }
@@ -209,7 +209,7 @@
 
   .mobile-click-me {
     font-family: 'PixelifySans', sans-serif;
-    font-size: 20px;
+    font-size: 14px;
     font-weight: 700;
     color: #1a1a1b;
   }
@@ -640,10 +640,10 @@
   }
   .leaderboard-header-row,
   .leaderboard-row {
-    grid-template-columns: 28px 1fr 60px 85px !important;
-    gap: 10px !important;
-    padding-left: 10px !important;
-    padding-right: 10px !important;
+    grid-template-columns: 28px 1fr 60px 85px 36px !important;
+    gap: 8px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
   }
   .leaderboard-row {
     background: transparent !important;

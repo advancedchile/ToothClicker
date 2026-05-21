@@ -48,6 +48,7 @@ function formatTime(secs) {
 }
 
 window.playClickSound = () => {
+  if (localStorage.getItem('tooth-clicker-sound') === '0') return;
   if (window.playTone) {
     window.playTone(880, 0.05, 'sine', 0.05);
   }
@@ -76,13 +77,8 @@ function defaultState() {
 
 window.getXPRequired = function(level) {
   if (level <= 0) return 100;
-  let req = 100;
-  // Mult starts at 1.75 and grows by 0.5 per level
-  for (let i = 0; i < level; i++) {
-    req *= (1.75 + (i * 0.5));
-    if (req > 1e307) return 1e308; // Infinity safety
-  }
-  return Math.floor(req);
+  // Polynomial scaling: 100 + 50 * (level ^ 1.5)
+  return Math.floor(100 + 50 * Math.pow(level, 1.5));
 };
 
 // Shared button styles
