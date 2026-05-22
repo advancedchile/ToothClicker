@@ -205,27 +205,56 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
           );
         })}
       </div>
-      <div 
-        className={`player-sidebar-overlay ${selectedPlayer ? 'open' : ''}`} 
-        onClick={() => { window.playClickSound && window.playClickSound(); setSelectedPlayer(null); }} 
-      />
-      <div className={`player-sidebar ${selectedPlayer ? 'open' : ''}`}>
-        {selectedPlayer && (
-          <React.Fragment>
-            <button 
-              className="player-sidebar-close" 
-              onClick={() => { window.playClickSound && window.playClickSound(); setSelectedPlayer(null); }} 
-              aria-label="Close"
-            >
-              <i className="fa-solid fa-xmark"></i>
-            </button>
-            <PlayerDetailSidebar 
-              player={selectedPlayer} 
-              lang={lang} 
-            />
-          </React.Fragment>
-        )}
-      </div>
+      {window.ReactDOM ? window.ReactDOM.createPortal(
+        <React.Fragment>
+          <div 
+            className={`player-sidebar-overlay ${selectedPlayer ? 'open' : ''}`} 
+            onClick={() => { window.playClickSound && window.playClickSound(); setSelectedPlayer(null); }} 
+          />
+          <div className={`player-sidebar ${selectedPlayer ? 'open' : ''}`}>
+            {selectedPlayer && (
+              <React.Fragment>
+                <button 
+                  className="player-sidebar-close" 
+                  onClick={() => { window.playClickSound && window.playClickSound(); setSelectedPlayer(null); }} 
+                  aria-label="Close"
+                >
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+                <PlayerDetailSidebar 
+                  player={selectedPlayer} 
+                  lang={lang} 
+                />
+              </React.Fragment>
+            )}
+          </div>
+        </React.Fragment>,
+        document.body
+      ) : (
+        <React.Fragment>
+          <div 
+            className={`player-sidebar-overlay ${selectedPlayer ? 'open' : ''}`} 
+            onClick={() => { window.playClickSound && window.playClickSound(); setSelectedPlayer(null); }} 
+          />
+          <div className={`player-sidebar ${selectedPlayer ? 'open' : ''}`}>
+            {selectedPlayer && (
+              <React.Fragment>
+                <button 
+                  className="player-sidebar-close" 
+                  onClick={() => { window.playClickSound && window.playClickSound(); setSelectedPlayer(null); }} 
+                  aria-label="Close"
+                >
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+                <PlayerDetailSidebar 
+                  player={selectedPlayer} 
+                  lang={lang} 
+                />
+              </React.Fragment>
+            )}
+          </div>
+        </React.Fragment>
+      )}
     </React.Fragment>
   );
 }
@@ -252,7 +281,7 @@ function LeaderboardPanel({ username, lang }) {
     await lb.refresh();
   };
 
-  return <div><LeaderboardHeader lb={{...lb, refresh: handleRefresh}} lang={lang} /><LeaderboardBody lb={lb} lang={lang} currentUser={username} /></div>;
+  return <div><LeaderboardHeader lb={{...lb, refresh: handleRefresh}} lang={lang} /><LeaderboardBody lb={lb} lang={lang} currentUser={username} noScroll={true} /></div>;
 }
 
 function PlayerDetailSidebar({ player, lang }) {

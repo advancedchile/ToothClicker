@@ -81,6 +81,43 @@ window.getXPRequired = function(level) {
   return Math.floor(100 + 50 * Math.pow(level, 1.5));
 };
 
+window.computePassivePower = function(state, isGolden = false, isCrystal = false) {
+  // Store multipliers
+  const storeMults = { click: 1, global: 1, gen: {} };
+  Object.keys(state.storeUpgrades || {}).forEach(id => {
+    const up = (window.STORE_UPGRADES || []).find(u => u.id === id);
+    if (!up) return;
+    if (up.type === 'click') storeMults.click *= up.multiplier;
+    if (up.type === 'global') storeMults.global *= up.multiplier;
+    if (up.type === 'generator') storeMults.gen[up.targetId] = (storeMults.gen[up.targetId] || 1) * up.multiplier;
+  });
+
+  const prestigeMult = 1 + 0.05 * (state.prestige || 0);
+  const achMult = 1 + 0.01 * Object.values(state.achievements || {}).filter(Boolean).length;
+  
+  const academyGpsMult = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades?.[up.id] ? (up.gpsBonus || 0) : 0), 0) +
+                         (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades?.[up.id] ? (up.gpsBonus || 0) : 0), 0);
+  const totalAcademyGpsMult = 1 + academyGpsMult;
+
+  const crystalMult = isCrystal ? 5 : 1;
+  const goldenMult = isGolden ? 7 : 1;
+  
+  const globalMult = prestigeMult * achMult * goldenMult * crystalMult * storeMults.global * totalAcademyGpsMult;
+
+  let perSecondRaw = 0;
+  const genProductions = {};
+  for (const g of (window.GENERATORS || [])) {
+    let gProd = (state.generators?.[g.id] || 0) * g.baseProduction;
+    if (storeMults.gen[g.id]) gProd *= storeMults.gen[g.id];
+    perSecondRaw += gProd;
+    genProductions[g.id] = gProd * globalMult;
+  }
+
+  const perSecond = perSecondRaw * globalMult;
+
+  return { perSecond, perSecondRaw, globalMult, genProductions, storeMults };
+};
+
 // Shared button styles
 const topBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '8px 12px', fontSize: 13, fontWeight: 500, color: 'var(--fg-2)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', background: 'var(--bg-1)', fontFamily: 'var(--font-sans)' };
 const primaryBtnStyle = { all: 'unset', boxSizing: 'border-box', padding: '10px 18px', background: 'var(--primary-i100)', color: '#fff', borderRadius: 'var(--radius-s)', fontWeight: 600, fontSize: 14, cursor: 'pointer', flex: 1, textAlign: 'center', fontFamily: 'var(--font-sans)' };
@@ -93,6 +130,7 @@ Object.assign(window, {
   loadAllSaves, saveAllSaves, loadUserSave, persistUserSave, deleteUserSave, 
   loadUsers, saveUsers, resetAllProgress, defaultState, 
   topBtnStyle, primaryBtnStyle, secondaryBtnStyle, debugBtnStyle,
+  computePassivePower,
   SAVES_KEY, CURRENT_USER_KEY, LANG_KEY, SOUND_KEY, NUMFMT_KEY, USERS_KEY, DEVICE_USER_KEY, ADMIN_USERS_KEY, LAST_RESET_KEY, ADMIN_AUTH_KEY, SESSION_ID_KEY, ADMIN_NAME, MUSIC_TRACKS
 });
 

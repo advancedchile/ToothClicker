@@ -39,7 +39,7 @@ function getAvatarUrl(who, customImage, msgId) {
   return null;
 }
 
-function BossMarquee({ msg, lang, danger, onDismiss }) {
+function BossMarquee({ msg, lang, danger, onDismiss, onAnswer }) {
   const [shown, setShown] = useState('');
   const [containerReady, setContainerReady] = useState(false);
   const messageBody = msg[lang] || msg.es;
@@ -64,8 +64,9 @@ function BossMarquee({ msg, lang, danger, onDismiss }) {
         if (i >= messageBody.length) clearInterval(id);
       }, 28);
     }, 380);
-    const dismissTimer = setTimeout(() => dismissRef.current && dismissRef.current(), 22000 + messageBody.length * 40);
-    return () => { clearTimeout(showContainer); clearTimeout(startType); clearInterval(id); clearTimeout(dismissTimer); };
+    const isQuestion = msg.msgType === 'question';
+    const dismissTimer = isQuestion ? null : setTimeout(() => dismissRef.current && dismissRef.current(), 22000 + messageBody.length * 40);
+    return () => { clearTimeout(showContainer); clearTimeout(startType); clearInterval(id); if (dismissTimer) clearTimeout(dismissTimer); };
   }, [messageBody]);
 
   const bg = '#000';
@@ -201,14 +202,36 @@ function BossMarquee({ msg, lang, danger, onDismiss }) {
               {shown.length < messageBody.length && <span style={{ display: 'inline-block', width: 2, height: '1em', background: textColor, marginLeft: 1, verticalAlign: 'middle', animation: 'cursorBlink 0.8s steps(1) infinite' }}></span>}
             </>)}
           </span>
+          {msg.msgType === 'question' && containerReady && shown.length === messageBody.length && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
+              {(msg.options || (lang === 'es' ? ['Verdadero', 'Falso'] : ['True', 'False'])).map((opt, idx) => (
+                <div 
+                  key={idx}
+                  onClick={() => onAnswer && onAnswer(msg.options ? idx : (idx === 0))}
+                  style={{ 
+                    cursor: 'pointer', color: 'rgba(255,255,255,0.9)', fontWeight: 600, fontSize: 14, 
+                    transition: 'all 0.15s', display: 'flex', alignItems: 'center', width: 'fit-content',
+                    opacity: 0, animation: 'fadeIn 0.3s ease forwards', animationDelay: `${idx * 300}ms`
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.transform = 'translateX(4px)'; }}
+                  onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; e.currentTarget.style.transform = 'none'; }}
+                >
+                  <i className="fa-solid fa-chevron-right" style={{ fontSize: 11, marginRight: 8, color: accentColor }}></i>
+                  <span style={{ borderBottom: '1px solid transparent', transition: 'border-color 0.15s' }} onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'} onMouseOut={e => e.currentTarget.style.borderColor = 'transparent'}>{opt}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <button 
-          onClick={() => onDismiss()}
-          style={{ all: 'unset', width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', transition: 'all 0.2s', border: '1px solid rgba(255,255,255,0.2)' }}
-          className="hover-bg-danger"
-        >
-          <i className="fa-solid fa-xmark" style={{ fontSize: 14 }}></i>
-        </button>
+        {msg.msgType !== 'question' && (
+          <button 
+            onClick={() => onDismiss()}
+            style={{ all: 'unset', width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', transition: 'all 0.2s', border: '1px solid rgba(255,255,255,0.2)' }}
+            className="hover-bg-danger"
+          >
+            <i className="fa-solid fa-xmark" style={{ fontSize: 14 }}></i>
+          </button>
+        )}
       </div>
     </div>
   );

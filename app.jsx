@@ -150,11 +150,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       const elapsed = Math.max(0, (Date.now() - snap.lastTick) / 1000);
       if (elapsed >= 30) {
         const capped = Math.min(elapsed, OFFLINE_CAP_S);
-        let passive = 0;
-        for (const g of window.GENERATORS) passive += (snap.generators?.[g.id] || 0) * g.baseProduction;
-        const pMult = 1 + 0.05 * (snap.prestige || 0);
-        const aMult = 1 + 0.01 * Object.values(snap.achievements || {}).filter(Boolean).length;
-        const earned = passive * pMult * aMult * capped;
+        const { perSecond } = window.computePassivePower(snap, false, false);
+        const earned = perSecond * capped;
         if (earned > 0) info = { elapsedSeconds: elapsed, cappedSeconds: capped, wasCapped: elapsed > OFFLINE_CAP_S, earned };
       }
     }
@@ -181,6 +178,40 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         }
       });
       base.legacyAcademyFixDone = true;
+    }
+
+    if (!base.legacyXpRebalanceDone) {
+      if (base.level > 25 && base.timePlayed) {
+        const xpFromUpgrades = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (base.xpUpgrades?.[up.id] ? up.xpPassive : 0), 0);
+        const specialXpMult = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (base.xpUpgrades?.[up.id] ? (up.xpMult || 0) : 0), 0);
+        const globalXpMult = 1 + specialXpMult;
+        
+        const currentXpRate = xpFromUpgrades * globalXpMult;
+        let recalculatedTotalXP = 100 + (currentXpRate * base.timePlayed);
+        
+        let newLevel = 0;
+        while (newLevel < 50000) {
+          const req = window.getXPRequired(newLevel);
+          if (recalculatedTotalXP >= req) {
+            recalculatedTotalXP -= req;
+            newLevel++;
+          } else {
+            break;
+          }
+        }
+        
+        base.level = newLevel;
+        base.xp = recalculatedTotalXP;
+        
+        if (base.xpUpgrades) {
+          (window.LEVEL_UPGRADES || []).forEach(up => {
+            if (base.level < up.levelReq && base.xpUpgrades[up.id]) {
+              delete base.xpUpgrades[up.id];
+            }
+          });
+        }
+      }
+      base.legacyXpRebalanceDone = true;
     }
 
     if (offlineInfo) return { ...base, teeth: (base.teeth || 0) + offlineInfo.earned, totalEarned: (base.totalEarned || 0) + offlineInfo.earned, lifetimeEarned: (base.lifetimeEarned || 0) + offlineInfo.earned, lastTick: Date.now() };
@@ -394,6 +425,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [bubbles, setBubbles] = useState([]);
   // Boss marquee
   const [bossMsg, setBossMsg] = useState(null);
+  const [questionFeedback, setQuestionFeedback] = useState(null);
+  const [questionResult, setQuestionResult] = useState(null); // { correct, rewardDesc }
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [cheatLevel, setCheatLevel] = useState(0);
   const clickTimesRef = useRef([]);
@@ -504,46 +537,19 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const perClickRef = useRef(0);
   const t = window.STRINGS[lang];
 
-  const storeMults = useMemo(() => {
-    const res = { click: 1, global: 1, gen: {} };
-    const boughtIds = Object.keys(state.storeUpgrades || {});
-    boughtIds.forEach(id => {
-      const up = (window.STORE_UPGRADES || []).find(u => u.id === id);
-      if (!up) return;
-      if (up.type === 'click') res.click *= up.multiplier;
-      if (up.type === 'global') res.global *= up.multiplier;
-      if (up.type === 'generator') res.gen[up.targetId] = (res.gen[up.targetId] || 1) * up.multiplier;
-    });
-    return res;
-  }, [state.storeUpgrades]);
-
-  const prestigeMult = 1 + 0.05 * (state.prestige || 0);
-  const achMult = 1 + 0.01 * Object.values(state.achievements || {}).filter(Boolean).length;
-  const academyGpsMult = useMemo(() => {
-    const regular = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades[up.id] ? (up.gpsBonus || 0) : 0), 0);
-    const special = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades[up.id] ? (up.gpsBonus || 0) : 0), 0);
-    return 1 + regular + special;
-  }, [state.xpUpgrades]);
-  const academyXpMult = useMemo(() => {
-    const special = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades[up.id] ? (up.xpMult || 0) : 0), 0);
-    return 1 + special;
-  }, [state.xpUpgrades]);
-  const perSecondRaw = useMemo(() => {
-    let v = 0;
-    for (const g of window.GENERATORS) {
-      let gProd = (state.generators[g.id] || 0) * g.baseProduction;
-      if (storeMults.gen[g.id]) gProd *= storeMults.gen[g.id];
-      v += gProd;
-    }
-    return v;
-  }, [state.generators, storeMults]);
+  const passiveData = useMemo(() => window.computePassivePower(state, goldenActiveUntil > Date.now(), crystalFrenzyUntil > Date.now()), [state, goldenActiveUntil, crystalFrenzyUntil]);
+  const storeMults = passiveData.storeMults;
+  const globalMult = passiveData.globalMult;
+  const perSecondRaw = passiveData.perSecondRaw;
+  const perSecond = passiveData.perSecond;
+  const genProductions = passiveData.genProductions;
+  
   const clickBase = useMemo(() => window.computeClickPower(state).total, [state.clickUpgrades, state.achievements, state.timePlayed]);
-
+  const perClick = clickBase * (storeMults.click || 1) * globalMult;
+  
   const crystalMult = crystalFrenzyUntil > Date.now() ? 5 : 1;
   const goldenMult = goldenActiveUntil > Date.now() ? 7 : 1;
-  const globalMult = prestigeMult * achMult * goldenMult * crystalMult * storeMults.global * academyGpsMult;
-  
-  const perClick = clickBase * (storeMults.click || 1) * globalMult;
+  const prestigeMult = 1 + (state.prestigeCount * 0.05);
   perClickRef.current = perClick;
   // Displayed tooth: player-selected if unlocked, else auto (highest unlocked)
   const autoStage = window.getToothStage(state.prestigeCount || 0);
@@ -552,8 +558,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     if (s && (state.prestigeCount || 0) >= s.prestige) return s;
     return autoStage;
   })();
-  const perSecond = perSecondRaw * globalMult;
-  const genProductions = useMemo(() => {const out = {};for (const g of window.GENERATORS) out[g.id] = (state.generators[g.id] || 0) * g.baseProduction * globalMult;return out;}, [state.generators, globalMult]);
+
   const achUnlockedCount = Object.values(state.achievements || {}).filter(Boolean).length;
   const prestigeReq = useMemo(() => {
     const count = state.prestigeCount || 0;
@@ -601,11 +606,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       setState((s) => {
         const now = Date.now();
         const dt = (now - s.lastTick) / 1000;
-        let v = 0;for (const g of window.GENERATORS) v += (s.generators[g.id] || 0) * g.baseProduction;
-        const pMult = 1 + 0.05 * (s.prestige || 0);
-        const aMult = 1 + 0.01 * Object.values(s.achievements || {}).filter(Boolean).length;
-        const gMult = goldenActiveUntil > now ? 7 : 1;
-        const earned = v * pMult * aMult * gMult * dt;
+        
+        const isGolden = goldenActiveUntil > now;
+        const isCrystal = crystalFrenzyUntil > now;
+        const passiveData = window.computePassivePower(s, isGolden, isCrystal);
+        const earned = passiveData.perSecond * dt;
         
         // Passive XP Gain
         const xpPassiveBase = 0;
@@ -776,7 +781,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     let timeoutId;
     
     function triggerRandomBossMessage() {
-      const pick = randomPool[Math.floor(Math.random() * randomPool.length)];
+      const validPool = randomPool.filter(m => stateRef.current.level >= (m.levelReq || 0));
+      if (validPool.length === 0) return;
+      const pick = validPool[Math.floor(Math.random() * validPool.length)];
       setBossMsg({
         who: pick.who,
         es: pick.text,
@@ -787,7 +794,15 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         position: pick.position || 'bottom',
         size: pick.size || 'medium',
         animation: pick.animation || 'none',
-        particles: pick.particles || 'none'
+        particles: pick.particles || 'none',
+        ...(pick.msgType === 'question' ? {
+          msgType: 'question',
+          options: pick.options,
+          correctOptionIndex: pick.correctOptionIndex,
+          explanationText: pick.explanationText,
+          correctReward: pick.correctReward,
+          wrongReward: pick.wrongReward
+        } : {})
       });
     }
 
@@ -816,7 +831,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     const currentMin = Math.floor(state.timePlayed / 60);
     customMessages.forEach(m => {
       if (typeof m.milestone === 'number' && m.milestone >= 0 && m.milestone === currentMin) {
-        if (!shownFixedMessagesRef.current.has(m.id)) {
+        if (!shownFixedMessagesRef.current.has(m.id) && state.level >= (m.levelReq || 0)) {
           shownFixedMessagesRef.current.add(m.id);
           setBossMsg({
             who: m.who,
@@ -828,7 +843,15 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             position: m.position || 'bottom',
             size: m.size || 'medium',
             animation: m.animation || 'none',
-            particles: m.particles || 'none'
+            particles: m.particles || 'none',
+            ...(m.msgType === 'question' ? {
+              msgType: 'question',
+              options: m.options,
+              correctOptionIndex: m.correctOptionIndex,
+              explanationText: m.explanationText,
+              correctReward: m.correctReward,
+              wrongReward: m.wrongReward
+            } : {})
           });
         }
       }
@@ -2071,10 +2094,44 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                       position: pick.position,
                       size: pick.size,
                       animation: pick.animation,
-                      particles: pick.particles
+                      particles: pick.particles,
+                      ...(pick.msgType === 'question' ? {
+                        msgType: 'question',
+                        options: pick.options,
+                        correctOptionIndex: pick.correctOptionIndex,
+                        explanationText: pick.explanationText,
+                        correctReward: pick.correctReward,
+                        wrongReward: pick.wrongReward
+                      } : {})
                     });
                   }
                 }} style={{ ...debugBtnStyle, background: 'var(--primary-i010)', color: 'var(--primary-i100)', borderColor: 'var(--primary-i030)' }}>Trigger Msg ({customMessages.length})</button>
+                <button onClick={() => {
+                  const bossPool = customMessages.filter(m => m.milestone >= 0);
+                  if (bossPool.length > 0) {
+                    const pick = bossPool[Math.floor(Math.random() * bossPool.length)];
+                    setBossMsg({ 
+                      who: pick.who, 
+                      es: pick.text, 
+                      en: pick.text, 
+                      isCustom: true,
+                      danger: false,
+                      color: pick.color,
+                      position: pick.position,
+                      size: pick.size,
+                      animation: pick.animation,
+                      particles: pick.particles,
+                      ...(pick.msgType === 'question' ? {
+                        msgType: 'question',
+                        options: pick.options,
+                        correctOptionIndex: pick.correctOptionIndex,
+                        explanationText: pick.explanationText,
+                        correctReward: pick.correctReward,
+                        wrongReward: pick.wrongReward
+                      } : {})
+                    });
+                  }
+                }} style={{ ...debugBtnStyle, background: 'var(--warning-i010)', color: 'var(--warning-i100)', borderColor: 'var(--warning-i030)' }}>Trigger Boss Msg ({customMessages.filter(m => m.milestone >= 0).length})</button>
               </div>
             )}
             <div style={{ textAlign: 'center', marginBottom: 16, marginTop: -10, position: 'relative', zIndex: 10 }}>
@@ -3051,7 +3108,86 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           onSimulateClick={performClick} 
         />
       )}
-      {bossMsg && <BossMarquee msg={bossMsg} lang={lang} danger={bossMsg.danger} onDismiss={() => setBossMsg(null)} />}
+      {bossMsg && <BossMarquee msg={bossMsg} lang={lang} danger={bossMsg.danger} onDismiss={() => setBossMsg(null)} onAnswer={bossMsg.msgType === 'question' ? (userAnswer) => {
+        const correct = bossMsg.options ? (userAnswer === bossMsg.correctOptionIndex) : (userAnswer === bossMsg.questionAnswer);
+        const reward = correct ? bossMsg.correctReward : bossMsg.wrongReward;
+        let rewardDesc = '';
+        if (reward && reward.type !== 'none') {
+          if (reward.type === 'addTeeth') {
+            setState(s => ({ ...s, teeth: s.teeth + reward.amount, totalEarned: s.totalEarned + reward.amount, lifetimeEarned: (s.lifetimeEarned || 0) + reward.amount }));
+            rewardDesc = lang === 'es' ? `+${window.formatNum(reward.amount)} dientes` : `+${window.formatNum(reward.amount)} teeth`;
+          } else if (reward.type === 'removeTeeth') {
+            setState(s => ({ ...s, teeth: Math.max(0, s.teeth - reward.amount) }));
+            rewardDesc = lang === 'es' ? `-${window.formatNum(reward.amount)} dientes` : `-${window.formatNum(reward.amount)} teeth`;
+          } else if (reward.type === 'randomBonus') {
+            const bonuses = ['gold', 'crystal', 'hold'];
+            const pick = bonuses[Math.floor(Math.random() * bonuses.length)];
+            if (pick === 'gold') { setGoldenActiveUntil(Date.now() + 13000); setCrystalFrenzyUntil(0); setHoldBonusUntil(0); rewardDesc = lang === 'es' ? 'Bonus Diente Dorado x7 activado' : 'Golden Tooth x7 bonus activated'; }
+            else if (pick === 'crystal') { setCrystalFrenzyUntil(Date.now() + 15000); setGoldenActiveUntil(0); setHoldBonusUntil(0); rewardDesc = lang === 'es' ? 'Frenesí Cristal x5 activado' : 'Crystal Frenzy x5 activated'; }
+            else { setHoldBonusUntil(Date.now() + 20000); setGoldenActiveUntil(0); setCrystalFrenzyUntil(0); rewardDesc = lang === 'es' ? 'Auto-click activado' : 'Auto-click activated'; }
+          }
+        } else {
+          rewardDesc = lang === 'es' ? 'Sin efecto' : 'No effect';
+        }
+        if (soundRef.current) {
+          if (correct) { window.playTone(660, 0.12, 'triangle', 0.06); setTimeout(() => window.playTone(880, 0.15, 'triangle', 0.06), 100); }
+          else { window.playTone(220, 0.2, 'sawtooth', 0.08); setTimeout(() => window.playTone(180, 0.25, 'sawtooth', 0.08), 120); }
+        }
+        
+        if (!correct && bossMsg.explanationText) {
+          setQuestionFeedback(bossMsg.explanationText);
+        }
+
+        setBossMsg(null);
+        setQuestionResult({ correct, rewardDesc });
+        setTimeout(() => setQuestionResult(null), 4000);
+      } : undefined} />
+      }
+
+      {/* Question Result Toast */}
+      {questionResult && (
+        <div style={{
+          position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 3000,
+          background: questionResult.correct ? 'rgba(22,163,74,0.95)' : 'rgba(220,38,38,0.95)',
+          color: '#fff', padding: '16px 28px', borderRadius: 16,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          display: 'flex', alignItems: 'center', gap: 14,
+          animation: 'modalIn 200ms ease',
+          fontFamily: 'var(--font-sans)', maxWidth: 400
+        }}>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
+            <i className={questionResult.correct ? 'fa-solid fa-check' : 'fa-solid fa-xmark'}></i>
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 2 }}>
+              {questionResult.correct ? (lang === 'es' ? '¡Correcto!' : 'Correct!') : (lang === 'es' ? '¡Incorrecto!' : 'Wrong!')}
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.9 }}>{questionResult.rewardDesc}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Question Feedback Modal */}
+      {questionFeedback && (
+        <window.Modal onClose={() => setQuestionFeedback(null)} maxWidth={400} persistent={false}>
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 16px' }}>
+              <i className="fa-solid fa-graduation-cap"></i>
+            </div>
+            <h2 style={{ fontSize: 20, color: '#1a3a5a', marginBottom: 12 }}>{lang === 'es' ? '¡Respuesta Incorrecta!' : 'Wrong Answer!'}</h2>
+            <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, marginBottom: 24, padding: '0 10px' }}>
+              {questionFeedback}
+            </p>
+            <button 
+              onClick={() => setQuestionFeedback(null)} 
+              className="app-btn" 
+              style={{ background: '#1a8fff', color: '#fff', padding: '12px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700, width: '100%' }}
+            >
+              {lang === 'es' ? 'Entendido' : 'Got it'}
+            </button>
+          </div>
+        </window.Modal>
+      )}
       
       {globalTooltip && (
         <div style={{

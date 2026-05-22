@@ -238,7 +238,7 @@ async function cloudSubmitFeedback(entry) {
   try {
     if (!_supabase) return { ok: false };
     const { error } = await _supabase.from('feedback').insert({
-      name: entry.name,
+      name: entry.name || entry.username || 'Anónimo',
       message: entry.message,
       created_at: new Date().toISOString()
     });
@@ -272,14 +272,32 @@ async function cloudLoadCustomMessages() {
     const { data, error } = await _supabase.from('custom_messages').select('*').order('created_at', { ascending: false });
     if (error) throw error;
     const messages = data.map(m => {
-      let cleanText = m.text || '';
+      let rawText = m.text || '';
+      let extraData = {};
+      if (rawText.includes("||extra:")) {
+        const parts = rawText.split("||extra:");
+        rawText = parts[0];
+        try { extraData = JSON.parse(parts[1]); } catch(e) {}
+      }
+      
+      let cleanText = rawText;
       let image = null;
-      if (cleanText.includes("||image:")) {
+      let questionData = null;
+      if (cleanText.includes("||question:")) {
+        const parts = cleanText.split("||question:");
+        cleanText = parts[0];
+        try { questionData = JSON.parse(parts[1].split("||image:")[0]); } catch(e) {}
+        // image may follow after question
+        if (parts[1] && parts[1].includes("||image:")) {
+          image = parts[1].split("||image:")[1] || null;
+        }
+      }
+      if (!questionData && cleanText.includes("||image:")) {
         const parts = cleanText.split("||image:");
         cleanText = parts[0];
         image = parts[1] || null;
       }
-      return {
+      const msg = {
         id: m.id || Math.random().toString(36).substr(2, 9),
         who: m.name,
         text: cleanText,
@@ -288,6 +306,22 @@ async function cloudLoadCustomMessages() {
         color: m.color,
         createdAt: new Date(m.created_at).getTime()
       };
+      if (questionData) {
+        msg.msgType = 'question';
+        msg.questionAnswer = questionData.answer;
+        msg.options = questionData.options;
+        msg.correctOptionIndex = questionData.correctOptionIndex;
+        msg.explanationText = questionData.explanationText;
+        msg.correctReward = questionData.correctReward || { type: 'none', amount: 0 };
+        msg.wrongReward = questionData.wrongReward || { type: 'none', amount: 0 };
+      }
+      msg.text = cleanText;
+      msg.position = extraData.position || m.position;
+      msg.size = extraData.size || m.size;
+      msg.animation = extraData.animation || m.animation;
+      msg.particles = extraData.particles || m.particles;
+      msg.levelReq = extraData.levelReq || m.levelReq || 0;
+      return msg;
     });
     return { ok: true, messages, source: 'cloud' };
   } catch (e) {
@@ -303,7 +337,28 @@ async function cloudSaveCustomMessages(messages) {
     
     await _supabase.from('custom_messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     const { error } = await _supabase.from('custom_messages').insert(messages.map(m => {
-      const dbText = m.text + (m.image ? "||image:" + m.image : "");
+      let dbText = m.text || '';
+      if (m.msgType === 'question') {
+        dbText += '||question:' + JSON.stringify({
+          answer: m.questionAnswer,
+          options: m.options,
+          correctOptionIndex: m.correctOptionIndex,
+          explanationText: m.explanationText,
+          correctReward: m.correctReward,
+          wrongReward: m.wrongReward
+        });
+      }
+      if (m.image) dbText += '||image:' + m.image;
+      
+      const extraData = {
+        position: m.position,
+        size: m.size,
+        animation: m.animation,
+        particles: m.particles,
+        levelReq: m.levelReq
+      };
+      dbText += '||extra:' + JSON.stringify(extraData);
+
       return {
         name: m.name || m.who,
         text: dbText,

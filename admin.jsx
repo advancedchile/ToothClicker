@@ -98,6 +98,16 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingMsg, setEditingMsg] = useState(null);
   const [createMode, setCreateMode] = useState(null); // null, 'manual', 'random'
+  const [newMsgType, setNewMsgType] = useState('normal'); // 'normal' | 'question'
+  const [newMsgQuestionAnswer, setNewMsgQuestionAnswer] = useState(true); // true = Verdadero
+  const [newMsgCorrectReward, setNewMsgCorrectReward] = useState({ type: 'addTeeth', amount: 1000 });
+  const [newMsgWrongReward, setNewMsgWrongReward] = useState({ type: 'removeTeeth', amount: 500 });
+  
+  // New features for messages
+  const [newMsgLevelReq, setNewMsgLevelReq] = useState(0);
+  const [newMsgOptions, setNewMsgOptions] = useState(['Verdadero', 'Falso']);
+  const [newMsgCorrectOptionIndex, setNewMsgCorrectOptionIndex] = useState(0);
+  const [newMsgExplanationText, setNewMsgExplanationText] = useState('');
 
   const handleRandomizeEverything = () => {
     // 1. Pool of all name emisores
@@ -204,6 +214,18 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [previewMsg, setPreviewMsg] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [msgSearch, setMsgSearch] = useState('');
+  const [pendingImportJSON, setPendingImportJSON] = useState(null);
+  const [selectedMsgIds, setSelectedMsgIds] = useState(new Set());
+  const [showAdvancedFiltersModal, setShowAdvancedFiltersModal] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    msgType: 'all',
+    position: 'all',
+    size: 'all',
+    animation: 'all',
+    particles: 'all',
+    color: 'all',
+    levelReq: ''
+  });
 
   // ── Version Control States ──────────────────────────────────────────────────
   const [versionsList, setVersionsList] = useState([]);
@@ -436,6 +458,67 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
     });
   };
 
+  const handleImportJSON = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const json = JSON.parse(event.target.result);
+        if (!Array.isArray(json)) {
+          throw new Error('El archivo JSON debe contener un arreglo de mensajes.');
+        }
+
+        const newMessages = json.map(msg => {
+          let finalWho = msg.who || '';
+          let finalImage = msg.image || '';
+
+          if (finalWho && finalWho.toLowerCase() === 'cualquiera') {
+            const names = window.EMPLOYEE_NAMES || ['Dani'];
+            finalWho = names[Math.floor(Math.random() * names.length)];
+          }
+          if (finalImage && finalImage.toLowerCase() === 'cualquiera') {
+            finalImage = null; // Forces fallback to auto-avatar
+          }
+
+          const newMsg = {
+            id: `m-imp-${Date.now()}-${Math.floor(Math.random()*10000)}`,
+            who: finalWho,
+            text: msg.text || '',
+            image: finalImage,
+            milestone: msg.milestone !== undefined ? msg.milestone : 1,
+            color: msg.color || '#1a8fff',
+            position: msg.position || 'bottom',
+            size: msg.size || 'medium',
+            animation: msg.animation || 'none',
+            particles: msg.particles || 'none',
+            levelReq: msg.levelReq,
+            createdAt: Date.now() + Math.random()
+          };
+
+          if (msg.msgType === 'question') {
+            newMsg.msgType = 'question';
+            newMsg.options = msg.options;
+            newMsg.correctOptionIndex = msg.correctOptionIndex;
+            newMsg.explanationText = msg.explanationText;
+            newMsg.correctReward = msg.correctReward;
+            newMsg.wrongReward = msg.wrongReward;
+            newMsg.questionAnswer = msg.questionAnswer !== undefined ? msg.questionAnswer : true;
+          }
+
+          return newMsg;
+        });
+
+        setPendingImportJSON(newMessages);
+      } catch (err) {
+        alert(lang === 'es' ? 'Error al importar JSON: ' + err.message : 'Error importing JSON: ' + err.message);
+      }
+      e.target.value = null;
+    };
+    reader.readAsText(file);
+  };
+
   const handleStartEditMsg = (m) => {
     const isRand = m.milestone === -1;
     let val = 5;
@@ -453,7 +536,11 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
       ...m,
       isRandom: isRand,
       playtimeVal: val,
-      playtimeUnit: unit
+      playtimeUnit: unit,
+      msgType: m.msgType || 'normal',
+      questionAnswer: m.questionAnswer !== undefined ? m.questionAnswer : true,
+      correctReward: m.correctReward || { type: 'addTeeth', amount: 1000 },
+      wrongReward: m.wrongReward || { type: 'removeTeeth', amount: 500 }
     });
   };
 
@@ -924,7 +1011,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary-i100)' }}>
                         <i className="fa-solid fa-user" style={{ marginRight: 6, fontSize: 11 }}></i>
-                        {f.username}
+                        {f.name || f.username || 'Anónimo'}
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-sans)' }}>
                         {new Date(f.createdAt).toLocaleString(lang === 'es' ? 'es-AR' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}
@@ -1003,6 +1090,34 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
               >
                 <i className="fa-solid fa-rotate-left"></i> {lang === 'es' ? 'Restablecer Semilla' : 'Reset Seed'}
               </button>
+
+              <label 
+                className="app-btn hover-bg-blue"
+                style={{
+                  padding: '4px 10px',
+                  background: '#e0f2fe',
+                  color: '#0ea5e9',
+                  border: '1px solid #7dd3fc',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  marginLeft: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  transition: 'all 0.2s'
+                }}
+              >
+                <i className="fa-solid fa-file-import"></i> {lang === 'es' ? 'Importar JSON' : 'Import JSON'}
+                <input 
+                  type="file" 
+                  accept=".json" 
+                  style={{ display: 'none' }} 
+                  onChange={handleImportJSON} 
+                />
+              </label>
+
               {successNote && <span style={{ fontSize: 11, color: '#2ecc71', fontWeight: 700, marginLeft: 12, animation: 'fadeIn 0.3s' }}><i className="fa-solid fa-check-circle"></i> {successNote}</span>}
               {(messagesLoading || isSavingMessages) && <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 12, color: '#ff9800', marginLeft: 'auto' }}></i>}
               {isSavingMessages && <span style={{ fontSize: 10, color: '#ff9800', marginLeft: 8 }}>{lang === 'es' ? 'Guardando...' : 'Saving...'}</span>}
@@ -1080,22 +1195,86 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 <option value="all">{lang === 'es' ? 'Todos' : 'All'}</option>
                 <option value="bosses">{lang === 'es' ? 'Solo jefes' : 'Solo leaders'}</option>
                 <option value="collabs">{lang === 'es' ? 'Solo colaboradores' : 'Solo staff'}</option>
+                <option value="json">{lang === 'es' ? 'Importados por JSON' : 'Imported via JSON'}</option>
               </select>
+
+              <button
+                onClick={() => setShowAdvancedFiltersModal(true)}
+                className="app-btn"
+                style={{ ...btn, height: 44, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', fontSize: 14, padding: '0 16px' }}
+                title={lang === 'es' ? 'Filtros Avanzados' : 'Advanced Filters'}
+              >
+                <i className="fa-solid fa-filter"></i> {lang === 'es' ? 'Avanzado' : 'Advanced'}
+              </button>
+
+              {selectedMsgIds.size > 0 && (
+                <button
+                  onClick={() => {
+                    if (confirm(lang === 'es' ? `¿Seguro que deseas eliminar los ${selectedMsgIds.size} mensajes seleccionados? Esta acción no se puede deshacer.` : `Are you sure you want to delete the ${selectedMsgIds.size} selected messages? This cannot be undone.`)) {
+                      const updated = customMessages.filter(m => !selectedMsgIds.has(m.id));
+                      setCustomMessages(updated);
+                      saveMessagesToCloud(updated);
+                      setSelectedMsgIds(new Set());
+                    }
+                  }}
+                  className="app-btn"
+                  style={{ ...btn, height: 44, background: '#fee2e2', color: '#ef4444', border: '1px solid #fecaca', fontSize: 14, padding: '0 16px' }}
+                >
+                  <i className="fa-solid fa-trash-can"></i> {lang === 'es' ? `Borrar seleccionados (${selectedMsgIds.size})` : `Delete selected (${selectedMsgIds.size})`}
+                </button>
+              )}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {(() => {
+                const parseAdvProps = (m) => {
+                  let rawText = m.text || '';
+                  let extraData = {};
+                  if (rawText.includes("||extra:")) {
+                    const parts = rawText.split("||extra:");
+                    rawText = parts[0];
+                    const remainder = parts[1];
+                    const endIdx = remainder.indexOf('||');
+                    try { extraData = JSON.parse(endIdx === -1 ? remainder : remainder.substring(0, endIdx)); } catch(e) {}
+                  }
+                  const isQuestion = m.msgType === 'question' || (m.text || '').includes('||question:');
+                  return {
+                    isQuestion,
+                    position: m.position || extraData.position || 'bottom',
+                    size: m.size || extraData.size || 'medium',
+                    animation: m.animation || extraData.animation || 'none',
+                    particles: m.particles || extraData.particles || 'none',
+                    levelReq: m.levelReq !== undefined ? m.levelReq : (extraData.levelReq !== undefined ? extraData.levelReq : 0)
+                  };
+                };
+
                 const filtered = [...customMessages]
                   .filter(m => {
-                    // Filter by search query (case-insensitive name match)
+                    // Base Text Search
                     if (msgSearch.trim()) {
                       const query = msgSearch.toLowerCase();
                       const name = (m.who || '').toLowerCase();
-                      if (!name.includes(query)) return false;
+                      const textMatch = (m.text || '').toLowerCase().includes(query);
+                      if (!name.includes(query) && !textMatch) return false;
                     }
+                    
+                    // Base Role Filter
                     const isBoss = typeof m.milestone === 'number' && m.milestone >= 0;
-                    if (msgFilter === 'bosses') return isBoss;
-                    if (msgFilter === 'collabs') return !isBoss;
+                    if (msgFilter === 'bosses' && !isBoss) return false;
+                    if (msgFilter === 'collabs' && isBoss) return false;
+                    if (msgFilter === 'json' && (!m.id || !m.id.startsWith('m-imp-'))) return false;
+
+                    // Advanced Filters
+                    const adv = parseAdvProps(m);
+                    if (advancedFilters.msgType === 'question' && !adv.isQuestion) return false;
+                    if (advancedFilters.msgType === 'normal' && adv.isQuestion) return false;
+                    if (advancedFilters.position !== 'all' && adv.position !== advancedFilters.position) return false;
+                    if (advancedFilters.size !== 'all' && adv.size !== advancedFilters.size) return false;
+                    if (advancedFilters.animation !== 'all' && adv.animation !== advancedFilters.animation) return false;
+                    if (advancedFilters.particles !== 'all' && adv.particles !== advancedFilters.particles) return false;
+                    if (advancedFilters.color !== 'all' && (m.color || '#1a8fff') !== advancedFilters.color) return false;
+                    if (advancedFilters.levelReq !== '' && adv.levelReq !== Number(advancedFilters.levelReq)) return false;
+
                     return true;
                   })
                   .sort((a, b) => a.milestone - b.milestone);
@@ -1106,14 +1285,78 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 const startIndex = (currentPage - 1) * itemsPerPage;
                 const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
 
+                const allFilteredIds = filtered.map(m => m.id);
+                const allSelected = filtered.length > 0 && allFilteredIds.every(id => selectedMsgIds.has(id));
+
                 return (
                   <>
+                    {filtered.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 10 }}>
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              const newSet = new Set(selectedMsgIds);
+                              allFilteredIds.forEach(id => newSet.add(id));
+                              setSelectedMsgIds(newSet);
+                            } else {
+                              const newSet = new Set(selectedMsgIds);
+                              allFilteredIds.forEach(id => newSet.delete(id));
+                              setSelectedMsgIds(newSet);
+                            }
+                          }}
+                          style={{ width: 18, height: 18, cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: 14, color: '#475569', fontWeight: 600 }}>
+                          {lang === 'es' ? 'Seleccionar todos los filtrados' : 'Select all filtered'} ({filtered.length})
+                        </span>
+                      </div>
+                    )}
                     {paginated.map(m => {
                       const isBoss = typeof m.milestone === 'number' && m.milestone >= 0;
+                      
+                      let cleanText = m.text || '';
+                      let isQuestion = m.msgType === 'question';
+                      let qAnswer = m.questionAnswer;
+                      let extraData = null;
+
+                      if (cleanText.includes('||extra:')) {
+                        const parts = cleanText.split('||extra:');
+                        cleanText = parts[0];
+                        const remainder = parts[1];
+                        const endIdx = remainder.indexOf('||');
+                        try {
+                          extraData = JSON.parse(endIdx === -1 ? remainder : remainder.substring(0, endIdx));
+                        } catch (e) {}
+                        if (endIdx !== -1) cleanText += remainder.substring(endIdx);
+                      }
+                      
+                      if (cleanText.includes('||question:')) {
+                        isQuestion = true;
+                        cleanText = cleanText.split('||question:')[0];
+                      }
+                      if (cleanText.includes('||image:')) {
+                        cleanText = cleanText.split('||image:')[0];
+                      }
+                      
+                      const hasOptions = extraData && extraData.options && extraData.options.length > 0;
+
                       return (
                         <div key={m.id} style={{ padding: '14px', background: '#fff', borderRadius: 12, border: '1px solid #edf2f7', display: 'flex', flexDirection: 'column', gap: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <input 
+                                type="checkbox" 
+                                checked={selectedMsgIds.has(m.id)}
+                                onChange={(e) => {
+                                  const newSet = new Set(selectedMsgIds);
+                                  if (e.target.checked) newSet.add(m.id);
+                                  else newSet.delete(m.id);
+                                  setSelectedMsgIds(newSet);
+                                }}
+                                style={{ width: 16, height: 16, cursor: 'pointer', marginRight: 4 }}
+                              />
                               {(() => {
                                 const avatarUrl = getAvatarUrl(m.who, m.image, m.id);
                                 if (avatarUrl) {
@@ -1153,10 +1396,15 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                               })()}
                               <span style={{ fontWeight: 700, fontSize: 14, color: '#2d3748' }}>{m.who}</span>
                             </div>
-                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                               <div style={{ fontSize: 11, fontWeight: 700, color: isBoss ? '#b45309' : '#718096', background: isBoss ? '#fffbeb' : '#f7fafc', padding: '3px 10px', borderRadius: 20, border: isBoss ? '1px solid #fef3c7' : '1px solid #edf2f7', display: 'flex', alignItems: 'center', gap: 4 }}>
                                 {isBoss ? '👑' : '⚡'} {isBoss ? (lang === 'es' ? 'Jefe' : 'Boss') : (lang === 'es' ? 'Aleatorio' : 'Random')}
                               </div>
+                              {isQuestion && (
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#f5f3ff', padding: '3px 10px', borderRadius: 20, border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  ❓ {lang === 'es' ? 'Pregunta' : 'Question'}
+                                </div>
+                              )}
                               {isBoss && (
                                 <div style={{ fontSize: 11, fontWeight: 700, color: '#718096', background: '#f7fafc', padding: '3px 10px', borderRadius: 20, border: '1px solid #edf2f7' }}>
                                   <i className="fa-regular fa-clock" style={{ marginRight: 5 }}></i>
@@ -1166,7 +1414,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                             </div>
                           </div>
                         <div style={{ fontSize: 13, color: '#4a5568', lineHeight: 1.5, fontStyle: 'italic', background: '#fdfdfd', padding: '10px 14px', borderRadius: 10, borderLeft: `3px solid ${m.color || '#1a8fff'}` }}>
-                          "{m.text}"
+                          "{cleanText}"
                         </div>
                         
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
@@ -1605,10 +1853,142 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
 
       {/* --- INDEPENDENT MODALS (TOP LEVEL) --- */}
 
+      {showAdvancedFiltersModal && (
+        <Modal onClose={() => setShowAdvancedFiltersModal(false)} maxWidth={500} persistent={false}>
+          <div style={{ padding: '10px 14px' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <i className="fa-solid fa-filter" style={{ color: '#1a8fff' }}></i>
+              {lang === 'es' ? 'Filtros Avanzados' : 'Advanced Filters'}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              {/* MsgType */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Tipo de Mensaje' : 'Message Type'}</span>
+                <select value={advancedFilters.msgType} onChange={e => setAdvancedFilters({...advancedFilters, msgType: e.target.value})} className="app-select" style={{ height: 40 }}>
+                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
+                  <option value="normal">{lang === 'es' ? 'Normal' : 'Normal'}</option>
+                  <option value="question">{lang === 'es' ? 'Pregunta' : 'Question'}</option>
+                </select>
+              </div>
+              {/* Position */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Posición' : 'Position'}</span>
+                <select value={advancedFilters.position} onChange={e => setAdvancedFilters({...advancedFilters, position: e.target.value})} className="app-select" style={{ height: 40 }}>
+                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
+                  <option value="top">Top</option>
+                  <option value="center">Center</option>
+                  <option value="bottom">Bottom</option>
+                </select>
+              </div>
+              {/* Size */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Tamaño' : 'Size'}</span>
+                <select value={advancedFilters.size} onChange={e => setAdvancedFilters({...advancedFilters, size: e.target.value})} className="app-select" style={{ height: 40 }}>
+                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
+              </div>
+              {/* Animation */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Animación' : 'Animation'}</span>
+                <select value={advancedFilters.animation} onChange={e => setAdvancedFilters({...advancedFilters, animation: e.target.value})} className="app-select" style={{ height: 40 }}>
+                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
+                  <option value="none">None</option>
+                  <option value="pulse">Pulse</option>
+                  <option value="shake">Shake</option>
+                  <option value="float">Float</option>
+                </select>
+              </div>
+              {/* Particles */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Partículas' : 'Particles'}</span>
+                <select value={advancedFilters.particles} onChange={e => setAdvancedFilters({...advancedFilters, particles: e.target.value})} className="app-select" style={{ height: 40 }}>
+                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
+                  <option value="none">None</option>
+                  <option value="stars">Stars</option>
+                  <option value="teeth">Teeth</option>
+                  <option value="confetti">Confetti</option>
+                  <option value="fire">Fire</option>
+                </select>
+              </div>
+              {/* Level Req */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Nivel Requerido' : 'Level Required'}</span>
+                <input 
+                  type="number"
+                  placeholder={lang === 'es' ? 'Cualquiera...' : 'Any...'}
+                  value={advancedFilters.levelReq}
+                  onChange={e => setAdvancedFilters({...advancedFilters, levelReq: e.target.value})}
+                  className="app-input"
+                  style={{ height: 40 }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, paddingTop: 16, borderTop: '1px solid #e2e8f0' }}>
+              <button 
+                onClick={() => setAdvancedFilters({ msgType: 'all', position: 'all', size: 'all', animation: 'all', particles: 'all', color: 'all', levelReq: '' })}
+                className="app-btn"
+                style={{ ...btn, height: 40, background: '#fee2e2', color: '#ef4444', fontSize: 14 }}
+              >
+                {lang === 'es' ? 'Limpiar Filtros' : 'Clear Filters'}
+              </button>
+              <button 
+                onClick={() => setShowAdvancedFiltersModal(false)}
+                className="app-btn"
+                style={{ ...btn, height: 40, background: '#1a8fff', color: '#fff', fontSize: 14, minWidth: 120 }}
+              >
+                {lang === 'es' ? 'Aplicar' : 'Apply'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {pendingImportJSON && (
+        <Modal onClose={() => setPendingImportJSON(null)} maxWidth={400} persistent={false}>
+          <div style={{ padding: '4px 8px', textAlign: 'center' }}>
+            <div style={{ fontSize: 24, marginBottom: 12 }}>📥</div>
+            <h3 style={{ margin: '0 0 10px 0', color: '#1a3a5a' }}>
+              {lang === 'es' ? 'Confirmar Importación' : 'Confirm Import'}
+            </h3>
+            <p style={{ color: '#4a5568', fontSize: 14, marginBottom: 20 }}>
+              {lang === 'es' 
+                ? `¿Estás seguro de que deseas importar y guardar ${pendingImportJSON.length} mensajes masivamente?` 
+                : `Are you sure you want to import and save ${pendingImportJSON.length} messages in bulk?`}
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button 
+                onClick={() => setPendingImportJSON(null)}
+                style={{ ...btn, flex: 1, height: 40, background: '#f1f5f9', color: '#64748b', fontSize: 14 }}
+              >
+                {lang === 'es' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button 
+                onClick={() => {
+                  const updatedMessages = [...customMessages, ...pendingImportJSON];
+                  setCustomMessages(updatedMessages);
+                  saveMessagesToCloud(updatedMessages);
+                  setSuccessNote(lang === 'es' ? `¡${pendingImportJSON.length} mensajes importados!` : `${pendingImportJSON.length} messages imported!`);
+                  setTimeout(() => setSuccessNote(''), 3000);
+                  setPendingImportJSON(null);
+                }}
+                style={{ ...btn, flex: 1, height: 40, background: '#1a8fff', color: '#fff', fontSize: 14 }}
+              >
+                {lang === 'es' ? 'Importar JSON' : 'Import JSON'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {/* Create/Edit Message Modal */}
       {(showCreateModal || editingMsg) && (
         <Modal onClose={() => { setShowCreateModal(false); setEditingMsg(null); setCreateMode(null); }} maxWidth={550} persistent={true}>
-          <div style={{ padding: '4px' }}>
+          <div style={{ padding: '4px 8px', overflowY: 'auto', overflowX: 'hidden', flex: 1, boxSizing: 'border-box' }}>
             {showCreateModal && createMode === null ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1884,6 +2264,148 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 </div>
               </div>
 
+              {/* Message Type Selector: Normal vs Pregunta */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ fontSize: 11, color: '#718096', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Tipo de Mensaje' : 'Message Type'}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {[{ value: 'normal', label: lang === 'es' ? '⚡ Normal' : '⚡ Normal', desc: lang === 'es' ? 'Mensaje de texto estándar' : 'Standard text message' }, { value: 'question', label: '❓ ' + (lang === 'es' ? 'Pregunta' : 'Question'), desc: lang === 'es' ? 'V/F con premio o penalización' : 'T/F with reward or penalty' }].map(opt => {
+                    const isActive = (editingMsg ? (editingMsg.msgType || 'normal') : newMsgType) === opt.value;
+                    return (
+                      <button key={opt.value} type="button" onClick={() => {
+                        if (editingMsg) setEditingMsg({ ...editingMsg, msgType: opt.value });
+                        else setNewMsgType(opt.value);
+                      }} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 12, cursor: 'pointer', border: isActive ? '2px solid #7c3aed' : '2px solid #e2e8f0', background: isActive ? '#f5f3ff' : '#fff', transition: 'all 150ms', textAlign: 'left' }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: isActive ? '#7c3aed' : '#334155' }}>{opt.label}</div>
+                        <div style={{ fontSize: 10, color: isActive ? '#7c3aed' : '#94a3b8', marginTop: 2 }}>{opt.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Question Config — only visible when type is 'question' */}
+              {((editingMsg ? (editingMsg.msgType || 'normal') : newMsgType) === 'question') && (
+                <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                    <i className="fa-solid fa-circle-question" style={{ color: '#7c3aed', fontSize: 16 }}></i>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: '#581c87' }}>{lang === 'es' ? 'Configurar Pregunta' : 'Question Config'}</span>
+                  </div>
+
+                  {/* Options config */}
+                  {(() => {
+                    const options = editingMsg ? (editingMsg.options || ['Verdadero', 'Falso']) : newMsgOptions;
+                    const correctIdx = editingMsg ? (editingMsg.correctOptionIndex || 0) : newMsgCorrectOptionIndex;
+                    const setOpts = (opts) => editingMsg ? setEditingMsg({...editingMsg, options: opts}) : setNewMsgOptions(opts);
+                    const setCorrect = (idx) => editingMsg ? setEditingMsg({...editingMsg, correctOptionIndex: idx}) : setNewMsgCorrectOptionIndex(idx);
+                    
+                    return (
+                      <div>
+                        <div style={{ fontSize: 11, color: '#6b21a8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
+                          <span>{lang === 'es' ? 'Alternativas de Respuesta' : 'Answer Options'}</span>
+                          {options.length < 5 && (
+                            <button type="button" onClick={() => setOpts([...options, 'Nueva Opción'])} style={{ all: 'unset', color: '#1a8fff', cursor: 'pointer', textTransform: 'none' }}>+ {lang === 'es' ? 'Añadir' : 'Add'}</button>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {options.map((opt, idx) => (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <button 
+                                type="button" 
+                                onClick={() => setCorrect(idx)}
+                                style={{ all: 'unset', cursor: 'pointer', width: 24, height: 24, borderRadius: '50%', border: correctIdx === idx ? '6px solid #16a34a' : '2px solid #cbd5e1', background: '#fff', boxSizing: 'border-box', flexShrink: 0 }}
+                              />
+                              <input 
+                                type="text" 
+                                className="app-input" 
+                                value={opt} 
+                                onChange={e => {
+                                  const newOpts = [...options];
+                                  newOpts[idx] = e.target.value;
+                                  setOpts(newOpts);
+                                }}
+                                style={{ height: 38, borderColor: correctIdx === idx ? '#16a34a' : undefined }}
+                              />
+                              {options.length > 2 && (
+                                <button type="button" onClick={() => {
+                                  const newOpts = options.filter((_, i) => i !== idx);
+                                  setOpts(newOpts);
+                                  if (correctIdx === idx) setCorrect(0);
+                                  else if (correctIdx > idx) setCorrect(correctIdx - 1);
+                                }} style={{ all: 'unset', color: '#e53e3e', cursor: 'pointer', padding: 4 }}>
+                                  <i className="fa-solid fa-trash"></i>
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Explanation Text */}
+                  <div>
+                    <div style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                      {lang === 'es' ? 'Explicación (al fallar)' : 'Explanation (if wrong)'}
+                    </div>
+                    <textarea 
+                      className="app-input app-textarea"
+                      placeholder={lang === 'es' ? 'Escribe la respuesta correcta para que el jugador aprenda...' : 'Write the correct answer so the player learns...'}
+                      value={editingMsg ? (editingMsg.explanationText || '') : newMsgExplanationText}
+                      onChange={e => editingMsg ? setEditingMsg({...editingMsg, explanationText: e.target.value}) : setNewMsgExplanationText(e.target.value)}
+                      style={{ minHeight: 60 }}
+                    />
+                  </div>
+
+                  {/* Reward if correct */}
+                  {(() => {
+                    const reward = editingMsg ? editingMsg.correctReward : newMsgCorrectReward;
+                    const setReward = (r) => editingMsg ? setEditingMsg({ ...editingMsg, correctReward: r }) : setNewMsgCorrectReward(r);
+                    return (
+                      <div>
+                        <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                          <i className="fa-solid fa-check-circle" style={{ marginRight: 4 }}></i>{lang === 'es' ? 'Si acierta' : 'If correct'}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <select className="app-select" style={{ flex: 2, height: 38 }} value={reward.type} onChange={e => setReward({ ...reward, type: e.target.value })}>
+                            <option value="addTeeth">{lang === 'es' ? '🦷 Dar dientes' : '🦷 Give teeth'}</option>
+                            <option value="removeTeeth">{lang === 'es' ? '💀 Quitar dientes' : '💀 Remove teeth'}</option>
+                            <option value="randomBonus">{lang === 'es' ? '🎲 Bonus aleatorio' : '🎲 Random bonus'}</option>
+                            <option value="none">{lang === 'es' ? '— Sin efecto' : '— No effect'}</option>
+                          </select>
+                          {reward.type !== 'randomBonus' && reward.type !== 'none' && (
+                            <input type="number" min={0} className="app-input" style={{ flex: 1, height: 38 }} value={reward.amount || 0} onChange={e => setReward({ ...reward, amount: parseInt(e.target.value) || 0 })} />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Penalty if wrong */}
+                  {(() => {
+                    const reward = editingMsg ? editingMsg.wrongReward : newMsgWrongReward;
+                    const setReward = (r) => editingMsg ? setEditingMsg({ ...editingMsg, wrongReward: r }) : setNewMsgWrongReward(r);
+                    return (
+                      <div>
+                        <div style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                          <i className="fa-solid fa-times-circle" style={{ marginRight: 4 }}></i>{lang === 'es' ? 'Si falla' : 'If wrong'}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <select className="app-select" style={{ flex: 2, height: 38 }} value={reward.type} onChange={e => setReward({ ...reward, type: e.target.value })}>
+                            <option value="removeTeeth">{lang === 'es' ? '💀 Quitar dientes' : '💀 Remove teeth'}</option>
+                            <option value="addTeeth">{lang === 'es' ? '🦷 Dar dientes' : '🦷 Give teeth'}</option>
+                            <option value="randomBonus">{lang === 'es' ? '🎲 Bonus aleatorio' : '🎲 Random bonus'}</option>
+                            <option value="none">{lang === 'es' ? '— Sin efecto' : '— No effect'}</option>
+                          </select>
+                          {reward.type !== 'randomBonus' && reward.type !== 'none' && (
+                            <input type="number" min={0} className="app-input" style={{ flex: 1, height: 38 }} value={reward.amount || 0} onChange={e => setReward({ ...reward, amount: parseInt(e.target.value) || 0 })} />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               {/* Controls: Mensaje Aleatorio & Jefe Checkbox */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '4px 0' }}>
                 {/* Mensaje Aleatorio Toggle */}
@@ -1969,8 +2491,20 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 </div>
               </div>
 
-              {/* Playtime settings (Disabled when random) & Name Color */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+              {/* Playtime settings, Level Requirement & Name Color */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Nivel Mínimo Requerido' : 'Min Level Required'}</div>
+                  <input 
+                    type="number" 
+                    min="0"
+                    className="app-input"
+                    placeholder="0"
+                    value={editingMsg ? (editingMsg.levelReq || 0) : newMsgLevelReq}
+                    onChange={e => editingMsg ? setEditingMsg({...editingMsg, levelReq: parseInt(e.target.value) || 0}) : setNewMsgLevelReq(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+
                 {(() => {
                   const isRand = editingMsg ? editingMsg.isRandom : newMsgIsRandom;
                   return (
@@ -2197,7 +2731,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                         ? -1 
                         : (newMsgPlaytimeUnit === 'hours' ? newMsgPlaytimeVal * 60 : newMsgPlaytimeVal);
 
-                      const updated = [...customMessages, {
+                      const newMsg = {
                         id: Math.random().toString(36).substr(2, 9),
                         who,
                         text: newMsgText,
@@ -2209,12 +2743,29 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                         particles: newMsgParticles,
                         image: newMsgImage,
                         createdAt: Date.now()
-                      }];
+                      };
+                      if (newMsgType === 'question') {
+                        newMsg.msgType = 'question';
+                        newMsg.options = newMsgOptions;
+                        newMsg.correctOptionIndex = newMsgCorrectOptionIndex;
+                        newMsg.explanationText = newMsgExplanationText;
+                        newMsg.correctReward = newMsgCorrectReward;
+                        newMsg.wrongReward = newMsgWrongReward;
+                      }
+                      newMsg.levelReq = newMsgLevelReq;
+                      const updated = [...customMessages, newMsg];
                       setCustomMessages(updated);
                       saveMessagesToCloud(updated);
                       setNewMsgName('');
                       setNewMsgText('');
                       setNewMsgImage(null);
+                      setNewMsgType('normal');
+                      setNewMsgOptions(['Verdadero', 'Falso']);
+                      setNewMsgCorrectOptionIndex(0);
+                      setNewMsgExplanationText('');
+                      setNewMsgLevelReq(0);
+                      setNewMsgCorrectReward({ type: 'addTeeth', amount: 1000 });
+                      setNewMsgWrongReward({ type: 'removeTeeth', amount: 500 });
                       setShowCreateModal(false);
                       setSuccessNote(lang === 'es' ? '¡Mensaje creado!' : 'Message created!');
                       setTimeout(() => setSuccessNote(''), 3000);
@@ -2379,7 +2930,19 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
         </Modal>
       )}
       {previewMsg && (
-        <BossMarquee msg={previewMsg} lang={lang} danger={false} onDismiss={() => setPreviewMsg(null)} />
+        <>
+          <div 
+            onClick={() => setPreviewMsg(null)} 
+            style={{ position: 'fixed', inset: 0, zIndex: 1499, cursor: 'pointer' }} 
+          />
+          <BossMarquee 
+            msg={previewMsg} 
+            lang={lang} 
+            danger={false} 
+            onDismiss={() => setPreviewMsg(null)} 
+            onAnswer={() => setPreviewMsg(null)} 
+          />
+        </>
       )}
 
       {globalTooltip && (
