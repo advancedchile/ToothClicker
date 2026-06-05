@@ -2589,15 +2589,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 </div>
               </div>
               {(() => {
-                const totalAch = Object.keys(state.achievements || {}).length;
-                if (totalAch === 0) {
-                  return (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
-                      <img src="assets/logros/logros-empty.png" alt="Empty" style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 16 }} />
-                      <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Juega para obtener logros que te darán muchos beneficios.' : 'Play to earn achievements that will give you many benefits.'}</div>
-                    </div>
-                  );
-                }
+
                 const filteredAch = window.ACHIEVEMENTS.filter(a => {
                   if (achFilter === 'new') return !!state.newAchievementIds?.[a.id];
                   if (achFilter === 'seen') return !!state.achievements[a.id] && !state.newAchievementIds?.[a.id];
