@@ -649,6 +649,12 @@ window.cloudPublishTemplate = async function(id, templateContent) {
 
     // 4. Overwrite game content with template content (or external pointer)
     const newGameContent = templateContent.isExternalPointer ? templateContent.pointerObj : templateContent;
+    
+    // Inject the template ID into the game content so admin-templates.jsx can know which internal template is currently live
+    if (!newGameContent.useExternalTemplate) {
+      newGameContent._templateId = id;
+    }
+
     const { error: errPublish } = await _supabase.from('settings').upsert({ key: 'game_content', value: newGameContent });
     if (errPublish) throw errPublish;
 
@@ -804,6 +810,10 @@ window.cloudTriggerSeasonWipe = async function(seasonConfig) {
     await _supabase.from('settings').upsert({ key: archiveKey, value: archivePayload });
 
     // 5. Overwrite game content with template content
+    // Inject template ID for tracking
+    if (!templateContent.useExternalTemplate) {
+      templateContent._templateId = seasonConfig.templateId;
+    }
     const { error: errPublish } = await _supabase.from('settings').upsert({ key: 'game_content', value: templateContent });
     if (errPublish) throw errPublish;
 
@@ -813,8 +823,10 @@ window.cloudTriggerSeasonWipe = async function(seasonConfig) {
     // 7. Reset lastResetAt to now
     await _supabase.from('settings').upsert({ key: 'lastResetAt', value: Date.now() });
 
-    // 8. Clear active season config so it doesn't re-trigger
-    await window.cloudSaveSeasonConfig(null);
+    // Note: We DO NOT clear the active season config here! 
+    // The active season config represents the currently running live season.
+    // It is needed by the game to show the Welcome Modal to new players,
+    // and by the admin to show the remaining time.
 
     return { ok: true, seasonConfig }; 
   } catch (e) {

@@ -9,13 +9,56 @@ window.AdminTemplates = function({ lang, editingTemplateId, onEditTemplate }) {
   const [createTarget, setCreateTarget] = useState(null);
   const [createData, setCreateData] = useState({ name: '', path: '', copyLive: true });
 
+  const [activeConfig, setActiveConfig] = useState(null);
+  const [liveTemplateData, setLiveTemplateData] = useState(null);
+  const [timeNow, setTimeNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTimeNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatSeasonTime = (endDate) => {
+    const ms = new Date(endDate).getTime() - Date.now();
+    if (ms <= 0) return lang === 'es' ? 'Finalizada (Requiere reinicio)' : 'Ended (Requires reset)';
+    const d = Math.floor(ms / (1000 * 60 * 60 * 24));
+    const h = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const m = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    if (d > 0) return `${d}d ${h}h ${m}m`;
+    return `${h}h ${m}m`;
+  };
+
+  const isTemplateLive = (t) => {
+    if (activeConfig && activeConfig.templateId === t.id) return true;
+    if (t.isExternal && liveTemplateData?.useExternalTemplate && liveTemplateData?.path === t.path) return true;
+    if (!t.isExternal && liveTemplateData?._templateId === t.id) return true;
+    return false;
+  };
+
+
   useEffect(() => {
     loadTemplates();
   }, []);
 
   const loadTemplates = async () => {
     setLoading(true);
+    
     const res = await window.cloudFetchTemplates();
+    const configRes = window.cloudGetSeasonConfig ? await window.cloudGetSeasonConfig() : { ok: true, config: null };
+    const liveRes = await window.cloudFetchGameContent();
+
+    if (configRes.ok && configRes.config) {
+      setActiveConfig(configRes.config);
+    } else {
+      setActiveConfig(null);
+    }
+
+    if (liveRes.ok && liveRes.content) {
+      setLiveTemplateData(liveRes.content);
+    } else {
+      setLiveTemplateData(null);
+    }
+
     if (res.ok) {
       setTemplates(res.templates || []);
     } else {
@@ -216,7 +259,23 @@ window.AdminTemplates = function({ lang, editingTemplateId, onEditTemplate }) {
         </div>
       </div>
 
+      
+      {activeConfig && (
+        <div style={{ padding: '16px 20px', background: 'rgba(16, 185, 129, 0.1)', color: '#059669', borderRadius: 12, marginBottom: 24, border: '1px solid #10b981', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <i className="fa-solid fa-clock fa-spin" style={{ fontSize: 24 }}></i>
+            <div>
+              <div style={{ fontWeight: 'bold', fontSize: 16 }}>{lang === 'es' ? 'Temporada Activa:' : 'Active Season:'} {activeConfig.name}</div>
+              <div style={{ fontSize: 14, marginTop: 4 }}>
+                {lang === 'es' ? 'Tiempo restante:' : 'Time remaining:'} <strong style={{color: 'var(--fg-1)'}}>{formatSeasonTime(activeConfig.endDate)}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ background: 'var(--bg-2)', padding: 16, borderRadius: 12, border: '1px solid var(--border)', marginBottom: 24 }}>
+
         <p style={{ margin: 0, color: 'var(--fg-2)', fontSize: 14 }}>
           {lang === 'es' ? 
             'Las plantillas te permiten diseñar, balancear y probar nuevo contenido dinámico (mejoras, generadores, etc.) sin afectar a los jugadores actuales. Una vez que esté lista, puedes publicarla para iniciar una nueva "temporada".' : 
@@ -238,6 +297,7 @@ window.AdminTemplates = function({ lang, editingTemplateId, onEditTemplate }) {
           ) : (
             templates.map(t => {
               const isEditing = editingTemplateId === t.id;
+              const isLive = isTemplateLive(t);
               const dateObj = new Date(t.createdAt);
               const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString();
 
@@ -254,6 +314,11 @@ window.AdminTemplates = function({ lang, editingTemplateId, onEditTemplate }) {
                       {isEditing && (
                         <span style={{ fontSize: 12, background: 'var(--primary-i100)', color: '#fff', padding: '2px 8px', borderRadius: 12 }}>
                           {lang === 'es' ? 'Editando Actualmente' : 'Currently Editing'}
+                        </span>
+                      )}
+                      {isLive && (
+                        <span style={{ fontSize: 12, background: '#10b981', color: '#fff', padding: '2px 8px', borderRadius: 12 }}>
+                          <i className="fa-solid fa-circle-check"></i> {lang === 'es' ? 'EN VIVO' : 'LIVE'}
                         </span>
                       )}
                     </div>

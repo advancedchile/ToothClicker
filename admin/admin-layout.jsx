@@ -112,7 +112,7 @@ window.AdminLayout = function({ lang, onLangChange, onEnterGame, onBack }) {
   }, [editingTemplate]);
 
   // We will pass these props to the specific admin modules
-  const commonProps = { lang, onLangChange, isTemplate: !!editingTemplate, setToast };
+  const commonProps = { lang, onLangChange, onEnterGame, onBack, isTemplate: !!editingTemplate, setToast };
 
   const renderContent = () => {
     switch (activeTab) {

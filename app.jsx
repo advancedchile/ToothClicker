@@ -164,7 +164,7 @@ function FloatingBonus({ bonus, onClick }) {
   );
 }
 
-function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange, onBackToAdmin, activeSeasonConfig }) {
+function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange, onBackToAdmin, activeSeasonConfig, isSeasonModalOpen }) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
   const isAdmin = username === 'James';
   
@@ -802,11 +802,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
   useEffect(() => {
     // Show tour if it's the first time and they haven't opted out (and it's not the admin user 'James')
-    if (!hasSeenTour && !dontShowTourAgain && state.totalEarned === 0 && currentTourStep === null && username !== 'James') {
+    if (!hasSeenTour && !dontShowTourAgain && state.totalEarned === 0 && currentTourStep === null && username !== 'James' && !isSeasonModalOpen) {
       const timer = setTimeout(() => setCurrentTourStep(0), 1500);
       return () => clearTimeout(timer);
     }
-  }, [hasSeenTour, state.totalEarned, currentTourStep]);
+  }, [hasSeenTour, state.totalEarned, currentTourStep, isSeasonModalOpen, dontShowTourAgain, username]);
 
   const pushScore = useCallback((stateOverride, isLeaving = false) => {
     const s = stateOverride || stateRef.current;
@@ -3570,11 +3570,6 @@ function App() {
           const sRes = await window.cloudGetSeasonConfig();
           if (sRes.ok && sRes.config) {
             setActiveSeasonConfig(sRes.config);
-            const lastSeen = localStorage.getItem('last_seen_season');
-            if (lastSeen !== sRes.config.id && sRes.config.id) {
-              setSeasonModalData(sRes.config);
-              localStorage.setItem('last_seen_season', sRes.config.id);
-            }
           }
         }
 
@@ -3593,6 +3588,30 @@ function App() {
 
     initContent();
   }, []);
+
+  useEffect(() => {
+    if (screen === 'game' && username) {
+      const fetchAndCheckSeason = async () => {
+        let currentConfig = activeSeasonConfig;
+        if (window.cloudGetSeasonConfig) {
+          const sRes = await window.cloudGetSeasonConfig();
+          if (sRes.ok && sRes.config) {
+            currentConfig = sRes.config;
+            setActiveSeasonConfig(currentConfig);
+          }
+        }
+        
+        if (currentConfig && currentConfig.id) {
+          const userLastSeen = localStorage.getItem('last_seen_season_' + username);
+          if (userLastSeen !== currentConfig.id) {
+            setSeasonModalData(currentConfig);
+            localStorage.setItem('last_seen_season_' + username, currentConfig.id);
+          }
+        }
+      };
+      fetchAndCheckSeason();
+    }
+  }, [screen, username]);
 
   // Font & Branding Initialization
   useEffect(() => {
@@ -3953,14 +3972,23 @@ function App() {
           onLogout={handleLogout} onDeleteUser={handleDeleteUser}
           numFormat={numFormat} onNumFormatChange={handleNumFormatChange}
           onBackToAdmin={isAdmin ? () => setScreen('admin') : undefined} 
-          activeSeasonConfig={activeSeasonConfig} />
+          activeSeasonConfig={activeSeasonConfig}
+          isSeasonModalOpen={!!seasonModalData} />
         
         {seasonModalData && (
           <window.Modal persistent={true}>
-            <div style={{ textAlign: 'center', padding: '10px 0' }}>
-              <h2 className="t-heading-l" style={{ color: 'var(--primary-i100)', marginBottom: 16 }}>{seasonModalData.name}</h2>
-              {seasonModalData.image && <img src={seasonModalData.image} alt="Season" style={{ width: '100%', maxWidth: 500, height: 'auto', borderRadius: 12, marginBottom: 16 }} />}
-              <div style={{ color: 'var(--fg-1)', lineHeight: 1.5, marginBottom: 24, textAlign: 'left' }} dangerouslySetInnerHTML={{ __html: seasonModalData.description || '' }}></div>
+            <div style={{ textAlign: 'center' }}>
+              {seasonModalData.image && (
+                <div style={{ margin: 'calc(-1 * var(--spacing-6)) calc(-1 * var(--spacing-6)) 20px calc(-1 * var(--spacing-6))' }}>
+                  <img src={seasonModalData.image} alt="Season" style={{ width: '100%', display: 'block', borderTopLeftRadius: 'var(--radius-m)', borderTopRightRadius: 'var(--radius-m)' }} />
+                </div>
+              )}
+              <style>{`
+                .season-welcome-message ul { padding-left: 24px; margin-top: 8px; margin-bottom: 8px; list-style-type: disc; }
+                .season-welcome-message ol { padding-left: 24px; margin-top: 8px; margin-bottom: 8px; list-style-type: decimal; }
+                .season-welcome-message p { margin-bottom: 8px; }
+              `}</style>
+              <div className="season-welcome-message" style={{ color: 'var(--fg-1)', lineHeight: 1.5, marginBottom: 24, textAlign: 'left' }} dangerouslySetInnerHTML={{ __html: seasonModalData.description || '' }}></div>
               {seasonModalData.audio && (
                 <audio autoPlay src={seasonModalData.audio} />
               )}

@@ -1059,6 +1059,7 @@ window.AdminCorePanel = function({ activeTab, setActiveTab, lang, onLangChange, 
   const handleDelete = ({ name, type }) => {
     // 1. Local cleanup
     deleteUserSave(name);
+    localStorage.removeItem('last_seen_season_' + name);
     
     // 2. Cloud cleanup (Leaderboard)
     window.cloudDeleteScore && window.cloudDeleteScore(name);

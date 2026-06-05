@@ -86,6 +86,17 @@ window.AdminSeasons = function({ lang }) {
 
   const toggleLog = (id) => setExpandedLogs(p => ({ ...p, [id]: !p[id] }));
 
+  const formatSeasonTime = (endDate) => {
+    const ms = new Date(endDate).getTime() - Date.now();
+    if (ms <= 0) return lang === 'es' ? 'Finalizada (Requiere reinicio)' : 'Ended (Requires reset)';
+    const d = Math.floor(ms / (1000 * 60 * 60 * 24));
+    const h = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const m = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    if (d > 0) return `${d}d ${h}h ${m}m`;
+    return `${h}h ${m}m`;
+  };
+
+
   useEffect(() => {
     loadData();
   }, []);
