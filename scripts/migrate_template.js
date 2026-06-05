@@ -3,7 +3,7 @@ const path = require('path');
 
 const inputFilePath = path.join(__dirname, '../templates/plantilla-mpkhffgx829bw.json');
 const outputFilePath = path.join(__dirname, '../templates/plantilla-mpkhffgx829bw_optimized.json');
-const assetsDir = path.join(__dirname, '../public/assets');
+const assetsDir = path.join(__dirname, '../assets');
 
 if (!fs.existsSync(assetsDir)) fs.mkdirSync(assetsDir, { recursive: true });
 
