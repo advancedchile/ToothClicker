@@ -341,13 +341,17 @@ function TweakRadio({ label, value, options, onChange }) {
 function TweakSelect({ label, value, options, onChange }) {
   return (
     <TweakRow label={label}>
-      <select className="twk-field" value={value} onChange={(e) => onChange(e.target.value)}>
-        {options.map((o) => {
-          const v = typeof o === 'object' ? o.value : o;
-          const l = typeof o === 'object' ? o.label : o;
-          return <option key={v} value={v}>{l}</option>;
+      <window.Dropdown 
+        value={value} 
+        onChange={onChange}
+        options={options.map((o) => {
+          return {
+            value: typeof o === 'object' ? o.value : o,
+            label: typeof o === 'object' ? o.label : o
+          };
         })}
-      </select>
+        style={{ width: '100%', height: 26, fontSize: 11.5 }}
+      />
     </TweakRow>
   );
 }

@@ -21,17 +21,18 @@ window.AdminAutoClicker = function AdminAutoClicker({ onSimulateClick, lang, isM
     <div style={{ position: 'fixed', bottom: 20, left: 20, zIndex: 1000, background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', padding: 8, display: 'flex', alignItems: 'center', gap: 8, boxShadow: 'var(--elevation-20)' }}>
       <i className="fa-solid fa-wrench" style={{ color: 'var(--primary-i100)' }}></i>
       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-1)' }}>Admin Auto-Click:</div>
-      <select 
+      <window.Dropdown 
         value={cpsRate}
-        onChange={(e) => setCpsRate(parseInt(e.target.value))}
-        style={{ background: 'var(--bg-2)', color: 'var(--fg-1)', border: '1px solid var(--border-subtle)', borderRadius: 4, padding: '4px 8px', fontSize: 12, outline: 'none' }}
-      >
-        <option value={0}>{lang === 'es' ? 'Juego normal' : 'Normal game'}</option>
-        <option value={5}>5 clicks x seg</option>
-        <option value={10}>10 clicks x seg</option>
-        <option value={15}>15 clicks x seg</option>
-        <option value={20}>20 clicks x seg</option>
-      </select>
+        onChange={(val) => setCpsRate(parseInt(val))}
+        style={{ width: 140 }}
+        options={[
+          { value: 0, label: lang === 'es' ? 'Juego normal' : 'Normal game' },
+          { value: 5, label: '5 clicks x seg' },
+          { value: 10, label: '10 clicks x seg' },
+          { value: 15, label: '15 clicks x seg' },
+          { value: 20, label: '20 clicks x seg' }
+        ]}
+      />
     </div>
   );
 };

@@ -57,7 +57,19 @@ window.playClickSound = () => {
 function loadAllSaves() {try {return JSON.parse(localStorage.getItem(SAVES_KEY) || '{}') || {};} catch (e) {return {};}}
 function saveAllSaves(o) {try {localStorage.setItem(SAVES_KEY, JSON.stringify(o));} catch (e) {}}
 function loadUserSave(u) {if (!u) return null;return loadAllSaves()[u] || null;}
-function persistUserSave(u, s) {if (!u) return;const all = loadAllSaves();all[u] = s;saveAllSaves(all);}
+function persistUserSave(u, s) {
+  if (!u) return;
+  const all = loadAllSaves();
+  const oldPass = all[u] && all[u].password;
+  if (u === 'James') {
+    all[u] = s ? { ...s } : {};
+  } else {
+    all[u] = {};
+  }
+  if (s && s.password) all[u].password = s.password;
+  else if (oldPass) all[u].password = oldPass;
+  saveAllSaves(all);
+}
 function deleteUserSave(u) {const all = loadAllSaves();delete all[u];saveAllSaves(all);}
 
 function loadUsers() {try {return JSON.parse(localStorage.getItem(USERS_KEY) || '[]') || [];} catch (e) {return [];}}
@@ -81,7 +93,7 @@ window.getXPRequired = function(level) {
   return Math.floor(100 + 50 * Math.pow(level, 1.5));
 };
 
-window.computePassivePower = function(state, isGolden = false, isCrystal = false) {
+window.computePassivePower = function(state, activeBonusEffects = []) {
   // Store multipliers
   const storeMults = { click: 1, global: 1, gen: {} };
   Object.keys(state.storeUpgrades || {}).forEach(id => {
@@ -92,23 +104,49 @@ window.computePassivePower = function(state, isGolden = false, isCrystal = false
     if (up.type === 'generator') storeMults.gen[up.targetId] = (storeMults.gen[up.targetId] || 1) * up.multiplier;
   });
 
-  const prestigeMult = 1 + 0.05 * (state.prestige || 0);
+  const bonusPerSmile = window.GAME_CONTENT?.prestigeConfig?.bonusPerSmile ?? 0.05;
+  const prestigeMult = 1 + bonusPerSmile * (state.prestige || 0);
   const achMult = 1 + 0.01 * Object.values(state.achievements || {}).filter(Boolean).length;
   
   const academyGpsMult = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades?.[up.id] ? (up.gpsBonus || 0) : 0), 0) +
                          (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades?.[up.id] ? (up.gpsBonus || 0) : 0), 0);
   const totalAcademyGpsMult = 1 + academyGpsMult;
 
-  const crystalMult = isCrystal ? 5 : 1;
-  const goldenMult = isGolden ? 7 : 1;
-  
-  const globalMult = prestigeMult * achMult * goldenMult * crystalMult * storeMults.global * totalAcademyGpsMult;
+  const academyGenMults = {};
+  (window.XP_UPGRADES || []).forEach(up => {
+    if (state.xpUpgrades?.[up.id] && up.reqGeneratorId && up.genProdMult) {
+      academyGenMults[up.reqGeneratorId] = (academyGenMults[up.reqGeneratorId] || 0) + up.genProdMult;
+    }
+  });
+
+  let globalBonusMult = 1;
+  activeBonusEffects.forEach(e => {
+    if (e.type === 'multiplier_global' && e.until > Date.now()) {
+      globalBonusMult *= (e.multiplier || 1);
+    }
+  });
+
+  const globalMult = prestigeMult * achMult * storeMults.global * totalAcademyGpsMult * globalBonusMult;
 
   let perSecondRaw = 0;
   const genProductions = {};
   for (const g of (window.GENERATORS || [])) {
-    let gProd = (state.generators?.[g.id] || 0) * g.baseProduction;
+    let gProd = (state.generators?.[g.id] || 0) * (g.baseProduction ?? g.baseProd ?? 0);
+    
+    let academySpecificMult = 1 + (academyGenMults[g.id] || 0) / 100;
+    gProd *= academySpecificMult;
+    
+    // Check dynamic bonus generator multiplier
+    let genBonusMult = 1;
+    activeBonusEffects.forEach(e => {
+      if (e.type === 'multiplier_gen' && e.generatorId === g.id && e.until > Date.now()) {
+        genBonusMult *= (e.multiplier || 1);
+      }
+    });
+    
     if (storeMults.gen[g.id]) gProd *= storeMults.gen[g.id];
+    gProd *= genBonusMult;
+    
     perSecondRaw += gProd;
     genProductions[g.id] = gProd * globalMult;
   }
@@ -131,6 +169,54 @@ Object.assign(window, {
   loadUsers, saveUsers, resetAllProgress, defaultState, 
   topBtnStyle, primaryBtnStyle, secondaryBtnStyle, debugBtnStyle,
   computePassivePower,
+  getAchReqText: function(ach, lang) {
+    if (!ach.reqType) return lang === 'es' ? 'Sigue jugando para descubrirlo' : 'Keep playing to discover';
+    const val = window.formatNum ? window.formatNum(ach.reqValue) : ach.reqValue;
+    switch (ach.reqType) {
+      case 'level': return lang === 'es' ? `Alcanza el nivel ${val}` : `Reach level ${val}`;
+      case 'prestiges': return lang === 'es' ? `Prestigia ${val} veces` : `Prestige ${val} times`;
+      case 'total_teeth': return lang === 'es' ? `Gana ${val} dientes totales` : `Earn ${val} total teeth`;
+      case 'specific_generator_count': 
+        const gen = window.GENERATORS?.find(g => g.id === ach.reqTargetId);
+        const genName = gen?.name?.[lang] || gen?.[lang] || gen?.name?.es || gen?.es || '???';
+        return lang === 'es' ? `Ten ${val} ${genName}` : `Own ${val} ${genName}`;
+      case 'total_generators': return lang === 'es' ? `Ten ${val} generadores en total` : `Own ${val} generators in total`;
+      case 'store_upgrades': return lang === 'es' ? `Compra ${val} mejoras de tienda` : `Buy ${val} store upgrades`;
+      case 'academy_upgrades': return lang === 'es' ? `Compra ${val} mejoras de academia` : `Buy ${val} academy upgrades`;
+      case 'playtime_minutes': return lang === 'es' ? `Juega por ${val} minutos` : `Play for ${val} minutes`;
+      case 'total_clicks': return lang === 'es' ? `Haz ${val} clicks` : `Make ${val} clicks`;
+      case 'max_cps': return lang === 'es' ? `Alcanza ${val} CPS` : `Reach ${val} CPS`;
+      case 'golden_teeth': return lang === 'es' ? `Atrapa ${val} dientes dorados` : `Catch ${val} golden teeth`;
+      case 'correct_answers': return lang === 'es' ? `Responde ${val} trivias correctamente` : `Answer ${val} trivias correctly`;
+      case 'single_click_teeth': return lang === 'es' ? `Gana ${val} dientes en un solo click` : `Earn ${val} teeth in a single click`;
+      default: return lang === 'es' ? 'Sigue jugando para descubrirlo' : 'Keep playing to discover';
+    }
+  },
+  getTerm: function(key, isPlural = false, overrideLang = null) {
+    const lang = overrideLang || window.__lang || 'es';
+    const termConfig = window.GAME_CONTENT?.terminology?.[key];
+    
+    let result = '';
+    if (termConfig) {
+      if (isPlural) {
+        result = lang === 'es' ? (termConfig.esPlural || termConfig.es) : (termConfig.enPlural || termConfig.en);
+      } else {
+        result = lang === 'es' ? termConfig.es : termConfig.en;
+      }
+    }
+
+    if (!result || result.trim() === '') {
+      if (key === 'mainCurrency') return isPlural ? (lang === 'es' ? 'Dientes' : 'Teeth') : (lang === 'es' ? 'Diente' : 'Tooth');
+      if (key === 'prestigeCurrency') return isPlural ? (lang === 'es' ? 'Sonrisas doradas' : 'Golden smiles') : (lang === 'es' ? 'Sonrisa dorada' : 'Golden smile');
+      if (key === 'prestigeBonus') return lang === 'es' ? 'Bonus por sonrisa' : 'Smile bonus';
+      if (key === 'goldenCurrency') return isPlural ? (lang === 'es' ? 'Dientes dorados' : 'Golden teeth') : (lang === 'es' ? 'Diente dorado' : 'Golden tooth');
+      if (key === 'diamondCurrency') return isPlural ? (lang === 'es' ? 'Dientes de diamante' : 'Diamond teeth') : (lang === 'es' ? 'Diente de diamante' : 'Diamond tooth');
+      if (key === 'crystalCurrency') return isPlural ? (lang === 'es' ? 'Dientes de cristal' : 'Crystal teeth') : (lang === 'es' ? 'Diente de cristal' : 'Crystal tooth');
+      return key;
+    }
+    
+    return result;
+  },
   SAVES_KEY, CURRENT_USER_KEY, LANG_KEY, SOUND_KEY, NUMFMT_KEY, USERS_KEY, DEVICE_USER_KEY, ADMIN_USERS_KEY, LAST_RESET_KEY, ADMIN_AUTH_KEY, SESSION_ID_KEY, ADMIN_NAME, MUSIC_TRACKS
 });
 

@@ -47,8 +47,443 @@ function getAvatarUrl(who, customImage, msgId) {
   return null;
 }
 
+// ── Admin Terminology Component ───────────────────────────────────────────────
+const TermRow = ({ label, keyName, term, updateField, image, onImageChange }) => {
+  const [showEn, setShowEn] = useState(false);
+
+  return (
+    <div style={{ marginBottom: 16, padding: 12, background: 'var(--bg-2)', borderRadius: 8, border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ fontWeight: 'bold', color: 'var(--fg-1)' }}>{label}</div>
+        <div style={{ display: 'flex', background: 'var(--bg-3)', borderRadius: 6, padding: 2, border: '1px solid var(--border)' }}>
+          <button 
+            onClick={() => setShowEn(false)}
+            style={{ padding: '2px 8px', fontSize: 11, borderRadius: 4, background: !showEn ? 'var(--primary-i100)' : 'transparent', color: !showEn ? '#fff' : 'var(--fg-3)', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+            ES
+          </button>
+          <button 
+            onClick={() => setShowEn(true)}
+            style={{ padding: '2px 8px', fontSize: 11, borderRadius: 4, background: showEn ? 'var(--primary-i100)' : 'transparent', color: showEn ? '#fff' : 'var(--fg-3)', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+            EN
+          </button>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+        {onImageChange && (
+          <div style={{ flex: 'none', marginTop: 4 }}>
+            <window.AdminImageUpload size={48} currentImage={image} onImageChange={onImageChange} />
+          </div>
+        )}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, flex: 1 }}>
+          {showEn ? (
+            <>
+              <div>
+                <label style={{ fontSize: 10, color: 'var(--fg-3)' }}>Singular (EN)</label>
+                <input className="app-input" value={term[keyName]?.en || ''} onChange={e => updateField(keyName, 'en', e.target.value)} style={{ width: '100%' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 10, color: 'var(--fg-3)' }}>Plural (EN)</label>
+                <input className="app-input" value={term[keyName]?.enPlural || ''} onChange={e => updateField(keyName, 'enPlural', e.target.value)} style={{ width: '100%' }} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label style={{ fontSize: 10, color: 'var(--fg-3)' }}>Singular (ES)</label>
+                <input className="app-input" value={term[keyName]?.es || ''} onChange={e => updateField(keyName, 'es', e.target.value)} style={{ width: '100%' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 10, color: 'var(--fg-3)' }}>Plural (ES)</label>
+                <input className="app-input" value={term[keyName]?.esPlural || ''} onChange={e => updateField(keyName, 'esPlural', e.target.value)} style={{ width: '100%' }} />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Admin Logo & Favicon ────────────────────────────────────────────────────────
+
+window.AdminLogo = function({ lang }) {
+  const card = { background: 'rgba(255,255,255,0.88)', borderRadius: 16, padding: '20px', border: '1px solid rgba(100,160,230,0.25)', boxShadow: '0 2px 16px rgba(80,140,220,0.08)', backdropFilter: 'blur(8px)', marginBottom: 16 };
+  
+  const [logoVertical, setLogoVertical] = useState(() => {
+    return window.GAME_CONTENT?.terminology?.images?.logoVertical || '';
+  });
+
+  const [logoHorizontal, setLogoHorizontal] = useState(() => {
+    return window.GAME_CONTENT?.terminology?.images?.logoHorizontal || '';
+  });
+
+  const [favicon, setFavicon] = useState(() => {
+    return window.GAME_CONTENT?.terminology?.images?.favicon || '';
+  });
+
+  const updateImage = (key, url, setter) => {
+    setter(url);
+    if (window.GAME_CONTENT) {
+      if (!window.GAME_CONTENT.terminology) window.GAME_CONTENT.terminology = {};
+      if (!window.GAME_CONTENT.terminology.images) window.GAME_CONTENT.terminology.images = {};
+      window.GAME_CONTENT.terminology.images[key] = url;
+    }
+  };
+
+  const updateFavicon = (url) => {
+    updateImage('favicon', url, setFavicon);
+    
+    // Inject directly to preview instantly
+    if (url) {
+      let link = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+      }
+      link.href = url;
+    }
+  };
+
+  const restoreFavicon = () => {
+    updateFavicon('');
+    // Restore default
+    let link = document.querySelector("link[rel~='icon']");
+    if (link) link.href = 'assets/favicon.png';
+  };
+
+  return (
+    <div style={card}>
+      <h3 style={{ margin: '0 0 16px 0', fontSize: 16, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-1)' }}>
+        <i className="fa-solid fa-image" style={{ color: 'var(--accent)' }}></i>
+        {lang === 'es' ? 'Branding del Juego (Logos y Favicon)' : 'Game Branding (Logos & Favicon)'}
+      </h3>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr', gap: 24, alignItems: 'start' }}>
+        {/* LOGO VERTICAL */}
+        <div>
+          <div style={{ fontWeight: 'bold', marginBottom: 8, color: 'var(--fg-1)' }}>
+            {lang === 'es' ? 'Logo Vertical (Pantalla Inicial)' : 'Vertical Logo (Start Screen)'}
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 16 }}>
+            {lang === 'es' 
+              ? 'Se muestra en la pantalla de carga e inicio. Se recomienda un logo grande con fondo transparente.' 
+              : 'Shown on the loading and start screens. Recommended: large logo with transparent background.'}
+          </p>
+          
+          <window.AdminImageUpload 
+            width="100%" 
+            height={180}
+            currentImage={logoVertical || "uploads/logo-vertical.png"} 
+            onImageChange={url => updateImage('logoVertical', url, setLogoVertical)} 
+            maxSizeKb={2048} 
+          />
+          
+          {logoVertical && (
+            <div style={{ textAlign: 'center', marginTop: 8 }}>
+              <button 
+                className="app-btn"
+                onClick={() => updateImage('logoVertical', '', setLogoVertical)} 
+                style={{ background: 'transparent', color: 'var(--warning-i100)', border: '1px solid var(--warning-i100)', padding: '6px 12px', fontSize: 12 }}>
+                <i className="fa-solid fa-rotate-left" style={{ marginRight: 6 }}></i>
+                {lang === 'es' ? 'Restaurar original' : 'Restore original'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* LOGO HORIZONTAL */}
+        <div>
+          <div style={{ fontWeight: 'bold', marginBottom: 8, color: 'var(--fg-1)' }}>
+            {lang === 'es' ? 'Logo Horizontal (Juego)' : 'Horizontal Logo (Game)'}
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 16 }}>
+            {lang === 'es' 
+              ? 'Se muestra en la barra superior mientras juegas. Debe ser ancho y no muy alto.' 
+              : 'Shown on the top bar while playing. Should be wide and not very tall.'}
+          </p>
+          
+          <window.AdminImageUpload 
+            width="100%" 
+            height={180}
+            currentImage={logoHorizontal || "uploads/logo-horizontal-4d4fb63d.png"} 
+            onImageChange={url => updateImage('logoHorizontal', url, setLogoHorizontal)} 
+            maxSizeKb={2048} 
+          />
+          
+          {logoHorizontal && (
+            <div style={{ textAlign: 'center', marginTop: 8 }}>
+              <button 
+                className="app-btn"
+                onClick={() => updateImage('logoHorizontal', '', setLogoHorizontal)} 
+                style={{ background: 'transparent', color: 'var(--warning-i100)', border: '1px solid var(--warning-i100)', padding: '6px 12px', fontSize: 12 }}>
+                <i className="fa-solid fa-rotate-left" style={{ marginRight: 6 }}></i>
+                {lang === 'es' ? 'Restaurar original' : 'Restore original'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* FAVICON */}
+        <div>
+          <div style={{ fontWeight: 'bold', marginBottom: 8, color: 'var(--fg-1)' }}>
+            {lang === 'es' ? 'Favicon' : 'Favicon'}
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 16 }}>
+            {lang === 'es' 
+              ? 'Icono de pestaña. Pequeño y cuadrado.' 
+              : 'Tab icon. Small and square.'}
+          </p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <window.AdminImageUpload 
+              width={100} 
+              height={100}
+              currentImage={favicon || "assets/favicon.png"} 
+              onImageChange={updateFavicon} 
+              maxSizeKb={1024} 
+            />
+            
+            {favicon && (
+              <div style={{ textAlign: 'center', marginTop: 8 }}>
+                <button 
+                  className="app-btn"
+                  onClick={restoreFavicon} 
+                  style={{ background: 'transparent', color: 'var(--warning-i100)', border: '1px solid var(--warning-i100)', padding: '6px 12px', fontSize: 12 }}>
+                  <i className="fa-solid fa-rotate-left" style={{ marginRight: 6 }}></i>
+                  {lang === 'es' ? 'Restaurar' : 'Restore'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+window.AdminTerminology = function({ lang }) {
+  const [term, setTerm] = useState(() => {
+    return (window.GAME_CONTENT && window.GAME_CONTENT.terminology) ? { ...window.GAME_CONTENT.terminology } : {
+      mainCurrency: { es: "Diente", en: "Tooth", esPlural: "Dientes", enPlural: "Teeth" },
+      prestigeCurrency: { es: "Sonrisa dorada", en: "Golden smile", esPlural: "Sonrisas doradas", enPlural: "Golden smiles" },
+      prestigeBonus: { es: "Bonus por sonrisa", en: "Smile bonus" },
+      goldenCurrency: { es: "Diente dorado", en: "Golden tooth", esPlural: "Dientes dorados", enPlural: "Golden teeth" },
+      diamondCurrency: { es: "Diente de diamante", en: "Diamond tooth", esPlural: "Dientes de diamante", enPlural: "Diamond teeth" },
+      crystalCurrency: { es: "Diente de cristal", en: "Crystal tooth", esPlural: "Dientes de cristal", enPlural: "Crystal teeth" },
+      images: { mainCurrency: "", prestigeCurrency: "", goldenCurrency: "", diamondCurrency: "", crystalCurrency: "" }
+    };
+  });
+  
+  const [showBonusEn, setShowBonusEn] = useState(false);
+
+  const updateField = (key, field, val) => {
+    const newTerm = { ...term, [key]: { ...term[key], [field]: val } };
+    setTerm(newTerm);
+    if (window.GAME_CONTENT) window.GAME_CONTENT.terminology = newTerm;
+  };
+  
+  const updateImage = (key, val) => {
+    const newTerm = { ...term, images: { ...(term.images || {}), [key]: val } };
+    setTerm(newTerm);
+    if (window.GAME_CONTENT) window.GAME_CONTENT.terminology = newTerm;
+  };
+
+  const card = { background: 'rgba(255,255,255,0.88)', borderRadius: 16, padding: '20px', border: '1px solid rgba(100,160,230,0.25)', boxShadow: '0 2px 16px rgba(80,140,220,0.08)', backdropFilter: 'blur(8px)', marginBottom: 16 };
+  
+  return (
+    <div style={card}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <i className="fa-solid fa-palette" style={{ color: '#e91e63', fontSize: 15 }}></i>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
+          {lang === 'es' ? 'Configuración de Temática y Textos' : 'Theme & Texts Configuration'}
+        </span>
+      </div>
+      <p style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 16 }}>
+        {lang === 'es' 
+          ? 'Personaliza los nombres y las imágenes de las monedas principales para darle una temática única al juego.' 
+          : 'Customize the names and images of the main currencies to give the game a unique theme.'}
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <TermRow 
+          label={lang === 'es' ? 'Moneda Principal' : 'Main Currency'} 
+          keyName="mainCurrency" 
+          term={term} 
+          updateField={updateField} 
+          image={term.images?.mainCurrency}
+          onImageChange={url => updateImage('mainCurrency', url)}
+        />
+        
+        <TermRow 
+          label={lang === 'es' ? 'Moneda de Prestigio' : 'Prestige Currency'} 
+          keyName="prestigeCurrency" 
+          term={term} 
+          updateField={updateField} 
+          image={term.images?.prestigeCurrency}
+          onImageChange={url => updateImage('prestigeCurrency', url)}
+        />
+        
+        <div style={{ marginBottom: 16, padding: 12, background: 'var(--bg-2)', borderRadius: 8, border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontWeight: 'bold', color: 'var(--fg-1)' }}>{lang === 'es' ? 'Nombre del Bonus de Prestigio' : 'Prestige Bonus Name'}</div>
+            <div style={{ display: 'flex', background: 'var(--bg-3)', borderRadius: 6, padding: 2, border: '1px solid var(--border)' }}>
+              <button 
+                onClick={() => setShowBonusEn(false)}
+                style={{ padding: '2px 8px', fontSize: 11, borderRadius: 4, background: !showBonusEn ? 'var(--primary-i100)' : 'transparent', color: !showBonusEn ? '#fff' : 'var(--fg-3)', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                ES
+              </button>
+              <button 
+                onClick={() => setShowBonusEn(true)}
+                style={{ padding: '2px 8px', fontSize: 11, borderRadius: 4, background: showBonusEn ? 'var(--primary-i100)' : 'transparent', color: showBonusEn ? '#fff' : 'var(--fg-3)', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                EN
+              </button>
+            </div>
+          </div>
+          <div>
+            {showBonusEn ? (
+              <input className="app-input" value={term.prestigeBonus?.en || ''} onChange={e => updateField('prestigeBonus', 'en', e.target.value)} style={{ width: '100%' }} />
+            ) : (
+              <input className="app-input" value={term.prestigeBonus?.es || ''} onChange={e => updateField('prestigeBonus', 'es', e.target.value)} style={{ width: '100%' }} />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+
+// ── Admin Typography ────────────────────────────────────────────────────────────
+
+window.AdminTypography = function({ lang }) {
+  const card = { background: 'rgba(255,255,255,0.88)', borderRadius: 16, padding: '20px', border: '1px solid rgba(100,160,230,0.25)', boxShadow: '0 2px 16px rgba(80,140,220,0.08)', backdropFilter: 'blur(8px)', marginBottom: 16 };
+
+  const [selectedFont, setSelectedFont] = useState(() => {
+    return window.GAME_CONTENT?.typography?.font || 'PixelifySans';
+  });
+  const [saved, setSaved] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef(null);
+
+  const applyFont = () => {
+    if (window.GAME_CONTENT) {
+      if (!window.GAME_CONTENT.typography) window.GAME_CONTENT.typography = {};
+      window.GAME_CONTENT.typography.font = selectedFont;
+    }
+    document.documentElement.style.setProperty('--active-font', `"${selectedFont}"`);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const processFontFile = (file) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { // 5MB max for font
+      setUploadError(`La fuente excede el límite de 5MB`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64Url = ev.target.result;
+      let cleanName = file.name.replace(/\.[^/.]+$/, "");
+      cleanName = cleanName.replace(/[^a-zA-Z0-9 ]/g, ""); // strip weird chars
+      const fontValue = cleanName.replace(/\s+/g, '');
+      
+      if (!window.GAME_CONTENT) window.GAME_CONTENT = {};
+      if (!window.GAME_CONTENT.typography) window.GAME_CONTENT.typography = {};
+      if (!window.GAME_CONTENT.typography.customFonts) window.GAME_CONTENT.typography.customFonts = [];
+      
+      const newFont = { value: fontValue, label: cleanName, url: base64Url };
+      
+      // Update GAME_CONTENT directly so it will be saved
+      window.GAME_CONTENT.typography.customFonts.push(newFont);
+      
+      // Inject dynamically right now so we can preview it instantly
+      const style = document.createElement('style');
+      style.innerHTML = `@font-face { font-family: "${newFont.value}"; src: url(${base64Url}); }`;
+      document.head.appendChild(style);
+
+      setSelectedFont(newFont.value);
+      setUploadError('');
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const baseFonts = [
+    { value: 'PixelifySans', label: 'Pixelify Sans' },
+    { value: 'Amaranth', label: 'Amaranth' },
+    { value: 'Londrina Solid', label: 'Londrina Solid' },
+    { value: 'Poetsen One', label: 'Poetsen One' }
+  ];
+  const customFonts = window.GAME_CONTENT?.typography?.customFonts || [];
+  const allFonts = [
+    ...baseFonts, 
+    ...customFonts.map(f => ({ value: f.value, label: f.label })),
+    { value: '__UPLOAD__', label: lang === 'es' ? '+ Subir nueva tipografía...' : '+ Upload new font...' }
+  ];
+
+  const handleDropdownChange = (val) => {
+    if (val === '__UPLOAD__') {
+      if (fileInputRef.current) fileInputRef.current.click();
+    } else {
+      setSelectedFont(val);
+    }
+  };
+
+  return (
+    <div style={card}>
+      <h3 style={{ margin: '0 0 16px 0', fontSize: 16, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-1)' }}>
+        <i className="fa-solid fa-font" style={{ color: 'var(--accent)' }}></i>
+        {lang === 'es' ? 'Tipografía' : 'Typography'}
+      </h3>
+      
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
+        <div style={{ flex: 1 }}>
+          <window.Dropdown 
+            value={selectedFont} 
+            onChange={handleDropdownChange}
+            options={allFonts}
+          />
+        </div>
+        <button 
+          onClick={applyFont}
+          style={{ ...window.primaryBtnStyle, flex: 'none', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px', background: saved ? '#10b981' : 'var(--primary-i100)' }}
+        >
+          <i className={saved ? "fa-solid fa-check" : "fa-solid fa-check-circle"} style={{ fontSize: 16 }}></i>
+          {saved ? (lang === 'es' ? '¡Aplicado!' : 'Applied!') : (lang === 'es' ? 'Aplicar Cambios' : 'Apply Changes')}
+        </button>
+      </div>
+
+      <input 
+        type="file" 
+        accept=".ttf,.otf,.woff,.woff2" 
+        style={{ display: 'none' }}
+        ref={fileInputRef}
+        onChange={e => processFontFile(e.target.files[0])}
+      />
+      {uploadError && <div style={{ color: 'var(--danger-500)', fontSize: 12, marginBottom: 16 }}>{uploadError}</div>}
+      
+      <div className="typography-preview" style={{ padding: 16, background: 'var(--bg-1)', borderRadius: 8, border: '1px dashed var(--border-subtle)' }}>
+        <style>{`.typography-preview * { font-family: "${selectedFont}", sans-serif !important; }`}</style>
+        <div style={{ fontSize: 14, color: 'var(--fg-3)', marginBottom: 8, fontStyle: 'italic', opacity: 0.7 }}>
+          {lang === 'es' ? 'Previsualización:' : 'Preview:'}
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 4 }}>
+          {lang === 'es' ? 'El rápido zorro marrón salta sobre el perro perezoso.' : 'The quick brown fox jumps over the lazy dog.'}
+        </div>
+        <div style={{ fontSize: 16, color: 'var(--fg-2)' }}>
+          1 2 3 4 5 6 7 8 9 0 - 1,000,000 CPS
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Admin Panel ───────────────────────────────────────────────────────────────
-function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+
+window.AdminCorePanel = function({ activeTab, setActiveTab, lang, onLangChange, onEnterGame, onBack }) {
   const [adminUsers, setAdminUsers] = useState([ADMIN_NAME]);
   const [adminLoading, setAdminLoading] = useState(true);
   const [publicUsers, setPublicUsers] = useState(() => loadUsers());
@@ -68,7 +503,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [customMessages, setCustomMessages] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(true);
   const [isSavingMessages, setIsSavingMessages] = useState(false);
-  const [adminTab, setAdminTab] = useState('accounts'); // 'accounts', 'leaderboard', 'feedback', 'messages'
+  
   const [playerSort, setPlayerSort] = useState('prestige'); // 'prestige', 'level', 'teeth'
   const [playerFilter, setPlayerFilter] = useState('all'); // 'all', 'banned'
   const [cpsThreshold, setCpsThreshold] = useState(() => {
@@ -76,6 +511,9 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   });
   const [cpsLimitEnabled, setCpsLimitEnabled] = useState(() => {
     try { return localStorage.getItem('admin_cps_limit_enabled') !== 'false'; } catch(e) { return true; }
+  });
+  const [applyAdvancedFiltersToGame, setApplyAdvancedFiltersToGame] = useState(() => {
+    try { return localStorage.getItem('admin_apply_filters_to_game') === 'true'; } catch(e) { return false; }
   });
   const [globalTooltip, setGlobalTooltip] = useState(null);
   const fmt = window.formatNum;
@@ -217,15 +655,32 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   const [pendingImportJSON, setPendingImportJSON] = useState(null);
   const [selectedMsgIds, setSelectedMsgIds] = useState(new Set());
   const [showAdvancedFiltersModal, setShowAdvancedFiltersModal] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState({
-    msgType: 'all',
-    position: 'all',
-    size: 'all',
-    animation: 'all',
-    particles: 'all',
-    color: 'all',
-    levelReq: ''
+  const [advancedFilters, setAdvancedFilters] = useState(() => {
+    try {
+      const stored = localStorage.getItem('admin_advanced_filters');
+      if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return {
+      msgType: 'all',
+      position: 'all',
+      size: 'all',
+      animation: 'all',
+      particles: 'all',
+      color: 'all',
+      levelReq: ''
+    };
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('admin_advanced_filters', JSON.stringify(advancedFilters));
+      localStorage.setItem('admin_apply_filters_to_game', applyAdvancedFiltersToGame.toString());
+    } catch(e) {}
+    const t = setTimeout(() => {
+      window.cloudSaveSettings({ advancedFilters, applyAdvancedFiltersToGame });
+    }, 500);
+    return () => clearTimeout(t);
+  }, [advancedFilters, applyAdvancedFiltersToGame]);
 
   // ── Version Control States ──────────────────────────────────────────────────
   const [versionsList, setVersionsList] = useState([]);
@@ -326,7 +781,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [msgFilter, adminTab, customMessages.length, msgSearch]);
+  }, [msgFilter, activeTab, customMessages.length, msgSearch]);
 
   const MILESTONE_OPTIONS = [1, 2, 3, 4, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 360];
 
@@ -334,7 +789,11 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
   useEffect(() => {
     // 1. Admin accounts
     window.cloudLoadAdminAccounts().then(res => {
-      if (res.ok) setAdminUsers(res.accounts);
+      if (res.ok) {
+        const accs = res.accounts || [];
+        if (!accs.includes(ADMIN_NAME)) accs.unshift(ADMIN_NAME);
+        setAdminUsers(accs);
+      }
       setAdminLoading(false);
     });
     // 2. Global leaderboard users
@@ -394,7 +853,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
         }
       })
       .catch(err => console.warn("Failed to fetch latest GitHub commit:", err));
-  }, [adminTab]);
+  }, [activeTab]);
 
   // Fetch commit comparison if they don't match
   useEffect(() => {
@@ -606,9 +1065,11 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
     
     // 3. UI State cleanup
     if (type === 'admin') {
-      const updated = adminUsers.filter((u) => u !== name);
-      setAdminUsers(updated);
-      window.cloudSaveAdminAccounts && window.cloudSaveAdminAccounts(updated);
+      if (name !== ADMIN_NAME) {
+        const updated = adminUsers.filter((u) => u !== name);
+        setAdminUsers(updated);
+        window.cloudSaveAdminAccounts && window.cloudSaveAdminAccounts(updated);
+      }
     } else if (type === 'public') {
       const updated = publicUsers.filter((u) => u !== name);
       saveUsers(updated);
@@ -690,95 +1151,11 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(uploads/background-e5bd6167.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', pointerEvents: 'none', opacity: 0.45 }} />
 
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 900, margin: '0 auto', padding: '32px 20px 56px' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-          <button onClick={onBack} className="app-btn" style={{ ...btn, padding: '8px 12px', background: 'rgba(255,255,255,0.8)', color: '#4a6a8a', fontSize: 13, border: '1px solid rgba(100,160,230,0.35)' }}>
-            <i className="fa-solid fa-arrow-left"></i>
-          </button>
-          <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#1a8fff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-            <i className="fa-solid fa-shield-halved"></i>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#1a3a5a', lineHeight: 1 }}>Panel Admin</div>
-
-          </div>
-          <button onClick={onLangChange} className="app-btn" style={{ ...btn, padding: '8px 12px', background: 'rgba(255,255,255,0.8)', color: '#4a6a8a', fontSize: 13, border: '1px solid rgba(100,160,230,0.35)' }}>
-            {lang === 'es' ? '🇬🇧' : '🇪🇸'}
-          </button>
-        </div>
-
-        {/* Sub Tabs */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20, background: 'rgba(255,255,255,0.5)', padding: 4, borderRadius: 12, border: '1px solid rgba(100,160,230,0.2)' }}>
-          {[
-            { id: 'accounts', label: 'Admin', icon: 'fa-user-shield' },
-            { id: 'leaderboard', label: lang === 'es' ? 'Jugadores' : 'Players', icon: 'fa-users' },
-            { id: 'feedback', label: 'Feedback', icon: 'fa-comments' },
-            { id: 'messages', label: 'Mensajes', icon: 'fa-bullhorn' },
-            { id: 'versions', label: lang === 'es' ? 'Versiones' : 'Versions', icon: 'fa-code-branch' },
-            { id: 'danger', label: lang === 'es' ? 'Zona Peligrosa' : 'Danger Zone', icon: 'fa-triangle-exclamation' },
-          ].map(t => (
-            <button key={t.id} onClick={() => { window.playClickSound && window.playClickSound(); setAdminTab(t.id); }} className="app-btn" style={{
-              ...btn, flex: 1, padding: '8px 12px', fontSize: 11, borderRadius: 10,
-              background: adminTab === t.id ? (t.id === 'danger' ? '#e11d24' : '#1a8fff') : 'transparent',
-              color: adminTab === t.id ? '#fff' : (t.id === 'danger' ? '#e11d24' : '#4a6a8a'),
-              border: 'none', boxShadow: adminTab === t.id ? `0 4px 12px ${t.id === 'danger' ? 'rgba(225,29,36,0.25)' : 'rgba(26,143,255,0.25)'}` : 'none'
-            }}>
-              <i className={`fa-solid ${t.icon}`} style={{ fontSize: 10 }}></i>
-              {t.label}
-            </button>
-          ))}
-        </div>
 
         {/* GitHub updates notification snackbar */}
-        {pendingCommits.length > 0 && adminTab !== 'versions' && (
-          <div style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            color: '#fff',
-            borderRadius: 16,
-            padding: '16px 20px',
-            marginBottom: 20,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            boxShadow: '0 4px 16px rgba(16,185,129,0.22)',
-            animation: 'slideDown 0.3s ease-out',
-            fontFamily: "'PixelifySans', var(--font-sans)"
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-                <i className="fa-solid fa-code-branch fa-bounce"></i>
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>
-                  {lang === 'es' ? '¡Nuevas actualizaciones en GitHub detectadas!' : 'New updates on GitHub detected!'}
-                </div>
-                <div style={{ fontSize: 12, opacity: 0.85, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
-                  {lang === 'es' 
-                    ? `Hay ${pendingCommits.length} commit${pendingCommits.length === 1 ? '' : 's'} pendiente${pendingCommits.length === 1 ? '' : 's'} por documentar.`
-                    : `There ${pendingCommits.length === 1 ? 'is' : 'are'} ${pendingCommits.length} commit${pendingCommits.length === 1 ? '' : 's'} pending to be documented.`}
-                </div>
-              </div>
-            </div>
-            <button 
-              onClick={() => { window.playClickSound && window.playClickSound(); setAdminTab('versions'); }} 
-              className="app-btn"
-              style={{
-                ...btn,
-                background: '#fff',
-                color: '#059669',
-                padding: '8px 16px',
-                fontSize: 13,
-                borderRadius: 8,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-              }}
-            >
-              <i className="fa-solid fa-file-signature"></i>
-              {lang === 'es' ? 'Crear Changelog' : 'Create Changelog'}
-            </button>
-          </div>
-        )}
 
-        {adminTab === 'accounts' && (
+
+        {activeTab === 'accounts' && (
           <>
             {/* Admin's own accounts */}
         <div style={card}>
@@ -889,10 +1266,16 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
           )}
         </div>
 
+
+
+
+          <window.AdminLogo lang={lang} />
+          <window.AdminTerminology lang={lang} />
+          <window.AdminTypography lang={lang} />
           </>
         )}
 
-        {adminTab === 'leaderboard' && (
+        {activeTab === 'leaderboard' && (
           <div style={card}>
             {(() => {
               const lbState = { 
@@ -974,7 +1357,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
           </div>
         )}
 
-        {adminTab === 'feedback' && (
+        {activeTab === 'feedback' && (
           <div style={card}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <i className="fa-solid fa-comments" style={{ color: 'var(--alternative-i100)', fontSize: 15 }}></i>
@@ -1047,7 +1430,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
           </div>
         )}
 
-        {adminTab === 'messages' && (
+        {activeTab === 'messages' && (
           <div style={card}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <i className="fa-solid fa-bullhorn" style={{ color: '#ff9800', fontSize: 15 }}></i>
@@ -1186,17 +1569,17 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 )}
               </div>
 
-              <select 
+              <window.Dropdown 
                 value={msgFilter}
-                onChange={e => setMsgFilter(e.target.value)}
-                className="app-select"
+                onChange={val => setMsgFilter(val)}
                 style={{ width: 180, height: 44 }}
-              >
-                <option value="all">{lang === 'es' ? 'Todos' : 'All'}</option>
-                <option value="bosses">{lang === 'es' ? 'Solo jefes' : 'Solo leaders'}</option>
-                <option value="collabs">{lang === 'es' ? 'Solo colaboradores' : 'Solo staff'}</option>
-                <option value="json">{lang === 'es' ? 'Importados por JSON' : 'Imported via JSON'}</option>
-              </select>
+                options={[
+                  { value: "all", label: lang === 'es' ? 'Todos' : 'All' },
+                  { value: "bosses", label: lang === 'es' ? 'Solo jefes' : 'Solo leaders' },
+                  { value: "collabs", label: lang === 'es' ? 'Solo colaboradores' : 'Solo staff' },
+                  { value: "json", label: lang === 'es' ? 'Importados por JSON' : 'Imported via JSON' }
+                ]}
+              />
 
               <button
                 onClick={() => setShowAdvancedFiltersModal(true)}
@@ -1396,29 +1779,13 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                               })()}
                               <span style={{ fontWeight: 700, fontSize: 14, color: '#2d3748' }}>{m.who}</span>
                             </div>
-                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                              <div style={{ fontSize: 11, fontWeight: 700, color: isBoss ? '#b45309' : '#718096', background: isBoss ? '#fffbeb' : '#f7fafc', padding: '3px 10px', borderRadius: 20, border: isBoss ? '1px solid #fef3c7' : '1px solid #edf2f7', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                {isBoss ? '👑' : '⚡'} {isBoss ? (lang === 'es' ? 'Jefe' : 'Boss') : (lang === 'es' ? 'Aleatorio' : 'Random')}
-                              </div>
-                              {isQuestion && (
-                                <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#f5f3ff', padding: '3px 10px', borderRadius: 20, border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  ❓ {lang === 'es' ? 'Pregunta' : 'Question'}
-                                </div>
-                              )}
-                              {isBoss && (
-                                <div style={{ fontSize: 11, fontWeight: 700, color: '#718096', background: '#f7fafc', padding: '3px 10px', borderRadius: 20, border: '1px solid #edf2f7' }}>
-                                  <i className="fa-regular fa-clock" style={{ marginRight: 5 }}></i>
-                                  {m.milestone >= 60 && m.milestone % 60 === 0 ? `${m.milestone / 60} h` : `${m.milestone} min`}
-                                </div>
-                              )}
-                            </div>
                           </div>
                         <div style={{ fontSize: 13, color: '#4a5568', lineHeight: 1.5, fontStyle: 'italic', background: '#fdfdfd', padding: '10px 14px', borderRadius: 10, borderLeft: `3px solid ${m.color || '#1a8fff'}` }}>
                           "{cleanText}"
                         </div>
                         
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                          <div style={{ display: 'flex', gap: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, flexWrap: 'wrap', gap: 12 }}>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                             <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
                               <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 10 }}></i>
                               {m.animation || 'none'}
@@ -1431,6 +1798,20 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                               <i className="fa-solid fa-up-down-left-right" style={{ fontSize: 10 }}></i>
                               {m.position} / {m.size}
                             </div>
+                            <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
+                              {isBoss ? '👑' : '⚡'} {isBoss ? (lang === 'es' ? 'Jefe' : 'Boss') : (lang === 'es' ? 'Aleatorio' : 'Random')}
+                            </div>
+                            {isQuestion && (
+                              <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
+                                ❓ {lang === 'es' ? 'Pregunta' : 'Question'}
+                              </div>
+                            )}
+                            {isBoss && (
+                              <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
+                                <i className="fa-regular fa-clock" style={{ fontSize: 10 }}></i>
+                                {m.milestone >= 60 && m.milestone % 60 === 0 ? `${m.milestone / 60} h` : `${m.milestone} min`}
+                              </div>
+                            )}
                           </div>
                           <div style={{ display: 'flex', gap: 14 }}>
                             <button 
@@ -1438,13 +1819,13 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                               className="app-btn"
                               style={{ all: 'unset', color: '#ff9800', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
                             >
-                              <i className="fa-solid fa-eye"></i> {lang === 'es' ? 'Previsualizar' : 'Preview'}
+                              {lang === 'es' ? 'Previsualizar' : 'Preview'}
                             </button>
                             <button onClick={() => handleStartEditMsg(m)} className="app-btn" style={{ all: 'unset', color: '#1a8fff', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
-                              <i className="fa-solid fa-pen-to-square"></i> {lang === 'es' ? 'Editar' : 'Edit'}
+                              {lang === 'es' ? 'Editar' : 'Edit'}
                             </button>
                             <button onClick={() => setMsgToDelete(m)} className="app-btn" style={{ all: 'unset', color: '#e53e3e', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
-                              <i className="fa-solid fa-trash"></i> {lang === 'es' ? 'Borrar' : 'Delete'}
+                              {lang === 'es' ? 'Borrar' : 'Delete'}
                             </button>
                           </div>
                         </div>
@@ -1488,7 +1869,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
           </div>
         )}
 
-        {adminTab === 'danger' && (
+        {activeTab === 'danger' && (
           <div style={card}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <i className="fa-solid fa-triangle-exclamation" style={{ color: '#e11d24', fontSize: 15 }}></i>
@@ -1520,257 +1901,144 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
           </div>
         )}
 
-        {adminTab === 'versions' && (
+        {activeTab === 'versions' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Sync Status Card */}
-            <div style={card}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <i className="fa-solid fa-code-branch" style={{ color: '#10b981', fontSize: 16 }}></i>
+
+            {/* Publication Form */}
+            <div style={{ marginBottom: 24 }}>
+              {/* Form Card */}
+              <div style={card}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                  <i className="fa-solid fa-file-signature" style={{ color: '#1a8fff', fontSize: 15 }}></i>
                   <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
-                    {lang === 'es' ? 'Sincronización con GitHub' : 'GitHub Repository Sync'}
+                    {lang === 'es' ? 'Publicar Nueva Versión' : 'Publish New Version'}
                   </span>
                 </div>
-                {versionsLoading ? (
-                  <i className="fa-solid fa-circle-notch fa-spin" style={{ color: '#8aaacc' }}></i>
-                ) : dbCommitSha === gitCommitSha && dbCommitSha ? (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '4px 10px', borderRadius: 20, border: '1px solid #a7f3d0' }}>
-                    <i className="fa-solid fa-check-double" style={{ marginRight: 4 }}></i>
-                    {lang === 'es' ? 'Sincronizado' : 'Synced'}
-                  </span>
-                ) : (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#d97706', background: '#fffbeb', padding: '4px 10px', borderRadius: 20, border: '1px solid #fde68a' }}>
-                    <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: 4 }}></i>
-                    {lang === 'es' ? 'Actualizaciones Pendientes' : 'Pending Updates'}
-                  </span>
-                )}
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
-                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid rgba(100,160,230,0.1)' }}>
-                  <div style={{ fontSize: 10, color: '#8aaacc', textTransform: 'uppercase', fontWeight: 700 }}>{lang === 'es' ? 'Último Commit Documentado' : 'Last Documented Commit'}</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#4a5568', fontFamily: 'monospace', marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {dbCommitSha ? dbCommitSha.slice(0, 10) : (lang === 'es' ? 'Sin registrar (Cold start)' : 'Unregistered')}
-                  </div>
-                </div>
-                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid rgba(100,160,230,0.1)' }}>
-                  <div style={{ fontSize: 10, color: '#8aaacc', textTransform: 'uppercase', fontWeight: 700 }}>{lang === 'es' ? 'Último Commit en GitHub' : 'Latest Live GitHub Commit'}</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#4a5568', fontFamily: 'monospace', marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {gitCommitSha ? gitCommitSha.slice(0, 10) : (lang === 'es' ? 'Obteniendo...' : 'Fetching...')}
-                  </div>
-                </div>
-              </div>
-
-              {pendingCommits.length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', marginBottom: 8 }}>
-                    {lang === 'es' ? 'Commits pendientes por documentar:' : 'Commits pending to be documented:'}
-                  </div>
-                  <div style={{ maxHeight: 110, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 4 }}>
-                    {pendingCommits.map((c, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, fontSize: 11, color: '#4a5568', background: '#f1f5f9', padding: '6px 10px', borderRadius: 6, borderLeft: '3px solid #10b981' }}>
-                        <span style={{ fontFamily: 'monospace', color: '#10b981', fontWeight: 700 }}>{c.sha.slice(0, 7)}</span>
-                        <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.commit.message.split('\n')[0]}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Publication Form & Preview */}
-            {(pendingCommits.length > 0 || versionsList.length === 0) && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'stretch' }}>
-                {/* Form Card */}
-                <div style={card}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                    <i className="fa-solid fa-file-signature" style={{ color: '#1a8fff', fontSize: 15 }}></i>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
-                      {lang === 'es' ? 'Publicar Nueva Versión' : 'Publish New Version'}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', display: 'block', marginBottom: 4 }}>
-                        {lang === 'es' ? 'Número de Versión' : 'Version Number'}
-                      </label>
-                      <input 
-                        type="text" 
-                        value={newVersionString} 
-                        onChange={e => setNewVersionString(e.target.value)} 
-                        className="app-input" 
-                        style={{ width: '100%', height: 38, fontSize: 13 }}
-                        placeholder="e.g. v0.5.6-beta" 
-                      />
-                    </div>
-                    <div style={{ width: 140 }}>
-                      <label style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', display: 'block', marginBottom: 4 }}>
-                        {lang === 'es' ? 'Fecha de Lanzamiento' : 'Release Date'}
-                      </label>
-                      <input 
-                        type="date" 
-                        value={newVersionDate} 
-                        onChange={e => setNewVersionDate(e.target.value)} 
-                        className="app-input" 
-                        style={{ width: '100%', height: 38, fontSize: 13 }} 
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                  <div style={{ flex: 1 }}>
                     <label style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', display: 'block', marginBottom: 4 }}>
-                      {lang === 'es' ? 'Changelog en Español (Una viñeta • por línea)' : 'Changelog in Spanish (One • bullet per line)'}
+                      {lang === 'es' ? 'Número de Versión' : 'Version Number'}
                     </label>
-                    <textarea 
+                    <input 
+                      type="text" 
+                      value={newVersionString} 
+                      onChange={e => setNewVersionString(e.target.value)} 
+                      className="app-input" 
+                      style={{ width: '100%', height: 38, fontSize: 13 }}
+                      placeholder="e.g. v0.5.6-beta" 
+                    />
+                  </div>
+                  <div style={{ width: 140 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', display: 'block', marginBottom: 4 }}>
+                      {lang === 'es' ? 'Fecha de Lanzamiento' : 'Release Date'}
+                    </label>
+                    <input 
+                      type="date" 
+                      value={newVersionDate} 
+                      onChange={e => setNewVersionDate(e.target.value)} 
+                      className="app-input" 
+                      style={{ width: '100%', height: 38, fontSize: 13 }} 
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', display: 'block' }}>
+                      {lang === 'es' ? 'Changelog (Una viñeta • por línea)' : 'Changelog (One • bullet per line)'}
+                    </label>
+                    <button 
+                      onClick={() => setPreviewLang(previewLang === 'es' ? 'en' : 'es')}
+                      className="app-btn"
+                      style={{ ...btn, padding: '2px 8px', fontSize: 10, background: 'var(--bg-3)', color: 'var(--fg-2)', border: '1px solid var(--border)', borderRadius: 4 }}
+                    >
+                      {previewLang === 'es' ? 'ES' : 'EN'}
+                    </button>
+                  </div>
+                  {previewLang === 'es' ? (
+                    <window.AdminRichTextEditor 
                       value={newChangelogEs} 
-                      onChange={e => setNewChangelogEs(e.target.value)} 
-                      className="app-textarea" 
-                      style={{ width: '100%', height: 110, fontSize: 12, boxSizing: 'border-box', fontFamily: 'var(--font-sans)', lineHeight: 1.4 }} 
+                      onChange={val => setNewChangelogEs(val)} 
                       placeholder="• Detalle 1..."
                     />
-                  </div>
-
-                  <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', display: 'block', marginBottom: 4 }}>
-                      {lang === 'es' ? 'Changelog en Inglés (Una viñeta • por línea)' : 'Changelog in English (One • bullet per line)'}
-                    </label>
-                    <textarea 
+                  ) : (
+                    <window.AdminRichTextEditor 
                       value={newChangelogEn} 
-                      onChange={e => setNewChangelogEn(e.target.value)} 
-                      className="app-textarea" 
-                      style={{ width: '100%', height: 110, fontSize: 12, boxSizing: 'border-box', fontFamily: 'var(--font-sans)', lineHeight: 1.4 }} 
+                      onChange={val => setNewChangelogEn(val)} 
                       placeholder="• Detail 1..."
                     />
-                  </div>
-
-                  <button 
-                    onClick={async () => {
-                      if (!newVersionString.trim()) { alert(lang === 'es' ? 'Ingresa el número de versión' : 'Please enter the version number'); return; }
-                      
-                      setIsPublishingVersion(true);
-                      window.playClickSound && window.playClickSound();
-                      
-                      const newRelease = {
-                        v: newVersionString.trim(),
-                        date: newVersionDate || new Date().toISOString().split('T')[0],
-                        es: newChangelogEs.trim(),
-                        en: newChangelogEn.trim()
-                      };
-                      
-                      const updatedHistory = [newRelease, ...versionsList];
-                      const targetSha = gitCommitSha || dbCommitSha;
-                      
-                      const res = await window.cloudSaveVersionHistory(updatedHistory, targetSha);
-                      setIsPublishingVersion(false);
-                      
-                      if (res.ok) {
-                        setVersionsList(updatedHistory);
-                        setDbCommitSha(targetSha);
-                        setPendingCommits([]);
-                        
-                        // Dynamically update game local state with clean unique merge
-                        const localDefault = window.DEFAULT_VERSION_HISTORY || [];
-                        const merged = [...updatedHistory];
-                        for (const item of localDefault) {
-                          if (!merged.some(m => m.v === item.v)) {
-                            merged.push(item);
-                          }
-                        }
-                        window.VERSION_HISTORY = merged;
-                        window.APP_VERSION = newRelease.v;
-                        
-                        // Play positive chime
-                        if (window.playChimeSound) window.playChimeSound();
-                        
-                        setVersionSuccessNote(lang === 'es' ? '¡Versión publicada con éxito!' : 'Version published successfully!');
-                        setTimeout(() => setVersionSuccessNote(''), 4000);
-                      } else {
-                        alert("Error: " + res.error);
-                      }
-                    }} 
-                    disabled={isPublishingVersion}
-                    className="app-btn" 
-                    style={{ ...btn, width: '100%', height: 44, background: '#10b981', color: '#fff', fontSize: 14, boxShadow: '0 4px 12px rgba(16,185,129,0.2)' }}
-                  >
-                    {isPublishingVersion ? (
-                      <>
-                        <i className="fa-solid fa-circle-notch fa-spin"></i>
-                        {lang === 'es' ? 'Publicando...' : 'Publishing...'}
-                      </>
-                    ) : (
-                      <>
-                        <i className="fa-solid fa-cloud-arrow-up"></i>
-                        {lang === 'es' ? 'Publicar Changelog en Staging/Prod' : 'Publish Changelog to Staging/Prod'}
-                      </>
-                    )}
-                  </button>
-                  {versionSuccessNote && (
-                    <div style={{ marginTop: 8, fontSize: 12, color: '#059669', fontWeight: 700, textAlign: 'center', animation: 'fadeIn 0.3s' }}>
-                      <i className="fa-solid fa-circle-check"></i> {versionSuccessNote}
-                    </div>
                   )}
                 </div>
 
-                {/* High-Fidelity Preview Card */}
-                <div style={{ ...card, display: 'flex', flexDirection: 'column', background: 'rgba(255,255,255,0.95)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, borderBottom: '1px solid rgba(100,160,230,0.15)', paddingBottom: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <i className="fa-solid fa-eye" style={{ color: '#ff9800', fontSize: 14 }}></i>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#1a3a5a' }}>
-                        {lang === 'es' ? 'Previsualización Real-Time' : 'Real-Time Game Preview'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,0.05)', padding: 2, borderRadius: 6 }}>
-                      {['es', 'en'].map(l => (
-                        <button key={l} onClick={() => setPreviewLang(l)} className="app-btn" style={{
-                          ...btn, padding: '2px 8px', fontSize: 9, borderRadius: 4,
-                          background: previewLang === l ? '#1a8fff' : 'transparent',
-                          color: previewLang === l ? '#fff' : '#4a6a8a',
-                          border: 'none'
-                        }}>
-                          {l.toUpperCase()}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* High Fidelity Game Rendering */}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                    <div style={{ 
-                      flex: 1, 
-                      background: 'radial-gradient(circle at center, #1b355a 0%, #0d1b2e 100%)', 
-                      borderRadius: 12, 
-                      padding: 14, 
-                      color: '#fff', 
-                      overflowY: 'auto',
-                      border: '2px solid rgba(26,143,255,0.4)',
-                      boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 6, marginBottom: 10 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#4fc3f7', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ background: 'rgba(79,195,247,0.15)', border: '1px solid #4fc3f7', padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>NEW</span>
-                          {newVersionString || 'vX.Y.Z'}
-                        </div>
-                        <div style={{ fontSize: 10, color: '#90caf9', opacity: 0.8 }}>
-                          {newVersionDate || new Date().toISOString().split('T')[0]}
-                        </div>
-                      </div>
+                <button 
+                  onClick={async () => {
+                    if (!newVersionString.trim()) { alert(lang === 'es' ? 'Ingresa el número de versión' : 'Please enter the version number'); return; }
+                    
+                    setIsPublishingVersion(true);
+                    window.playClickSound && window.playClickSound();
+                    
+                    const newRelease = {
+                      v: newVersionString.trim(),
+                      date: newVersionDate || new Date().toISOString().split('T')[0],
+                      es: newChangelogEs.trim(),
+                      en: newChangelogEn.trim()
+                    };
+                    
+                    const updatedHistory = [newRelease, ...versionsList];
+                    const targetSha = gitCommitSha || dbCommitSha;
+                    
+                    const res = await window.cloudSaveVersionHistory(updatedHistory, targetSha);
+                    setIsPublishingVersion(false);
+                    
+                    if (res.ok) {
+                      setVersionsList(updatedHistory);
+                      setDbCommitSha(targetSha);
+                      setPendingCommits([]);
                       
-                      <div style={{ fontSize: 11, lineHeight: 1.5, color: '#e3f2fd', whiteSpace: 'pre-wrap', textAlign: 'left' }}>
-                        {(previewLang === 'es' ? newChangelogEs : newChangelogEn) ? (
-                          (previewLang === 'es' ? newChangelogEs : newChangelogEn)
-                        ) : (
-                          <span style={{ fontStyle: 'italic', color: '#90caf9', opacity: 0.5 }}>
-                            {lang === 'es' ? 'Escribe o edita los cambios para verlos aquí...' : 'Write or edit updates to see them here...'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                      // Dynamically update game local state with clean unique merge
+                      const localDefault = window.DEFAULT_VERSION_HISTORY || [];
+                      const merged = [...updatedHistory];
+                      for (const item of localDefault) {
+                        if (!merged.some(m => m.v === item.v)) {
+                          merged.push(item);
+                        }
+                      }
+                      window.VERSION_HISTORY = merged;
+                      window.APP_VERSION = newRelease.v;
+                      
+                      // Play positive chime
+                      if (window.playChimeSound) window.playChimeSound();
+                      
+                      setVersionSuccessNote(lang === 'es' ? '¡Versión publicada con éxito!' : 'Version published successfully!');
+                      setTimeout(() => setVersionSuccessNote(''), 4000);
+                    } else {
+                      alert("Error: " + res.error);
+                    }
+                  }} 
+                  disabled={isPublishingVersion}
+                  className="app-btn" 
+                  style={{ ...btn, width: '100%', height: 44, background: '#10b981', color: '#fff', fontSize: 14, boxShadow: '0 4px 12px rgba(16,185,129,0.2)' }}
+                >
+                  {isPublishingVersion ? (
+                    <>
+                      <i className="fa-solid fa-circle-notch fa-spin"></i>
+                      {lang === 'es' ? 'Publicando...' : 'Publishing...'}
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-cloud-arrow-up"></i>
+                      {lang === 'es' ? 'Publicar Changelog en Staging/Prod' : 'Publish Changelog to Staging/Prod'}
+                    </>
+                  )}
+                </button>
+                {versionSuccessNote && (
+                  <div style={{ marginTop: 8, fontSize: 12, color: '#059669', fontWeight: 700, textAlign: 'center', animation: 'fadeIn 0.3s' }}>
+                    <i className="fa-solid fa-circle-check"></i> {versionSuccessNote}
                   </div>
-                </div>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Chronological Version Logs List */}
             <div style={card}>
@@ -1835,11 +2103,11 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, textAlign: 'left' }}>
                         <div>
                           <div style={{ fontSize: 9, fontWeight: 700, color: '#8aaacc', textTransform: 'uppercase', marginBottom: 4 }}>Español</div>
-                          <div style={{ fontSize: 11, color: '#4a5568', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>{v.es}</div>
+                          <div style={{ fontSize: 11, color: '#4a5568', whiteSpace: 'pre-wrap', lineHeight: 1.4 }} dangerouslySetInnerHTML={{ __html: v.es }} />
                         </div>
                         <div>
                           <div style={{ fontSize: 9, fontWeight: 700, color: '#8aaacc', textTransform: 'uppercase', marginBottom: 4 }}>English</div>
-                          <div style={{ fontSize: 11, color: '#4a5568', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>{v.en}</div>
+                          <div style={{ fontSize: 11, color: '#4a5568', whiteSpace: 'pre-wrap', lineHeight: 1.4 }} dangerouslySetInnerHTML={{ __html: v.en }} />
                         </div>
                       </div>
                     </div>
@@ -1865,54 +2133,74 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
               {/* MsgType */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Tipo de Mensaje' : 'Message Type'}</span>
-                <select value={advancedFilters.msgType} onChange={e => setAdvancedFilters({...advancedFilters, msgType: e.target.value})} className="app-select" style={{ height: 40 }}>
-                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
-                  <option value="normal">{lang === 'es' ? 'Normal' : 'Normal'}</option>
-                  <option value="question">{lang === 'es' ? 'Pregunta' : 'Question'}</option>
-                </select>
+                <window.Dropdown 
+                  value={advancedFilters.msgType} 
+                  onChange={val => setAdvancedFilters({...advancedFilters, msgType: val})} 
+                  options={[
+                    { value: "all", label: lang === 'es' ? 'Cualquiera' : 'Any' },
+                    { value: "normal", label: lang === 'es' ? 'Normal' : 'Normal' },
+                    { value: "question", label: lang === 'es' ? 'Pregunta' : 'Question' }
+                  ]}
+                />
               </div>
               {/* Position */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Posición' : 'Position'}</span>
-                <select value={advancedFilters.position} onChange={e => setAdvancedFilters({...advancedFilters, position: e.target.value})} className="app-select" style={{ height: 40 }}>
-                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
-                  <option value="top">Top</option>
-                  <option value="center">Center</option>
-                  <option value="bottom">Bottom</option>
-                </select>
+                <window.Dropdown 
+                  value={advancedFilters.position} 
+                  onChange={val => setAdvancedFilters({...advancedFilters, position: val})} 
+                  options={[
+                    { value: "all", label: lang === 'es' ? 'Cualquiera' : 'Any' },
+                    { value: "top", label: 'Top' },
+                    { value: "center", label: 'Center' },
+                    { value: "bottom", label: 'Bottom' }
+                  ]}
+                />
               </div>
               {/* Size */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Tamaño' : 'Size'}</span>
-                <select value={advancedFilters.size} onChange={e => setAdvancedFilters({...advancedFilters, size: e.target.value})} className="app-select" style={{ height: 40 }}>
-                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
-                  <option value="small">Small</option>
-                  <option value="medium">Medium</option>
-                  <option value="large">Large</option>
-                </select>
+                <window.Dropdown 
+                  value={advancedFilters.size} 
+                  onChange={val => setAdvancedFilters({...advancedFilters, size: val})} 
+                  options={[
+                    { value: "all", label: lang === 'es' ? 'Cualquiera' : 'Any' },
+                    { value: "small", label: 'Small' },
+                    { value: "medium", label: 'Medium' },
+                    { value: "large", label: 'Large' }
+                  ]}
+                />
               </div>
               {/* Animation */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Animación' : 'Animation'}</span>
-                <select value={advancedFilters.animation} onChange={e => setAdvancedFilters({...advancedFilters, animation: e.target.value})} className="app-select" style={{ height: 40 }}>
-                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
-                  <option value="none">None</option>
-                  <option value="pulse">Pulse</option>
-                  <option value="shake">Shake</option>
-                  <option value="float">Float</option>
-                </select>
+                <window.Dropdown 
+                  value={advancedFilters.animation} 
+                  onChange={val => setAdvancedFilters({...advancedFilters, animation: val})} 
+                  options={[
+                    { value: "all", label: lang === 'es' ? 'Cualquiera' : 'Any' },
+                    { value: "none", label: 'None' },
+                    { value: "pulse", label: 'Pulse' },
+                    { value: "shake", label: 'Shake' },
+                    { value: "float", label: 'Float' }
+                  ]}
+                />
               </div>
               {/* Particles */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Partículas' : 'Particles'}</span>
-                <select value={advancedFilters.particles} onChange={e => setAdvancedFilters({...advancedFilters, particles: e.target.value})} className="app-select" style={{ height: 40 }}>
-                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
-                  <option value="none">None</option>
-                  <option value="stars">Stars</option>
-                  <option value="teeth">Teeth</option>
-                  <option value="confetti">Confetti</option>
-                  <option value="fire">Fire</option>
-                </select>
+                <window.Dropdown 
+                  value={advancedFilters.particles} 
+                  onChange={val => setAdvancedFilters({...advancedFilters, particles: val})} 
+                  options={[
+                    { value: "all", label: lang === 'es' ? 'Cualquiera' : 'Any' },
+                    { value: "none", label: 'None' },
+                    { value: "stars", label: 'Stars' },
+                    { value: "teeth", label: 'Teeth' },
+                    { value: "confetti", label: 'Confetti' },
+                    { value: "fire", label: 'Fire' }
+                  ]}
+                />
               </div>
               {/* Level Req */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1926,6 +2214,19 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                   style={{ height: 40 }}
                 />
               </div>
+            </div>
+
+            <div style={{ marginTop: 20, padding: '12px 16px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input 
+                type="checkbox" 
+                checked={applyAdvancedFiltersToGame}
+                onChange={e => setApplyAdvancedFiltersToGame(e.target.checked)}
+                style={{ width: 18, height: 18, cursor: 'pointer' }}
+                id="applyFiltersToGameCheck"
+              />
+              <label htmlFor="applyFiltersToGameCheck" style={{ fontSize: 14, fontWeight: 700, color: '#1a3a5a', cursor: 'pointer' }}>
+                {lang === 'es' ? 'Aplicar estos filtros al juego en vivo' : 'Apply these filters to the game'}
+              </label>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, paddingTop: 16, borderTop: '1px solid #e2e8f0' }}>
@@ -2268,16 +2569,28 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ fontSize: 11, color: '#718096', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Tipo de Mensaje' : 'Message Type'}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  {[{ value: 'normal', label: lang === 'es' ? '⚡ Normal' : '⚡ Normal', desc: lang === 'es' ? 'Mensaje de texto estándar' : 'Standard text message' }, { value: 'question', label: '❓ ' + (lang === 'es' ? 'Pregunta' : 'Question'), desc: lang === 'es' ? 'V/F con premio o penalización' : 'T/F with reward or penalty' }].map(opt => {
+                  {[{ value: 'normal', label: lang === 'es' ? 'Normal' : 'Normal', desc: lang === 'es' ? 'Mensaje de texto estándar' : 'Standard text message' }, { value: 'question', label: lang === 'es' ? 'Pregunta' : 'Question', desc: lang === 'es' ? 'V/F con premio o penalización' : 'T/F with reward or penalty' }].map(opt => {
                     const isActive = (editingMsg ? (editingMsg.msgType || 'normal') : newMsgType) === opt.value;
                     return (
-                      <button key={opt.value} type="button" onClick={() => {
+                      <div key={opt.value} onClick={() => {
                         if (editingMsg) setEditingMsg({ ...editingMsg, msgType: opt.value });
                         else setNewMsgType(opt.value);
-                      }} className="app-btn" style={{ all: 'unset', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 12, cursor: 'pointer', border: isActive ? '2px solid #7c3aed' : '2px solid #e2e8f0', background: isActive ? '#f5f3ff' : '#fff', transition: 'all 150ms', textAlign: 'left' }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: isActive ? '#7c3aed' : '#334155' }}>{opt.label}</div>
-                        <div style={{ fontSize: 10, color: isActive ? '#7c3aed' : '#94a3b8', marginTop: 2 }}>{opt.desc}</div>
-                      </button>
+                      }} style={{ 
+                        display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                        background: isActive ? '#eff6ff' : '#f8fafc', 
+                        padding: '12px 16px', borderRadius: 12, 
+                        border: isActive ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+                        transition: 'all 200ms ease'
+                      }}>
+                        <div style={{ 
+                          width: 18, height: 18, borderRadius: '50%', border: isActive ? '5px solid #3b82f6' : '2px solid #cbd5e1',
+                          background: '#fff', flexShrink: 0
+                        }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: isActive ? '#1e3a8a' : '#475569' }}>{opt.label}</div>
+                          <div style={{ fontSize: 10, color: '#64748b' }}>{opt.desc}</div>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -2366,14 +2679,19 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                           <i className="fa-solid fa-check-circle" style={{ marginRight: 4 }}></i>{lang === 'es' ? 'Si acierta' : 'If correct'}
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <select className="app-select" style={{ flex: 2, height: 38 }} value={reward.type} onChange={e => setReward({ ...reward, type: e.target.value })}>
-                            <option value="addTeeth">{lang === 'es' ? '🦷 Dar dientes' : '🦷 Give teeth'}</option>
-                            <option value="removeTeeth">{lang === 'es' ? '💀 Quitar dientes' : '💀 Remove teeth'}</option>
-                            <option value="randomBonus">{lang === 'es' ? '🎲 Bonus aleatorio' : '🎲 Random bonus'}</option>
-                            <option value="none">{lang === 'es' ? '— Sin efecto' : '— No effect'}</option>
-                          </select>
+                          <window.Dropdown style={{ flex: 2, height: 38 }} value={reward.type} onChange={val => setReward({ ...reward, type: val })}
+                            options={[
+                              { value: 'addTeeth', label: lang === 'es' ? '🦷 Dar dientes' : '🦷 Give teeth' },
+                              { value: 'removeTeeth', label: lang === 'es' ? '💀 Quitar dientes' : '💀 Remove teeth' },
+                              { value: 'randomBonus', label: lang === 'es' ? '🎲 Bonus aleatorio' : '🎲 Random bonus' },
+                              { value: 'none', label: lang === 'es' ? '— Sin efecto' : '— No effect' }
+                            ]}
+                          />
                           {reward.type !== 'randomBonus' && reward.type !== 'none' && (
-                            <input type="number" min={0} className="app-input" style={{ flex: 1, height: 38 }} value={reward.amount || 0} onChange={e => setReward({ ...reward, amount: parseInt(e.target.value) || 0 })} />
+                            <div style={{ position: 'relative', flex: 1 }}>
+                              <input type="text" className="app-input" style={{ width: '100%', height: 38, paddingRight: 80 }} value={reward.amount != null ? reward.amount.toLocaleString('es-CL') : ''} onChange={e => setReward({ ...reward, amount: parseInt(e.target.value.replace(/\D/g, ''), 10) || 0 })} />
+                              {reward.amount > 0 && <span style={{ position: 'absolute', right: 10, top: 11, fontSize: 11, color: '#94a3b8', pointerEvents: 'none', fontWeight: 600 }}>({window.formatNum(reward.amount)})</span>}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -2390,14 +2708,19 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                           <i className="fa-solid fa-times-circle" style={{ marginRight: 4 }}></i>{lang === 'es' ? 'Si falla' : 'If wrong'}
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <select className="app-select" style={{ flex: 2, height: 38 }} value={reward.type} onChange={e => setReward({ ...reward, type: e.target.value })}>
-                            <option value="removeTeeth">{lang === 'es' ? '💀 Quitar dientes' : '💀 Remove teeth'}</option>
-                            <option value="addTeeth">{lang === 'es' ? '🦷 Dar dientes' : '🦷 Give teeth'}</option>
-                            <option value="randomBonus">{lang === 'es' ? '🎲 Bonus aleatorio' : '🎲 Random bonus'}</option>
-                            <option value="none">{lang === 'es' ? '— Sin efecto' : '— No effect'}</option>
-                          </select>
+                          <window.Dropdown style={{ flex: 2, height: 38 }} value={reward.type} onChange={val => setReward({ ...reward, type: val })}
+                            options={[
+                              { value: 'removeTeeth', label: lang === 'es' ? '💀 Quitar dientes' : '💀 Remove teeth' },
+                              { value: 'addTeeth', label: lang === 'es' ? '🦷 Dar dientes' : '🦷 Give teeth' },
+                              { value: 'randomBonus', label: lang === 'es' ? '🎲 Bonus aleatorio' : '🎲 Random bonus' },
+                              { value: 'none', label: lang === 'es' ? '— Sin efecto' : '— No effect' }
+                            ]}
+                          />
                           {reward.type !== 'randomBonus' && reward.type !== 'none' && (
-                            <input type="number" min={0} className="app-input" style={{ flex: 1, height: 38 }} value={reward.amount || 0} onChange={e => setReward({ ...reward, amount: parseInt(e.target.value) || 0 })} />
+                            <div style={{ position: 'relative', flex: 1 }}>
+                              <input type="text" className="app-input" style={{ width: '100%', height: 38, paddingRight: 80 }} value={reward.amount != null ? reward.amount.toLocaleString('es-CL') : ''} onChange={e => setReward({ ...reward, amount: parseInt(e.target.value.replace(/\D/g, ''), 10) || 0 })} />
+                              {reward.amount > 0 && <span style={{ position: 'absolute', right: 10, top: 11, fontSize: 11, color: '#94a3b8', pointerEvents: 'none', fontWeight: 600 }}>({window.formatNum(reward.amount)})</span>}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -2406,88 +2729,60 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 </div>
               )}
 
-              {/* Controls: Mensaje Aleatorio & Jefe Checkbox */}
+              {/* Controls: Mensaje Aleatorio & Tiempo de juego Radio Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '4px 0' }}>
-                {/* Mensaje Aleatorio Toggle */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '12px 16px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                {/* Mensaje Aleatorio Radio Card */}
+                <div 
+                  onClick={() => {
+                    if (editingMsg) setEditingMsg({ ...editingMsg, isRandom: true });
+                    else setNewMsgIsRandom(true);
+                  }}
+                  style={{ 
+                    display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                    background: (editingMsg ? editingMsg.isRandom : newMsgIsRandom) ? '#eff6ff' : '#f8fafc', 
+                    padding: '12px 16px', borderRadius: 12, 
+                    border: (editingMsg ? editingMsg.isRandom : newMsgIsRandom) ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+                    transition: 'all 200ms ease'
+                  }}>
+                  <div style={{ 
+                    width: 18, height: 18, borderRadius: '50%', border: (editingMsg ? editingMsg.isRandom : newMsgIsRandom) ? '5px solid #3b82f6' : '2px solid #cbd5e1',
+                    background: '#fff', flexShrink: 0
+                  }} />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1a3a5a' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: (editingMsg ? editingMsg.isRandom : newMsgIsRandom) ? '#1e3a8a' : '#475569' }}>
                       {lang === 'es' ? 'Mensaje Aleatorio' : 'Random Message'}
                     </div>
                     <div style={{ fontSize: 10, color: '#64748b' }}>
                       {lang === 'es' ? 'Intervalo 5-10 min' : '5-10 min interval'}
                     </div>
                   </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: 42, height: 22, cursor: 'pointer' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={editingMsg ? editingMsg.isRandom : newMsgIsRandom}
-                      onChange={e => {
-                        const val = e.target.checked;
-                        if (editingMsg) {
-                          setEditingMsg({ ...editingMsg, isRandom: val });
-                        } else {
-                          setNewMsgIsRandom(val);
-                        }
-                      }}
-                      style={{ opacity: 0, width: 0, height: 0 }} 
-                    />
-                    <span style={{
-                      position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                      backgroundColor: (editingMsg ? editingMsg.isRandom : newMsgIsRandom) ? '#1a8fff' : '#cbd5e1',
-                      transition: 'all 200ms ease', borderRadius: 22,
-                      boxShadow: (editingMsg ? editingMsg.isRandom : newMsgIsRandom) ? '0 2px 6px rgba(26,143,255,0.25)' : 'none'
-                    }}>
-                      <span style={{
-                        position: 'absolute', content: '""', height: 16, width: 16, left: 3, bottom: 3,
-                        backgroundColor: 'white', transition: 'all 200ms ease', borderRadius: '50%',
-                        transform: (editingMsg ? editingMsg.isRandom : newMsgIsRandom) ? 'translateX(20px)' : 'none',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
-                      }} />
-                    </span>
-                  </label>
                 </div>
 
-                {/* Jefe Checkbox Switch */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fffbeb', padding: '12px 16px', borderRadius: 12, border: '1px solid #fef3c7' }}>
+                {/* Tiempo de juego Radio Card */}
+                <div 
+                  onClick={() => {
+                    if (editingMsg) setEditingMsg({ ...editingMsg, isRandom: false });
+                    else setNewMsgIsRandom(false);
+                  }}
+                  style={{ 
+                    display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                    background: (editingMsg ? !editingMsg.isRandom : !newMsgIsRandom) ? '#eff6ff' : '#f8fafc', 
+                    padding: '12px 16px', borderRadius: 12, 
+                    border: (editingMsg ? !editingMsg.isRandom : !newMsgIsRandom) ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+                    transition: 'all 200ms ease'
+                  }}>
+                  <div style={{ 
+                    width: 18, height: 18, borderRadius: '50%', border: (editingMsg ? !editingMsg.isRandom : !newMsgIsRandom) ? '5px solid #3b82f6' : '2px solid #cbd5e1',
+                    background: '#fff', flexShrink: 0
+                  }} />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#b45309' }}>
-                        {lang === 'es' ? '👑 Jefe' : '👑 Boss'}
-                      </span>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: (editingMsg ? !editingMsg.isRandom : !newMsgIsRandom) ? '#1e3a8a' : '#475569' }}>
+                      {lang === 'es' ? 'Tiempo de juego' : 'Playtime'}
                     </div>
-                    <div style={{ fontSize: 10, color: '#d97706' }}>
+                    <div style={{ fontSize: 10, color: '#64748b' }}>
                       {lang === 'es' ? 'Tiempo fijo' : 'Fixed playtime'}
                     </div>
                   </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: 42, height: 22, cursor: 'pointer' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={editingMsg ? !editingMsg.isRandom : !newMsgIsRandom}
-                      onChange={e => {
-                        const val = !e.target.checked;
-                        if (editingMsg) {
-                          setEditingMsg({ ...editingMsg, isRandom: val });
-                        } else {
-                          setNewMsgIsRandom(val);
-                        }
-                      }}
-                      style={{ opacity: 0, width: 0, height: 0 }} 
-                    />
-                    <span style={{
-                      position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                      backgroundColor: (editingMsg ? !editingMsg.isRandom : !newMsgIsRandom) ? '#ff9800' : '#cbd5e1',
-                      transition: 'all 200ms ease', borderRadius: 22,
-                      boxShadow: (editingMsg ? !editingMsg.isRandom : !newMsgIsRandom) ? '0 2px 6px rgba(255,152,0,0.25)' : 'none'
-                    }}>
-                      <span style={{
-                        position: 'absolute', content: '""', height: 16, width: 16, left: 3, bottom: 3,
-                        backgroundColor: 'white', transition: 'all 200ms ease', borderRadius: '50%',
-                        transform: (editingMsg ? !editingMsg.isRandom : !newMsgIsRandom) ? 'translateX(20px)' : 'none',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
-                      }} />
-                    </span>
-                  </label>
                 </div>
               </div>
 
@@ -2529,23 +2824,22 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                             }
                           }}
                         />
-                        <select 
+                        <window.Dropdown 
                           disabled={isRand}
-                          className="app-select"
                           style={{ width: 100, height: 42 }}
                           value={editingMsg ? editingMsg.playtimeUnit : newMsgPlaytimeUnit}
-                          onChange={e => {
-                            const val = e.target.value;
+                          onChange={val => {
                             if (editingMsg) {
                               setEditingMsg({...editingMsg, playtimeUnit: val});
                             } else {
                               setNewMsgPlaytimeUnit(val);
                             }
                           }}
-                        >
-                          <option value="minutes">{lang === 'es' ? 'Min' : 'Min'}</option>
-                          <option value="hours">{lang === 'es' ? 'Hrs' : 'Hrs'}</option>
-                        </select>
+                          options={[
+                            { value: "minutes", label: lang === 'es' ? 'Min' : 'Min' },
+                            { value: "hours", label: lang === 'es' ? 'Hrs' : 'Hrs' }
+                          ]}
+                        />
                       </div>
                     </div>
                   );
@@ -2573,35 +2867,43 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
                 <div>
                   <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Posición y Tamaño' : 'Pos & Size'}</div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <select className="app-select" style={{ flex: 1 }} value={editingMsg ? editingMsg.position : newMsgPos} onChange={e => editingMsg ? setEditingMsg({...editingMsg, position: e.target.value}) : setNewMsgPos(e.target.value)}>
-                      <option value="top">Top</option>
-                      <option value="center">Center</option>
-                      <option value="bottom">Bottom</option>
-                    </select>
-                    <select className="app-select" style={{ flex: 1 }} value={editingMsg ? editingMsg.size : newMsgSize} onChange={e => editingMsg ? setEditingMsg({...editingMsg, size: e.target.value}) : setNewMsgSize(e.target.value)}>
-                      <option value="small">S</option>
-                      <option value="medium">M</option>
-                      <option value="large">L</option>
-                    </select>
+                    <window.Dropdown style={{ flex: 1 }} value={editingMsg ? editingMsg.position : newMsgPos} onChange={val => editingMsg ? setEditingMsg({...editingMsg, position: val}) : setNewMsgPos(val)}
+                      options={[
+                        { value: 'top', label: 'Top' },
+                        { value: 'center', label: 'Center' },
+                        { value: 'bottom', label: 'Bottom' }
+                      ]}
+                    />
+                    <window.Dropdown style={{ flex: 1 }} value={editingMsg ? editingMsg.size : newMsgSize} onChange={val => editingMsg ? setEditingMsg({...editingMsg, size: val}) : setNewMsgSize(val)}
+                      options={[
+                        { value: 'small', label: 'S' },
+                        { value: 'medium', label: 'M' },
+                        { value: 'large', label: 'L' }
+                      ]}
+                    />
                   </div>
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Efecto y Partículas' : 'Effect & Particles'}</div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <select className="app-select" style={{ flex: 1 }} value={editingMsg ? editingMsg.animation : newMsgAnim} onChange={e => editingMsg ? setEditingMsg({...editingMsg, animation: e.target.value}) : setNewMsgAnim(e.target.value)}>
-                      <option value="none">-</option>
-                      <option value="pulse">Pulse 💓</option>
-                      <option value="shake">Shake 🫨</option>
-                      <option value="float">Float ☁️</option>
-                      <option value="rainbow">Rainbow 🌈</option>
-                    </select>
-                    <select className="app-select" style={{ flex: 1 }} value={editingMsg ? editingMsg.particles : newMsgParticles} onChange={e => editingMsg ? setEditingMsg({...editingMsg, particles: e.target.value}) : setNewMsgParticles(e.target.value)}>
-                      <option value="none">-</option>
-                      <option value="stars">Stars ✨</option>
-                      <option value="teeth">Teeth 🦷</option>
-                      <option value="fire">Fire 🔥</option>
-                      <option value="confetti">Confetti 🎉</option>
-                    </select>
+                    <window.Dropdown style={{ flex: 1 }} value={editingMsg ? editingMsg.animation : newMsgAnim} onChange={val => editingMsg ? setEditingMsg({...editingMsg, animation: val}) : setNewMsgAnim(val)}
+                      options={[
+                        { value: 'none', label: '-' },
+                        { value: 'pulse', label: 'Pulse 💓' },
+                        { value: 'shake', label: 'Shake 🫨' },
+                        { value: 'float', label: 'Float ☁️' },
+                        { value: 'rainbow', label: 'Rainbow 🌈' }
+                      ]}
+                    />
+                    <window.Dropdown style={{ flex: 1 }} value={editingMsg ? editingMsg.particles : newMsgParticles} onChange={val => editingMsg ? setEditingMsg({...editingMsg, particles: val}) : setNewMsgParticles(val)}
+                      options={[
+                        { value: 'none', label: '-' },
+                        { value: 'stars', label: 'Stars ✨' },
+                        { value: 'teeth', label: 'Teeth 🦷' },
+                        { value: 'fire', label: 'Fire 🔥' },
+                        { value: 'confetti', label: 'Confetti 🎉' }
+                      ]}
+                    />
                   </div>
                 </div>
               </div>
@@ -2859,9 +3161,15 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
               <i className="fa-solid fa-user-slash"></i>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a', marginBottom: 6 }}>{lang === 'es' ? `Eliminar "${deleteTarget.name}"` : `Delete "${deleteTarget.name}"`}</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3a5a', marginBottom: 6 }}>
+                {deleteTarget.name === ADMIN_NAME 
+                  ? (lang === 'es' ? `Eliminar progreso de "${deleteTarget.name}"` : `Delete progress for "${deleteTarget.name}"`)
+                  : (lang === 'es' ? `Eliminar "${deleteTarget.name}"` : `Delete "${deleteTarget.name}"`)}
+              </div>
               <div style={{ fontSize: 14, color: '#718096', lineHeight: 1.6 }}>
-                {lang === 'es' ? 'Se borrarán todos sus datos y progreso del juego permanentemente.' : 'All their data and game progress will be permanently deleted.'}
+                {deleteTarget.name === ADMIN_NAME 
+                  ? (lang === 'es' ? 'Se borrará todo su progreso permanentemente (la cuenta de administrador se mantendrá).' : 'All progress will be permanently deleted (admin account will remain).')
+                  : (lang === 'es' ? 'Se borrarán todos sus datos y progreso del juego permanentemente.' : 'All data and game progress will be permanently deleted.')}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
@@ -2976,5 +3284,3 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
     </div>
   );
 }
-
-window.AdminPanel = AdminPanel;

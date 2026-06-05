@@ -11,12 +11,25 @@
        url('uploads/PixelifySans-VariableFont_wght.ttf') format('truetype');
 }
 
-/* Use Inter for digits only — Pixelify Sans numbers are hard to read */
 @font-face {
-  font-family: 'GameNums';
-  src: url('Inter-VariableFont_opsz_wght.ttf') format('truetype-variations');
-  font-weight: 100 900;
-  unicode-range: U+0030-0039, U+002C, U+002E, U+0025, U+002B, U+002D, U+00B2, U+00B3, U+00BD, U+2215;
+  font-family: 'Amaranth';
+  src: url('assets/fonts/Amaranth/Amaranth-Regular.ttf') format('truetype');
+  font-weight: 400;
+}
+@font-face {
+  font-family: 'Amaranth';
+  src: url('assets/fonts/Amaranth/Amaranth-Bold.ttf') format('truetype');
+  font-weight: 700;
+}
+@font-face {
+  font-family: 'Londrina Solid';
+  src: url('assets/fonts/Londrina_Solid/LondrinaSolid-Regular.ttf') format('truetype');
+  font-weight: 400;
+}
+@font-face {
+  font-family: 'Poetsen One';
+  src: url('assets/fonts/Poetsen_One/PoetsenOne-Regular.ttf') format('truetype');
+  font-weight: 400;
 }
 
 :root {
@@ -169,7 +182,7 @@
     0px 1.875rem 3.125rem 0px rgba(0, 0, 0, 0.20),
     0px 0px 0.125rem 0px rgba(0, 0, 0, 0.16);
 
-  --font-sans: 'GameNums', 'PixelifySans', sans-serif;
+  --font-sans: var(--active-font, 'PixelifySans'), sans-serif;
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
@@ -358,11 +371,39 @@ small { font: var(--fw-regular) 0.75rem/1.125rem var(--font-sans); color: var(--
   display: block !important;
 }
 
-/* Global Button Hover Effects */
+/* Global Button Base Styles */
 .app-btn {
+  all: unset;
+  box-sizing: border-box;
+  font-family: 'PixelifySans', var(--font-sans);
+  border-radius: 10px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-3);
+  color: var(--fg-1);
+  border: 1px solid var(--border-default);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   cursor: pointer !important;
   user-select: none !important;
+}
+.app-btn:hover {
+  filter: brightness(0.95);
+  transform: translateY(-1px);
+}
+.app-btn:active {
+  transform: translateY(1px);
+}
+
+/* Remove border from colored buttons (blue/purple) */
+.app-btn[style*="--primary-"],
+.app-btn[style*="--alternative-"],
+.app-btn[style*="#1a8fff"],
+.app-btn[style*="1a8fff"] {
+  border: none !important;
 }
 
 
@@ -623,7 +664,7 @@ input[type="color"]::-moz-color-swatch {
 }
 
 .player-sidebar-card-value {
-  font-family: 'GameNums', var(--font-sans);
+  font-family: var(--font-sans);
   font-size: 15px;
   font-weight: 700;
   color: var(--fg-1);
@@ -734,4 +775,28 @@ input[type="color"]::-moz-color-swatch {
     opacity: 0;
     transform: translate(var(--cx), var(--cy)) rotate(var(--cr)) scale(0.3);
   }
+}
+
+/* Admin List Row Hover & Focus */
+.admin-list-row {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0);
+  transform: translateY(0);
+}
+
+.admin-list-row[draggable="true"] {
+  -webkit-user-drag: element;
+}
+
+.admin-list-row[draggable="true"] .fa-grip-vertical {
+  -webkit-user-drag: element;
+}
+
+.admin-list-row:hover {
+  background: var(--primary-i010) !important;
+}
+.admin-list-row.editing {
+  border-color: var(--primary-i100) !important;
+  box-shadow: 0 0 0 2px rgba(26,143,255,0.15) !important;
+  background: var(--primary-i005) !important;
 }

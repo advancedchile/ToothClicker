@@ -1,0 +1,109 @@
+commit 43c663a48d95ebb77c8748cc7d7df851d2bd47ed
+Author: Jaime Arias <jaimearias@MacBook-Pro-de-jaime-2.local>
+Date:   Wed May 20 20:47:09 2026 -0400
+
+    feat: player detail sidebar, prestige modal sunburst & confetti effects
+    
+    - Add player detail sidebar with stats from leaderboard ranking cards
+    - Safe parsing of save_data (string vs object) with N/A fallbacks
+    - Custom outline info button with tooltip integration
+    - Close button anchored top-right of sidebar with 20px offset
+    - Large tooth avatar without container div, inline clinic + prestige subtitle
+    - Spinning golden sunburst behind prestige confirmation modal
+    - Edge-spawning confetti particle system with 8 vibrant colors
+    - Modal overflow:visible support for visual effects beyond borders
+
+diff --git a/components.jsx b/components.jsx
+index 75fde19..82a9f0d 100644
+--- a/components.jsx
++++ b/components.jsx
+@@ -167,8 +167,8 @@ function TabBar({ tabs, active, onChange, id }) {
+             id={`tab-${t.id}`} 
+             onClick={() => { window.playClickSound && window.playClickSound(); onChange(t.id); }} 
+             style={{
+-              position: 'relative',
+               all: 'unset',
++              position: 'relative',
+               boxSizing: 'border-box',
+               flex: 1,
+               background: isActive ? '#1a8fff' : 'transparent', 
+@@ -460,6 +460,16 @@ function Toast({ toast, lang }) {
+       <div>
+         <div className="t-mini-caps" style={{ color: accentText }}>{title}</div>
+         <div className="t-heading-xs" style={{ color: '#fff' }}>{toast[lang] || toast.es}</div>
++        {toast.desc_es && (
++          <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>
++            {toast[`desc_${lang}`] || toast.desc_es}
++          </div>
++        )}
++        {isAch && (
++          <div style={{ fontSize: 11, color: '#FFC220', fontWeight: 600, marginTop: 2 }}>
++            {lang === 'es' ? '+1% prod. global permanente' : '+1% permanent global prod.'}
++          </div>
++        )}
+       </div>
+     </div>);
+ }
+
+commit 82d5d7de64600c10392e49bf096b923168a2a766
+Author: Jaime Arias <jaimearias@MacBook-Pro-de-jaime-2.local>
+Date:   Mon May 18 21:58:02 2026 -0400
+
+    fix(about): resolve missing latest version log link in About modal
+
+diff --git a/components.jsx b/components.jsx
+index e08f284..75fde19 100644
+--- a/components.jsx
++++ b/components.jsx
+@@ -555,7 +555,7 @@ function AboutModal({ onClose, lang }) {
+         <div style={{ width: '100%', borderTop: '1.5px dashed #d0dce8', marginBottom: 16, flexShrink: 0 }} />
+         <div style={{ width: '100%' }}>
+           {(() => {
+-            const latest = versions.find((v) => v.latest);
++            const latest = versions[0];
+             if (!latest) return null;
+             return (
+               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+
+commit 6d5af118f86f598d14a74b951c21b35e75627c5f
+Author: Jaime Arias <jaimearias@MacBook-Pro-de-jaime-2.local>
+Date:   Mon May 18 21:52:43 2026 -0400
+
+    feat(versions): implement automated version control and bilingual intelligent changelog system
+
+diff --git a/components.jsx b/components.jsx
+index 0757067..e08f284 100644
+--- a/components.jsx
++++ b/components.jsx
+@@ -511,19 +511,19 @@ function VersionLogModal({ onClose, lang }) {
+   }));
+ 
+   return (
+-    <window.Modal onClose={onClose} maxWidth={420}>
++    <window.Modal onClose={onClose} maxWidth={650}>
+       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+         <i className="fa-solid fa-clock-rotate-left" style={{ color: '#1a8fff', fontSize: 20 }}></i>
+         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--fg-1)', fontFamily: 'var(--font-sans)' }}>{lang === 'es' ? 'Historial de Versiones' : 'Version History'}</div>
+       </div>
+-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', maxHeight: 400, paddingRight: 6 }}>
++      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', flex: 1, minHeight: 0, paddingRight: 6 }}>
+         {versions.map((v, i) => (
+           <div key={v.v + i} style={{ borderLeft: '2px solid #e1e8ef', paddingLeft: 16, paddingBottom: 4 }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+               <span style={{ fontSize: 11, fontWeight: 700, color: '#1a8fff', background: 'rgba(26,143,255,0.1)', padding: '2px 8px', borderRadius: 6, fontFamily: 'var(--font-sans)' }}>{v.v}</span>
+               {v.date && <span style={{ fontSize: 10, color: '#8aaacc', fontFamily: 'var(--font-sans)' }}>{v.date}</span>}
+             </div>
+-            <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>{v.desc}</div>
++            <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, fontFamily: 'var(--font-sans)', whiteSpace: 'pre-wrap' }}>{v.desc}</div>
+           </div>
+         ))}
+       </div>
+@@ -546,7 +546,7 @@ function AboutModal({ onClose, lang }) {
+   if (showLog) return <VersionLogModal onClose={() => setShowLog(false)} lang={lang} />;
+ 
+   return (
+-    <window.Modal onClose={onClose} maxWidth={650}>
++    <window.Modal onClose={onClose} maxWidth={480}>
+       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 300, maxWidth: 600, minHeight: 0 }}>
+         <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 180, objectFit: 'contain', marginBottom: 8, flexShrink: 0 }} />
+         <div style={{ fontSize: 15, fontWeight: 600, color: '#333', fontFamily: 'var(--font-sans)', marginBottom: 16, flexShrink: 0, padding: "20px 0px" }}>

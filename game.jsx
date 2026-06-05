@@ -1,89 +1,93 @@
 // Tooth Clicker — i18n strings + formatNum helper
 const STRINGS = {
-  es: {
-    appName: 'Tooth Clicker', appSubtitle: 'Un experimento de Atom Labs',
-    teeth: 'dientes', perSecond: 'por segundo', perClick: 'por click',
-    clickMe: 'Haz click en el diente', totalClicks: 'Clicks totales',
-    totalTeeth: 'Dientes totales', timePlayed: 'Tiempo jugado', currentTeeth: 'Dientes actuales',
-    goldenMsg: '¡Diente dorado! x7 durante 13 s', goldenActive: 'Multiplicador x7 activo',
-    tabClick: 'Click', tabGen: 'Generadores', tabAch: 'Logros',
-    tabPrestige: 'Prestigio', tabStats: 'Estadísticas', tabLeaderboard: 'Ranking',
-    buy: 'Comprar', owned: 'Cantidad', produces: 'Produce', cost: 'Coste',
-    locked: 'Bloqueado', unlockAt: 'Se desbloquea a',
-    prestigeTitle: 'Sonrisa dorada',
-    prestigeDesc: 'Reinicia tu clínica y generadores a cambio de Sonrisas doradas permanentes. Tu Nivel, XP y mejoras de Academia se mantienen.',
-    prestigeEarn: 'Ganarás', prestigeHave: 'Sonrisas doradas', prestigeBonus: 'Bonus actual',
-    prestigeBtn: 'Reiniciar y prestigiar', prestigeLock: 'Necesitas al menos 1 sonrisa para prestigiar',
-    confirmPrestige: '¿Seguro? Se reiniciarán tus dientes y generadores, pero mantendrás tu Nivel y Academia.',
-    ach_unlocked: 'Desbloqueado', ach_locked: 'Bloqueado',
-    reset: 'Eliminar cuenta',
-    confirmReset: 'Si eliminas tu cuenta perderás TODO el progreso del juego, tu usuario y tu puesto en el ranking. Esta acción no se puede deshacer. ¿Seguro?',
-    lang: 'ES', saveNow: 'Guardar', savedJustNow: 'Guardado',
-    logout: 'Cerrar sesión', menuOptions: 'Opciones',
-    clickPowerTitle: 'Mejoras de click', clickPowerSub: 'Aumenta cuántos dientes consigues por click',
-    upgradeFilterAll: 'Todas', upgradeFilterUnlocked: 'Desbloqueadas', upgradeFilterLocked: 'Bloqueadas',
-    generatorsTitle: 'Generadores', generatorsSub: 'Producen dientes automáticamente cada segundo',
-    achTitle: 'Logros', achSub: 'Recompensas por tus hitos. Cada uno otorga +1 % de producción permanente.',
-    statsTitle: 'Estadísticas', soundOn: 'Sonido activado', soundOff: 'Sonido desactivado',
-    toast_achieved: 'Logro desbloqueado', prestige: 'Prestigio',
-    gateTabGame: 'Juego', gateTabLeaderboard: 'Ranking global',
-    gateTitle: 'Tooth Clicker',
-    gateTagline: 'Un clicker de Atom Labs. Recoge dientes, abre clínicas, llega a la cima del ranking.',
-    gateWelcomeBack: 'Bienvenido de vuelta', gateWelcomeBackSub: 'Continúa donde lo dejaste.',
-    gateNameLabel: 'Tu nombre', gateNamePlaceholder: 'Escribe tu nombre',
-    gatePlay: 'Empezar a jugar', gateContinue: 'Continuar partida',
-    gateExisting: 'Este nombre ya está en uso en el ranking. Elige otro.',
-    welcomeBackTitle: 'Bienvenido de vuelta', welcomeBackMsg: 'Mientras estabas fuera conseguiste',
-    welcomeBackPatients: 'pacientes felices', welcomeBackCap: 'Las ganancias offline están limitadas a 2 horas.',
-    welcomeBackContinue: 'Continuar jugando',
-    lbTitle: 'Ranking global', lbSub: 'Ranking global en tiempo real.',
-    lbEmpty: 'Aún no hay jugadores en el ranking. ¡Sé el primero!',
-    lbLoading: 'Cargando ranking…', lbError: 'No se pudo conectar con el servidor',
-    lbRetry: 'Reintentar', lbRefresh: 'Actualizar', lbLastUpdate: 'Actualizado hace',
-    lbSec: 's', lbRank: '#', lbPlayer: 'Jugador', lbPrestige: 'Prestigio', lbTotal: 'Dientes totales', lbYou: 'Tú',
+  get es() {
+    return {
+      appName: 'Tooth Clicker', appSubtitle: 'Un experimento de Atom Labs',
+      get teeth() { return window.getTerm('mainCurrency', true, 'es').toLowerCase(); }, perSecond: 'por segundo', perClick: 'por click',
+      get clickMe() { return `Haz click en el ${window.getTerm('mainCurrency', false, 'es').toLowerCase()}`; }, totalClicks: 'Clicks totales',
+      get totalTeeth() { return `${window.getTerm('mainCurrency', true, 'es')} totales`; }, timePlayed: 'Tiempo jugado', get currentTeeth() { return `${window.getTerm('mainCurrency', true, 'es')} actuales`; },
+      get goldenMsg() { return `¡${window.getTerm('goldenCurrency', false, 'es')}! x7 durante 13 s`; }, goldenActive: 'Multiplicador x7 activo',
+      tabClick: 'Click', tabGen: 'Generadores', tabAch: 'Logros',
+      tabPrestige: 'Prestigio', tabStats: 'Estadísticas', tabLeaderboard: 'Ranking',
+      buy: 'Comprar', owned: 'Cantidad', produces: 'Produce', cost: 'Coste',
+      locked: 'Bloqueado', unlockAt: 'Se desbloquea a',
+      get prestigeTitle() { return window.getTerm('prestigeCurrency', false, 'es'); },
+      get prestigeDesc() { return `Reinicia tu clínica y generadores a cambio de ${window.getTerm('prestigeCurrency', true, 'es')} permanentes. Tu Nivel, XP y mejoras de Academia se mantienen.`; },
+      prestigeEarn: 'Ganarás', get prestigeHave() { return window.getTerm('prestigeCurrency', true, 'es'); }, get prestigeBonus() { return window.getTerm('prestigeBonus', false, 'es'); },
+      prestigeBtn: 'Reiniciar y prestigiar', get prestigeLock() { return `Necesitas al menos 1 ${window.getTerm('prestigeCurrency', false, 'es').toLowerCase()} para prestigiar`; },
+      get confirmPrestige() { return `¿Seguro? Se reiniciarán tus ${window.getTerm('mainCurrency', true, 'es').toLowerCase()} y generadores, pero mantendrás tu Nivel y Academia.`; },
+      ach_unlocked: 'Desbloqueado', ach_locked: 'Bloqueado',
+      reset: 'Eliminar cuenta',
+      confirmReset: 'Si eliminas tu cuenta perderás TODO el progreso del juego, tu usuario y tu puesto en el ranking. Esta acción no se puede deshacer. ¿Seguro?',
+      lang: 'ES', saveNow: 'Guardar', savedJustNow: 'Guardado',
+      logout: 'Cerrar sesión', menuOptions: 'Opciones',
+      clickPowerTitle: 'Mejoras de click', get clickPowerSub() { return `Aumenta cuántos ${window.getTerm('mainCurrency', true, 'es').toLowerCase()} consigues por click`; },
+      upgradeFilterAll: 'Todas', upgradeFilterUnlocked: 'Desbloqueadas', upgradeFilterLocked: 'Bloqueadas',
+      generatorsTitle: 'Generadores', get generatorsSub() { return `Producen ${window.getTerm('mainCurrency', true, 'es').toLowerCase()} automáticamente cada segundo`; },
+      achTitle: 'Logros', achSub: 'Recompensas por tus hitos. Cada uno otorga +1 % de producción permanente.',
+      statsTitle: 'Estadísticas', soundOn: 'Sonido activado', soundOff: 'Sonido desactivado',
+      toast_achieved: 'Logro desbloqueado', prestige: 'Prestigio',
+      gateTabGame: 'Juego', gateTabLeaderboard: 'Ranking global',
+      gateTitle: 'Tooth Clicker',
+      get gateTagline() { return `Un clicker de Atom Labs. Recoge ${window.getTerm('mainCurrency', true, 'es').toLowerCase()}, abre clínicas, llega a la cima del ranking.`; },
+      gateWelcomeBack: 'Bienvenido de vuelta', gateWelcomeBackSub: 'Continúa donde lo dejaste.',
+      gateNameLabel: 'Tu nombre', gateNamePlaceholder: 'Escribe tu nombre',
+      gatePlay: 'Empezar a jugar', gateContinue: 'Continuar partida',
+      gateExisting: 'Este nombre ya está en uso en el ranking. Elige otro.',
+      welcomeBackTitle: 'Bienvenido de vuelta', welcomeBackMsg: 'Mientras estabas fuera conseguiste',
+      welcomeBackPatients: 'pacientes felices', welcomeBackCap: 'Las ganancias offline están limitadas a 2 horas.',
+      welcomeBackContinue: 'Continuar jugando',
+      lbTitle: 'Ranking global', lbSub: 'Ranking global en tiempo real.',
+      lbEmpty: 'Aún no hay jugadores en el ranking. ¡Sé el primero!',
+      lbLoading: 'Cargando ranking…', lbError: 'No se pudo conectar con el servidor',
+      lbRetry: 'Reintentar', lbRefresh: 'Actualizar', lbLastUpdate: 'Actualizado hace',
+      lbSec: 's', lbRank: '#', lbPlayer: 'Jugador', lbPrestige: 'Prestigio', get lbTotal() { return `${window.getTerm('mainCurrency', true, 'es')} totales`; }, lbYou: 'Tú',
+    };
   },
-  en: {
-    appName: 'Tooth Clicker', appSubtitle: 'An Atom Labs experiment',
-    teeth: 'teeth', perSecond: 'per second', perClick: 'per click',
-    clickMe: 'Click the tooth', totalClicks: 'Total clicks',
-    totalTeeth: 'All-time teeth', timePlayed: 'Time played', currentTeeth: 'Current teeth',
-    goldenMsg: 'Golden tooth! x7 for 13 s', goldenActive: 'x7 multiplier active',
-    tabClick: 'Click', tabGen: 'Generators', tabAch: 'Achievements',
-    tabPrestige: 'Prestige', tabStats: 'Stats', tabLeaderboard: 'Leaderboard',
-    buy: 'Buy', owned: 'Owned', produces: 'Produces', cost: 'Cost',
-    locked: 'Locked', unlockAt: 'Unlocks at',
-    prestigeTitle: 'Golden smile',
-    prestigeDesc: 'Reset your clinic and generators in exchange for permanent Golden smiles. Your Level, XP, and Academy upgrades are preserved.',
-    prestigeEarn: 'You will earn', prestigeHave: 'Golden smiles', prestigeBonus: 'Current bonus',
-    prestigeBtn: 'Reset and prestige', prestigeLock: 'You need at least 1 smile to prestige',
-    confirmPrestige: 'Are you sure? Your teeth and generators will reset, but you will keep your Level and Academy.',
-    ach_unlocked: 'Unlocked', ach_locked: 'Locked',
-    reset: 'Delete account',
-    confirmReset: 'Deleting your account will erase ALL game progress, your user and your leaderboard position. This cannot be undone. Are you sure?',
-    lang: 'EN', saveNow: 'Save', savedJustNow: 'Saved',
-    logout: 'Log out', menuOptions: 'Options',
-    clickPowerTitle: 'Click upgrades', clickPowerSub: 'Increase how many teeth each click produces',
-    upgradeFilterAll: 'All', upgradeFilterUnlocked: 'Unlocked', upgradeFilterLocked: 'Locked',
-    generatorsTitle: 'Generators', generatorsSub: 'They produce teeth automatically every second',
-    achTitle: 'Achievements', achSub: 'Rewards for your milestones. Each grants +1 % permanent production.',
-    statsTitle: 'Stats', soundOn: 'Sound on', soundOff: 'Sound off',
-    toast_achieved: 'Achievement unlocked', prestige: 'Prestige',
-    gateTabGame: 'Game', gateTabLeaderboard: 'Global leaderboard',
-    gateTitle: 'Tooth Clicker',
-    gateTagline: 'An Atom Labs clicker. Collect teeth, open clinics, top the leaderboard.',
-    gateWelcomeBack: 'Welcome back', gateWelcomeBackSub: 'Continue where you left off.',
-    gateNameLabel: 'Your name', gateNamePlaceholder: 'Type your name',
-    gatePlay: 'Start playing', gateContinue: 'Continue game',
-    gateExisting: 'This name is already in the leaderboard. Pick another.',
-    welcomeBackTitle: 'Welcome back', welcomeBackMsg: 'While you were away you earned',
-    welcomeBackPatients: 'happy patients', welcomeBackCap: 'Offline earnings are capped at 2 hours.',
-    welcomeBackContinue: 'Keep playing',
-    lbTitle: 'Global leaderboard', lbSub: 'Live global ranking.',
-    lbEmpty: 'No players yet. Be the first!',
-    lbLoading: 'Loading leaderboard…', lbError: "Couldn't reach the server",
-    lbRetry: 'Retry', lbRefresh: 'Refresh', lbLastUpdate: 'Updated',
-    lbSec: 's ago', lbRank: '#', lbPlayer: 'Player', lbPrestige: 'Prestige', lbTotal: 'All-time teeth', lbYou: 'You',
-  },
+  get en() {
+    return {
+      appName: 'Tooth Clicker', appSubtitle: 'An Atom Labs experiment',
+      get teeth() { return window.getTerm('mainCurrency', true, 'en').toLowerCase(); }, perSecond: 'per second', perClick: 'per click',
+      get clickMe() { return `Click the ${window.getTerm('mainCurrency', false, 'en').toLowerCase()}`; }, totalClicks: 'Total clicks',
+      get totalTeeth() { return `All-time ${window.getTerm('mainCurrency', true, 'en').toLowerCase()}`; }, timePlayed: 'Time played', get currentTeeth() { return `Current ${window.getTerm('mainCurrency', true, 'en').toLowerCase()}`; },
+      get goldenMsg() { return `${window.getTerm('goldenCurrency', false, 'en')}! x7 for 13 s`; }, goldenActive: 'x7 multiplier active',
+      tabClick: 'Click', tabGen: 'Generators', tabAch: 'Achievements',
+      tabPrestige: 'Prestige', tabStats: 'Stats', tabLeaderboard: 'Leaderboard',
+      buy: 'Buy', owned: 'Owned', produces: 'Produces', cost: 'Cost',
+      locked: 'Locked', unlockAt: 'Unlocks at',
+      get prestigeTitle() { return window.getTerm('prestigeCurrency', false, 'en'); },
+      get prestigeDesc() { return `Reset your clinic and generators in exchange for permanent ${window.getTerm('prestigeCurrency', true, 'en')}. Your Level, XP, and Academy upgrades are preserved.`; },
+      prestigeEarn: 'You will earn', get prestigeHave() { return window.getTerm('prestigeCurrency', true, 'en'); }, get prestigeBonus() { return window.getTerm('prestigeBonus', false, 'en'); },
+      prestigeBtn: 'Reset and prestige', get prestigeLock() { return `You need at least 1 ${window.getTerm('prestigeCurrency', false, 'en').toLowerCase()} to prestige`; },
+      get confirmPrestige() { return `Are you sure? Your ${window.getTerm('mainCurrency', true, 'en').toLowerCase()} and generators will reset, but you will keep your Level and Academy.`; },
+      ach_unlocked: 'Unlocked', ach_locked: 'Locked',
+      reset: 'Delete account',
+      confirmReset: 'Deleting your account will erase ALL game progress, your user and your leaderboard position. This cannot be undone. Are you sure?',
+      lang: 'EN', saveNow: 'Save', savedJustNow: 'Saved',
+      logout: 'Log out', menuOptions: 'Options',
+      clickPowerTitle: 'Click upgrades', get clickPowerSub() { return `Increase how many ${window.getTerm('mainCurrency', true, 'en').toLowerCase()} each click produces`; },
+      upgradeFilterAll: 'All', upgradeFilterUnlocked: 'Unlocked', upgradeFilterLocked: 'Locked',
+      generatorsTitle: 'Generators', get generatorsSub() { return `They produce ${window.getTerm('mainCurrency', true, 'en').toLowerCase()} automatically every second`; },
+      achTitle: 'Achievements', achSub: 'Rewards for your milestones. Each grants +1 % permanent production.',
+      statsTitle: 'Stats', soundOn: 'Sound on', soundOff: 'Sound off',
+      toast_achieved: 'Achievement unlocked', prestige: 'Prestige',
+      gateTabGame: 'Game', gateTabLeaderboard: 'Global leaderboard',
+      gateTitle: 'Tooth Clicker',
+      get gateTagline() { return `An Atom Labs clicker. Collect ${window.getTerm('mainCurrency', true, 'en').toLowerCase()}, open clinics, top the leaderboard.`; },
+      gateWelcomeBack: 'Welcome back', gateWelcomeBackSub: 'Continue where you left off.',
+      gateNameLabel: 'Your name', gateNamePlaceholder: 'Type your name',
+      gatePlay: 'Start playing', gateContinue: 'Continue game',
+      gateExisting: 'This name is already in the leaderboard. Pick another.',
+      welcomeBackTitle: 'Welcome back', welcomeBackMsg: 'While you were away you earned',
+      welcomeBackPatients: 'happy patients', welcomeBackCap: 'Offline earnings are capped at 2 hours.',
+      welcomeBackContinue: 'Keep playing',
+      lbTitle: 'Global leaderboard', lbSub: 'Live global ranking.',
+      lbEmpty: 'No players yet. Be the first!',
+      lbLoading: 'Loading leaderboard…', lbError: "Couldn't reach the server",
+      lbRetry: 'Retry', lbRefresh: 'Refresh', lbLastUpdate: 'Updated',
+      lbSec: 's ago', lbRank: '#', lbPlayer: 'Player', lbPrestige: 'Prestige', get lbTotal() { return `All-time ${window.getTerm('mainCurrency', true, 'en').toLowerCase()}`; }, lbYou: 'You',
+    };
+  }
 };
 
 function formatNum(n, modeOverride, langOverride, keepDecimals = false) {
@@ -114,11 +118,47 @@ const TOOTH_STAGES = [
   { img: 'uploads/tooth18.png',            prestige: 1500000,  es: 'Diente definitivo',    en: 'Ultimate tooth' },
 ];
 
+window.isToothUnlocked = function(state, s) {
+  if (!s || !state) return false;
+  let unlocked = (state.prestigeCount || 0) >= (s.prestige || 0) && (state.level || 1) >= (s.reqLevel || 0);
+  
+  if (unlocked && s.reqGenId && s.reqGenQty) {
+    unlocked = unlocked && (state.generators?.[s.reqGenId] || 0) >= s.reqGenQty;
+  }
+  
+  if (unlocked && s.reqAcademyUpgrades && s.reqAcademyUpgrades.length > 0) {
+    unlocked = unlocked && s.reqAcademyUpgrades.every(id => !!state.xpUpgrades?.[id]);
+  }
+  
+  return unlocked;
+};
+
 // prestigeCount = number of times the player has performed a prestige reset
-function getToothStage(prestigeCount) {
-  let stage = TOOTH_STAGES[0];
-  for (const s of TOOTH_STAGES) { if ((prestigeCount || 0) >= s.prestige) stage = s; }
+// level = current player level
+function getToothStage(prestigeCount, level = 1, fullState = null) {
+  const stages = window.TOOTH_STAGES || TOOTH_STAGES;
+  if (!stages || stages.length === 0) {
+    return { img: 'uploads/tooth1.png', es: 'Diente base', en: 'Base tooth' };
+  }
+  let stage = stages[0];
+  for (const s of stages) { 
+    let unlocked = false;
+    if (fullState) {
+      unlocked = window.isToothUnlocked(fullState, s);
+    } else {
+      unlocked = (prestigeCount || 0) >= s.prestige && level >= (s.reqLevel || 0);
+    }
+    if (unlocked) {
+      stage = s;
+    }
+  }
+  
+  const customImg = window.GAME_CONTENT?.terminology?.images?.mainCurrency;
+  if (customImg) {
+    return { ...stage, img: customImg };
+  }
+  
   return stage;
 }
 
-Object.assign(window, { STRINGS, formatNum, TOOTH_STAGES, getToothStage });
+Object.assign(window, { STRINGS, formatNum, TOOTH_STAGES, getToothStage, isToothUnlocked });

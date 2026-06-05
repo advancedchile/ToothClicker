@@ -196,7 +196,7 @@ const GEN_TIERS = [
     { id: 'brush',        icon: 'fa-broom',           es: 'Cepillo de dientes',        en: 'Toothbrush',           desc_es: 'Un cepillo vibrante que recolecta solo.',           desc_en: 'A vibrating brush that collects on its own.' },
     { id: 'floss',        icon: 'fa-ribbon',          es: 'Hilo dental',               en: 'Dental floss',         desc_es: 'Pulido meticuloso entre cada molar.',                desc_en: 'Meticulous polishing between every molar.' },
     { id: 'mouthwash',    icon: 'fa-prescription-bottle', es: 'Enjuague bucal',        en: 'Mouthwash',            desc_es: 'Elimina bacterias en piloto automático.',            desc_en: 'Obliterates bacteria on autopilot.' },
-    { id: 'toothpaste',   icon: 'fa-toothbrush',      es: 'Pasta dental premium',      en: 'Premium toothpaste',   desc_es: 'Menta fresca que hipnotiza a los dientes.',          desc_en: 'Fresh mint that mesmerizes teeth.' },
+    { id: 'toothpaste',   icon: 'fa-leaf',      es: 'Pasta dental premium',      en: 'Premium toothpaste',   desc_es: 'Menta fresca que hipnotiza a los dientes.',          desc_en: 'Fresh mint that mesmerizes teeth.' },
   ] },
   { base: [
     { id: 'assistant',    icon: 'fa-user',            es: 'Asistente dental',          en: 'Dental assistant',     desc_es: 'Prepara y limpia cada consulta.',                    desc_en: 'Preps and cleans every appointment.' },
@@ -421,8 +421,8 @@ function buildAchievements() {
   const earnMs = [1e6, 1e8, 1e10, 1e12, 1e14, 1e16, 1e18, 1e21, 1e24, 1e27, 1e30, 1e35, 1e40, 1e45, 1e50, 1e60, 1e70, 1e80, 1e90, 1e100, 1e120, 1e140, 1e160, 1e180, 1e200, 1e220, 1e250, 1e280, 1e300, 1e308];
   const earnTitles = [
     ['Millón inicial','Initial million'],['Cien millones','Hundred million'],['Diez mil millones','Ten billion'],
-    ['Billón','Trillion'],['Cien billones','Hundred trillion'],['Trillón','Quintillion'],['Trillón absoluto','Absolute quintillion'],
-    ['Septillón','Septillion'],['Octillón','Octillion'],['Nonillón','Nonillion'],['Decillón','Decillion'],
+    ['Billón','Trillion'],['Cien billones','Hundred trillion'],['Diez mil billones','Ten quadrillion'],['Trillón','Quintillion'],
+    ['Mil trillones','Sextillion'],['Cuatrillón','Septillion'],['Mil cuatrillones','Octillion'],['Quintillón','Nonillion'],
     ['Quindecillón','Quindecillion'],['Vigintillón','Vigintillion'],['Trigintillón','Trigintillion'],
     ['Cuadragintillón','Quadragintillion'],['Quinquagintillón','Quinquagintillion'],['Sexagintillón','Sexagintillion'],
     ['Septuagintillón','Septuagintillion'],['Octogintillón','Octogintillion'],['Nonagintillón','Nonagintillion'],
@@ -591,7 +591,7 @@ function buildAchievements() {
 const ACHIEVEMENTS = buildAchievements();
 
 const COST_SCALE = 1.15;
-function genCost(base, owned) { return base * Math.pow(COST_SCALE, owned); }
+function genCost(base, owned, scale = COST_SCALE) { return Math.floor(base * Math.pow(scale, owned)); }
 
 function formatTime(s) {
   const total = Math.floor(s);
@@ -627,10 +627,10 @@ function computeClickPower(state) {
   const timePlayed = state.timePlayed || 0;
   for (const u of CLICK_UPGRADES) {
     if (!ups[u.id]) continue;
-    if (u.type === 'flat') flat += u.value;
-    else if (u.type === 'mult') mult *= u.value;
-    else if (u.type === 'perAch') { mult *= (1 + (u.value / 100) * achCount); }
-    else if (u.type === 'timeBonus') { if (timePlayed >= u.threshold) mult *= (1 + u.value / 100); }
+    if (u.type === 'flat') flat += (u.value ?? u.multiplier ?? 0);
+    else if (u.type === 'mult') mult *= (u.value ?? u.multiplier ?? 1);
+    else if (u.type === 'perAch') { mult *= (1 + ((u.value ?? u.multiplier ?? 0) / 100) * achCount); }
+    else if (u.type === 'timeBonus') { if (timePlayed >= u.threshold) mult *= (1 + (u.value ?? u.multiplier ?? 0) / 100); }
   }
   return { flat, mult, total: flat * mult };
 }

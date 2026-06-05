@@ -108,9 +108,92 @@ const getAbsoluteSrc = (src) => {
   return `${origin}${cleanBase}${src.startsWith('/') ? src.slice(1) : src}`;
 };
 
-function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange }) {
+function FloatingBonus({ bonus, onClick }) {
+  const { useState, useEffect, useRef } = React;
+  const [pos, setPos] = useState({ x: bonus.x, y: bonus.y });
+  const [progress, setProgress] = useState(0);
+
+  const speed = bonus.speed === 'fast' ? 4 : bonus.speed === 'slow' ? 1 : 2.2;
+  const vRef = useRef({ vx: (Math.random() > 0.5 ? 1 : -1) * speed, vy: (Math.random() > 0.5 ? 1 : -1) * speed });
+  const posRef = useRef({ x: bonus.x, y: bonus.y });
+
+  useEffect(() => {
+    const lifespan = 7000;
+    const start = bonus.spawnedAt || Date.now();
+    let rAF;
+    
+    const update = () => {
+      const now = Date.now();
+      const elapsed = now - start;
+      const p = Math.min(1, elapsed / lifespan);
+      setProgress(p);
+
+      let { x, y } = posRef.current;
+      let { vx, vy } = vRef.current;
+      
+      x += vx;
+      y += vy;
+
+      if (x < 36) { x = 36; vx *= -1; }
+      if (x > window.innerWidth - 36) { x = window.innerWidth - 36; vx *= -1; }
+      if (y < 36) { y = 36; vy *= -1; }
+      if (y > window.innerHeight - 36) { y = window.innerHeight - 36; vy *= -1; }
+
+      posRef.current = { x, y };
+      vRef.current = { vx, vy };
+      setPos({ x, y });
+
+      if (p < 1) {
+        rAF = requestAnimationFrame(update);
+      }
+    };
+    rAF = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(rAF);
+  }, []);
+
+  return (
+    <div style={{ position: 'fixed', left: pos.x, top: pos.y, transform: 'translate(-50%,-50%)', zIndex: 500, width: 72, height: 72 }}>
+      <div style={{ position: 'absolute', inset: -15, pointerEvents: 'none' }}>
+        <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+          <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth="6" />
+          <circle cx="50" cy="50" r="45" fill="none" stroke="#FFC220" strokeWidth="6" strokeDasharray="283" strokeDashoffset={283 * progress} strokeLinecap="round" />
+        </svg>
+      </div>
+      <img src={bonus.image || 'uploads/gold-tooth-1.png'} alt={bonus.name?.es} onClick={() => onClick(bonus)} style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'pointer', position: 'relative', zIndex: 2, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.2))' }} />
+    </div>
+  );
+}
+
+function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange, onBackToAdmin, activeSeasonConfig }) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
   const isAdmin = username === 'James';
+  
+  const [seasonTimeLeft, setSeasonTimeLeft] = useState(null);
+  useEffect(() => {
+    if (!activeSeasonConfig) return;
+    const updateTime = () => {
+      const ms = activeSeasonConfig.endDate - Date.now();
+      if (ms <= 0) {
+        window.location.reload(); 
+      } else {
+        setSeasonTimeLeft(ms);
+      }
+    };
+    updateTime();
+    const iv = setInterval(updateTime, 1000);
+    return () => clearInterval(iv);
+  }, [activeSeasonConfig]);
+
+  const formatSeasonTime = (ms) => {
+    if (!ms || ms < 0) return '0s';
+    const s = Math.floor(ms / 1000);
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600).toString().padStart(2, '0');
+    const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+    const ss = (s % 60).toString().padStart(2, '0');
+    return `${d > 0 ? d + 'd ' : ''}${h}:${m}:${ss}`;
+  };
+
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handler);
@@ -150,7 +233,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       const elapsed = Math.max(0, (Date.now() - snap.lastTick) / 1000);
       if (elapsed >= 30) {
         const capped = Math.min(elapsed, OFFLINE_CAP_S);
-        const { perSecond } = window.computePassivePower(snap, false, false);
+        const { perSecond } = window.computePassivePower(snap, []);
         const earned = perSecond * capped;
         if (earned > 0) info = { elapsedSeconds: elapsed, cappedSeconds: capped, wasCapped: elapsed > OFFLINE_CAP_S, earned };
       }
@@ -183,10 +266,10 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     if (!base.legacyXpRebalanceDone) {
       if (base.level > 25 && base.timePlayed) {
         const xpFromUpgrades = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (base.xpUpgrades?.[up.id] ? up.xpPassive : 0), 0);
-        const specialXpMult = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (base.xpUpgrades?.[up.id] ? (up.xpMult || 0) : 0), 0);
-        const globalXpMult = 1 + specialXpMult;
+        const specialPassiveXpMult = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (base.xpUpgrades?.[up.id] && (!up.xpMultType || up.xpMultType === 'passive' || up.xpMultType === 'both') ? (up.xpMult || 0) : 0), 0);
+        const globalPassiveXpMult = 1 + specialPassiveXpMult;
         
-        const currentXpRate = xpFromUpgrades * globalXpMult;
+        const currentXpRate = xpFromUpgrades * globalPassiveXpMult;
         let recalculatedTotalXP = 100 + (currentXpRate * base.timePlayed);
         
         let newLevel = 0;
@@ -226,8 +309,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [visualEffects, setVisualEffects] = useState(() => localStorage.getItem('tooth-clicker-visual-effects') !== '0');
   const [tab, setTab] = useState('generators');
   const [floats, setFloats] = useState([]);
-  const [golden, setGolden] = useState(null);
-  const [goldenActiveUntil, setGoldenActiveUntil] = useState(0);
+
   const [toast, setToast] = useState(null);
   const [clickPulse, setClickPulse] = useState(0);
   const [saveFlash, setSaveFlash] = useState(false);
@@ -240,18 +322,17 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [showCuriosityModal, setShowCuriosityModal] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [newToothUnlock, setNewToothUnlock] = useState(null); // { stage, idx }
+  const [newMusicUnlock, setNewMusicUnlock] = useState(null);
+  const [musicScrollToId, setMusicScrollToId] = useState(null);
   const [buyQty, setBuyQty] = useState(1);
   const [visualTick, setVisualTick] = useState(0);
   const [sunOpacity, setSunOpacity] = useState(0);
   const [sunColor, setSunColor] = useState('transparent');
-  // Special bonus teeth — only one shown at a time
-  const [specialTooth, setSpecialTooth] = useState(null); // { type:'gold'|'diamond'|'crystal', x, y, id }
-  const specialToothRef = useRef(null);
-  const getNextBonusTime = (min, max) => Date.now() + (min + Math.random() * (max - min)) * 60000;
-  const specialNextRef = useRef(getNextBonusTime(5, 10)); // first spawn after 5-10 min
-  const [crystalFrenzyUntil, setCrystalFrenzyUntil] = useState(0);
-  const [holdBonusUntil, setHoldBonusUntil] = useState(0);
-  
+  const [spawnedBonuses, setSpawnedBonuses] = useState([]);
+  const [activeBonusEffects, setActiveBonusEffects] = useState([]);
+  const activeEffectsRef = useRef([]);
+  const spawnedBonusesRef = useRef([]);
+
   // Music Player State
   const audioRef = useRef(null);
   const musicAttempted = useRef(false);
@@ -318,33 +399,19 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     }));
   }, [musicVolume, musicMuted, playMode, currentTrack]);
 
-  // Load dynamic music from GitHub
+  // Load music from template
   useEffect(() => {
-    fetch('https://api.github.com/repos/advancedchile/ToothClicker/contents/assets/music')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          const mp3s = data
-            .filter(f => f.name.endsWith('.mp3') && f.name !== 'congrats.mp3')
-            .map((f, i) => ({
-              id: f.sha, // Use GitHub SHA as stable ID
-              title: f.name.replace(/_/g, ' ').replace('.mp3', ''),
-              src: f.download_url || f.path
-            }));
-          if (mp3s.length > 0) {
-            setTracks(mp3s);
-            // If current track is just a fallback, pick one from the new list
-            setCurrentTrack(curr => {
-              if (!curr || !mp3s.find(t => t.id === curr.id)) {
-                const savedId = saved?.musicSettings?.currentTrackId;
-                return mp3s.find(t => t.id === savedId) || mp3s[Math.floor(Math.random() * mp3s.length)];
-              }
-              return curr;
-            });
-          }
-        }
-      })
-      .catch(err => console.warn('GitHub Music Sync failed, using fallbacks.', err));
+    const templateMusic = window.GAME_CONTENT?.music || [];
+    setTracks(templateMusic);
+    // If current track is not in the list, set it to the saved one or random
+    setCurrentTrack(curr => {
+      if (templateMusic.length === 0) return null;
+      if (!curr || !templateMusic.find(t => t.id === curr.id)) {
+        const savedId = saved?.musicSettings?.currentTrackId;
+        return templateMusic.find(t => t.id === savedId) || templateMusic[Math.floor(Math.random() * templateMusic.length)];
+      }
+      return curr;
+    });
   }, []);
 
   const initialFadeDone = useRef(false);
@@ -470,7 +537,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   });
   const buyXpUpgrade = (id) => {
     const up = [...(window.XP_UPGRADES || []), ...(window.LEVEL_UPGRADES || [])].find(u => u.id === id);
-    if (!up || state.xpUpgrades[id]) return;
+    if (!up || state.xpUpgrades?.[id]) return;
     const cost = up.baseCost;
     if (state.teeth < cost) return;
     
@@ -487,12 +554,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   useEffect(() => {
     const check = () => {
       const now = Date.now();
-      return golden || specialTooth || holdBonusUntil > now || goldenActiveUntil > now || crystalFrenzyUntil > now;
+      return spawnedBonuses.length > 0 || activeBonusEffects.some(e => e.until > now);
     };
     if (!check()) return;
     const id = setInterval(() => setVisualTick((t) => t + 1), 100);
     return () => clearInterval(id);
-  }, [golden, specialTooth, holdBonusUntil, goldenActiveUntil, crystalFrenzyUntil]);
+  }, [spawnedBonuses, activeBonusEffects]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -536,8 +603,65 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const soundRef = useRef(soundOn);soundRef.current = soundOn;
   const perClickRef = useRef(0);
   const t = window.STRINGS[lang];
+  const unlockedTeethRef = useRef(null);
 
-  const passiveData = useMemo(() => window.computePassivePower(state, goldenActiveUntil > Date.now(), crystalFrenzyUntil > Date.now()), [state, goldenActiveUntil, crystalFrenzyUntil]);
+  useEffect(() => {
+    if (!state) return;
+    
+    if (unlockedTeethRef.current === null) {
+      unlockedTeethRef.current = window.TOOTH_STAGES.map(s => window.isToothUnlocked(state, s));
+      return;
+    }
+    
+    const newlyUnlocked = [];
+    window.TOOTH_STAGES.forEach((s, idx) => {
+      const isUnlocked = window.isToothUnlocked(state, s);
+      if (isUnlocked && !unlockedTeethRef.current[idx]) {
+        if (s.prestige > 0 || (s.reqLevel || 0) > 0 || s.reqGenId || (s.reqAcademyUpgrades && s.reqAcademyUpgrades.length > 0)) {
+          newlyUnlocked.push({ stage: s, idx });
+        }
+      }
+      unlockedTeethRef.current[idx] = isUnlocked;
+    });
+
+    if (newlyUnlocked.length > 0) {
+      const latestUnlocked = newlyUnlocked[newlyUnlocked.length - 1];
+      setTimeout(() => setNewToothUnlock({ stage: latestUnlocked.stage, idx: latestUnlocked.idx }), 600);
+      if (soundRef.current) [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => window.playTone(f, 0.15, 'triangle', 0.06), i * 80));
+    }
+  }, [state.prestigeCount, state.level, state.generators, state.xpUpgrades]);
+
+  const unlockedMusicRef = useRef(null);
+
+  useEffect(() => {
+    if (!state || tracks.length === 0) return;
+    
+    if (unlockedMusicRef.current === null) {
+      unlockedMusicRef.current = tracks.map(t => {
+        return (state.level >= (t.reqLevel || 0)) && (state.prestigeCount >= (t.reqPrestige || 0));
+      });
+      return;
+    }
+    
+    const newlyUnlocked = [];
+    tracks.forEach((t, idx) => {
+      const isUnlocked = (state.level >= (t.reqLevel || 0)) && (state.prestigeCount >= (t.reqPrestige || 0));
+      if (isUnlocked && !unlockedMusicRef.current[idx]) {
+        if ((t.reqLevel || 0) > 0 || (t.reqPrestige || 0) > 0) {
+          newlyUnlocked.push(t);
+        }
+      }
+      unlockedMusicRef.current[idx] = isUnlocked;
+    });
+
+    if (newlyUnlocked.length > 0) {
+      const latestUnlocked = newlyUnlocked[newlyUnlocked.length - 1];
+      setTimeout(() => setNewMusicUnlock(latestUnlocked), 600);
+      if (soundRef.current) [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => window.playTone(f, 0.15, 'triangle', 0.06), i * 80));
+    }
+  }, [state.prestigeCount, state.level, tracks]);
+
+  const passiveData = useMemo(() => window.computePassivePower(state, activeBonusEffects), [state, activeBonusEffects]);
   const storeMults = passiveData.storeMults;
   const globalMult = passiveData.globalMult;
   const perSecondRaw = passiveData.perSecondRaw;
@@ -545,31 +669,34 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const genProductions = passiveData.genProductions;
   
   const clickBase = useMemo(() => window.computeClickPower(state).total, [state.clickUpgrades, state.achievements, state.timePlayed]);
-  const perClick = clickBase * (storeMults.click || 1) * globalMult;
+  const activeClickMult = activeBonusEffects.filter(e => e.until > Date.now() && e.type === 'multiplier_click').reduce((acc, curr) => acc * (curr.multiplier || 1), 1);
+  const perClick = clickBase * (storeMults.click || 1) * globalMult * activeClickMult;
   
-  const crystalMult = crystalFrenzyUntil > Date.now() ? 5 : 1;
-  const goldenMult = goldenActiveUntil > Date.now() ? 7 : 1;
-  const prestigeMult = 1 + (state.prestigeCount * 0.05);
+  const displayedPerSecond = perSecond + (liveCPS * perClick);
+  
+  const bonusPerSmile = window.GAME_CONTENT?.prestigeConfig?.bonusPerSmile ?? 0.05;
+  const prestigeMult = 1 + ((state.prestige || 0) * bonusPerSmile);
   perClickRef.current = perClick;
   // Displayed tooth: player-selected if unlocked, else auto (highest unlocked)
-  const autoStage = window.getToothStage(state.prestigeCount || 0);
+  const autoStage = window.getToothStage(state.prestigeCount || 0, state.level || 1, state);
   const selectedStage = (() => {
     const s = window.TOOTH_STAGES[state.selectedTooth || 0];
-    if (s && (state.prestigeCount || 0) >= s.prestige) return s;
+    if (s && window.isToothUnlocked(state, s)) return s;
     return autoStage;
   })();
 
   const achUnlockedCount = Object.values(state.achievements || {}).filter(Boolean).length;
   const prestigeReq = useMemo(() => {
     const count = state.prestigeCount || 0;
-    // Increased significantly: 100T base, 1.5x scaling
-    return 100_000_000_000_000 * Math.pow(1.5, count);
+    const baseReq = window.GAME_CONTENT?.prestigeConfig?.baseReq ?? 100000000000000;
+    const scaling = window.GAME_CONTENT?.prestigeConfig?.scaling ?? 1.5;
+    return baseReq * Math.pow(scaling, count);
   }, [state.prestigeCount]);
 
   const prestigeGain = useMemo(() => {
     if (state.totalEarned < prestigeReq) return 0;
-    const B = 100_000_000_000_000;
-    const r = 1.5;
+    const B = window.GAME_CONTENT?.prestigeConfig?.baseReq ?? 100000000000000;
+    const r = window.GAME_CONTENT?.prestigeConfig?.scaling ?? 1.5;
     const n = state.prestigeCount || 0;
     // Calculate total points k that can be gained at once
     const k = Math.log(1 + (state.totalEarned * (r - 1)) / (B * Math.pow(r, n))) / Math.log(r);
@@ -579,12 +706,19 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const hasAffordableAcademyUpgrades = useMemo(() => {
     const allUps = [...(window.LEVEL_UPGRADES || []), ...(window.XP_UPGRADES || [])];
     return allUps.some(up => {
-      const purchased = !!state.xpUpgrades[up.id];
-      const isUnlocked = up.achievementId ? !!state.achievements[up.achievementId] : (state.level >= up.levelReq);
-      const canAfford = state.teeth >= up.baseCost;
+      const purchased = !!state.xpUpgrades?.[up.id];
+      const meetsGenQty = up.reqGeneratorId ? ((state.generators?.[up.reqGeneratorId] || 0) >= (up.reqGenQty || 1)) : true;
+      const validReqAch = up.reqAchievementId && up.reqAchievementId !== "none" && String(up.reqAchievementId).trim() !== "" && (window.ACHIEVEMENTS || []).some(a => String(a.id) === String(up.reqAchievementId));
+      const meetsAch = validReqAch ? !!state.achievements[up.reqAchievementId] : true;
+      const validLegacyAch = up.achievementId && up.achievementId !== "none" && String(up.achievementId).trim() !== "" && (window.ACHIEVEMENTS || []).some(a => String(a.id) === String(up.achievementId));
+      const legacyAch = validLegacyAch ? !!state.achievements[up.achievementId] : true;
+      const lvlReq = (up.levelReq !== undefined) ? up.levelReq : (up.reqLevel || 0);
+      const isUnlocked = meetsGenQty && meetsAch && legacyAch && (state.level >= lvlReq);
+      const cost = up.baseCost || up.costXP || 0;
+      const canAfford = state.teeth >= cost;
       return !purchased && isUnlocked && canAfford;
     });
-  }, [state.teeth, state.xpUpgrades, state.achievements, state.level]);
+  }, [state.teeth, state.xpUpgrades, state.achievements, state.level, state.generators]);
 
   const anyMobileNotification = useMemo(() => {
     return Object.keys(state.newAchievementIds || {}).length > 0 ||
@@ -607,20 +741,25 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         const now = Date.now();
         const dt = (now - s.lastTick) / 1000;
         
-        const isGolden = goldenActiveUntil > now;
-        const isCrystal = crystalFrenzyUntil > now;
-        const passiveData = window.computePassivePower(s, isGolden, isCrystal);
+        const passiveData = window.computePassivePower(s, activeEffectsRef.current);
         const earned = passiveData.perSecond * dt;
         
         // Passive XP Gain
         const xpPassiveBase = 0;
-        const xpFromUpgrades = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades[up.id] ? up.xpPassive : 0), 0);
+        const xpFromUpgrades = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades?.[up.id] ? up.xpPassive : 0), 0);
         
-        // Apply global XP multipliers from special academy upgrades
-        const specialXpMult = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades[up.id] ? (up.xpMult || 0) : 0), 0);
-        const globalXpMult = 1 + specialXpMult;
-
-        let newXP = (s.xp || 0) + (xpPassiveBase + xpFromUpgrades) * globalXpMult * dt;
+        // Apply global XP multipliers from special
+        const specialPassiveXpMult = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades?.[up.id] && (!up.xpMultType || up.xpMultType === 'passive' || up.xpMultType === 'both') ? (up.xpMult || 0) : 0), 0);
+        let activeGlobalBonusMult = 1;
+        activeEffectsRef.current.forEach(e => {
+          if (e.type === 'multiplier_global' && e.until > Date.now()) {
+            activeGlobalBonusMult *= (e.multiplier || 1);
+          }
+        });
+        
+        const globalPassiveXpMult = (1 + specialPassiveXpMult) * activeGlobalBonusMult;
+        
+        let newXP = (s.xp || 0) + (xpPassiveBase + xpFromUpgrades) * globalPassiveXpMult * dt;
         let newLevel = s.level || 0;
         const maxLevel = 50000;
         while (newLevel < maxLevel) {
@@ -642,7 +781,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       });
     }, 100);
     return () => clearInterval(interval);
-  }, [goldenActiveUntil]);
+  }, []);
 
   // Autosave
   const doManualSave = useCallback(() => {
@@ -662,8 +801,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   }, [username]);
 
   useEffect(() => {
-    // Show tour if it's the first time and they haven't opted out
-    if (!hasSeenTour && !dontShowTourAgain && state.totalEarned === 0 && currentTourStep === null) {
+    // Show tour if it's the first time and they haven't opted out (and it's not the admin user 'James')
+    if (!hasSeenTour && !dontShowTourAgain && state.totalEarned === 0 && currentTourStep === null && username !== 'James') {
       const timer = setTimeout(() => setCurrentTourStep(0), 1500);
       return () => clearTimeout(timer);
     }
@@ -710,7 +849,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   // Achievement checker
   useEffect(() => {
     const newUnlocks = [];
-    for (const a of window.ACHIEVEMENTS) {if (!state.achievements[a.id] && a.check(state)) newUnlocks.push(a);}
+    for (const a of window.ACHIEVEMENTS) {if (!state.achievements[a.id] && typeof a.check === 'function' && a.check(state)) newUnlocks.push(a);}
     if (newUnlocks.length > 0) {
       setState((s) => {
         const next = { ...s, achievements: { ...s.achievements }, newAchievementIds: { ...(s.newAchievementIds || {}) } };
@@ -860,7 +999,10 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
   // Load custom messages on mount
   useEffect(() => {
-    window.cloudLoadCustomMessages().then(res => {
+    Promise.all([
+      window.cloudLoadCustomMessages(),
+      window.cloudFetchSettings()
+    ]).then(([res, setRes]) => {
       let msgs = res.ok ? res.messages : [];
       
       // Force all seeded messages that currently have a positive milestone in the old database to milestone: -1 (Random/Collaborator)
@@ -887,57 +1029,99 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         }
         return m;
       });
+
+      let applyFilters = false;
+      let advFilters = null;
+
+      if (setRes && setRes.ok && setRes.settings) {
+        applyFilters = setRes.settings.applyAdvancedFiltersToGame === true;
+        advFilters = setRes.settings.advancedFilters;
+      } else {
+        try { applyFilters = localStorage.getItem('admin_apply_filters_to_game') === 'true'; } catch(e) {}
+        try { advFilters = JSON.parse(localStorage.getItem('admin_advanced_filters')); } catch(e) {}
+      }
+
+      if (applyFilters && advFilters) {
+         msgs = msgs.filter(m => {
+            let isQuestion = m.msgType === 'question' || (m.text || '').includes('||question:');
+            
+            if (advFilters.msgType === 'question' && !isQuestion) return false;
+            if (advFilters.msgType === 'normal' && isQuestion) return false;
+            if (advFilters.position !== 'all' && m.position !== advFilters.position) return false;
+            if (advFilters.size !== 'all' && m.size !== advFilters.size) return false;
+            if (advFilters.animation !== 'all' && m.animation !== advFilters.animation) return false;
+            if (advFilters.particles !== 'all' && m.particles !== advFilters.particles) return false;
+            if (advFilters.color !== 'all' && (m.color || '#1a8fff') !== advFilters.color) return false;
+            if (advFilters.levelReq !== '' && (m.levelReq || 0) !== Number(advFilters.levelReq)) return false;
+            
+            return true;
+         });
+      }
+
       setCustomMessages(msgs);
     });
   }, []);
 
-  // Golden tooth spawner — only when no other bonus is active
+  // Dynamic Random Bonuses Spawner
   useEffect(() => {
-    let timeoutId;
-    function spawnGolden() {
-      const now = Date.now();
-      // Skip if any bonus is active, another tooth is on screen, or on cooldown
-      if (specialToothRef.current || golden || now < specialNextRef.current) return;
-      if (goldenActiveUntil > now || crystalFrenzyUntil > now || holdBonusUntil > now) return;
-      
-      const w = window.innerWidth;const h = window.innerHeight;
-      const x = 80 + Math.random() * (w - 160);const y = 120 + Math.random() * (h - 240);
-      const id = Math.random().toString(36);
-      setGolden({ x, y, id, spawnedAt: now });
-      setTimeout(() => setGolden((g) => g && g.id === id ? null : g), 7000); // 7s duration
-    }
-    function scheduleNext() {timeoutId = setTimeout(() => {spawnGolden();scheduleNext();}, 60000 + Math.random() * 120000);}
-    timeoutId = setTimeout(() => {spawnGolden();scheduleNext();}, 45000 + Math.random() * 30000);
-    return () => clearTimeout(timeoutId);
-  }, [goldenActiveUntil, crystalFrenzyUntil, holdBonusUntil, golden]);
-
-  // Unified special tooth spawner — one at a time, 5-min cooldown after each
-  useEffect(() => {
-    const DURATIONS = { gold: 10000, diamond: 18000, crystal: 16000 };
-    const check = setInterval(() => {
-      if (specialToothRef.current) return;
-      const now = Date.now();
-      // Block if any other bonus active
-      if (goldenActiveUntil > now || crystalFrenzyUntil > now || holdBonusUntil > now) return;
-      // Block if golden classic tooth is on screen or cooldown active
-      if (golden || now < specialNextRef.current) return;
-      const types = ['gold', 'diamond', 'crystal'];
-      const type = types[Math.floor(Math.random() * types.length)];
-      const w = window.innerWidth, h = window.innerHeight;
-      const id = Math.random().toString(36);
-      const tooth = { type, x: 80 + Math.random() * (w - 160), y: 120 + Math.random() * (h - 240), id, spawnedAt: now };
-      specialToothRef.current = tooth;
-      setSpecialTooth(tooth);
-      setTimeout(() => {
-        if (specialToothRef.current?.id === id) {
-          specialToothRef.current = null;
-          setSpecialTooth(null);
-          specialNextRef.current = getNextBonusTime(8, 15); // 8-15 min cooldown on timeout
-        }
-      }, 7000); // 7s duration
-    }, 3000);
-    return () => clearTimeout(check);
+    const list = window.GAME_CONTENT?.randomBonuses || [];
+    if (list.length === 0) return;
+    
+    const timers = [];
+    list.forEach(bonus => {
+      const scheduleNext = () => {
+        const minMs = (bonus.intervalMin || 5) * 60000;
+        const maxMs = (bonus.intervalMax || 10) * 60000;
+        const delay = minMs + Math.random() * (maxMs - minMs);
+        
+        const tid = setTimeout(() => {
+          const now = Date.now();
+          // Block if there's already a bonus on screen or an active effect
+          if (spawnedBonusesRef.current.length > 0) { scheduleNext(); return; }
+          if (activeEffectsRef.current.some(e => e.until > now)) { scheduleNext(); return; }
+          
+          const w = window.innerWidth;
+          const h = window.innerHeight;
+          const x = 80 + Math.random() * (w - 160);
+          const y = 120 + Math.random() * (h - 240);
+          const id = Math.random().toString(36).substring(2, 9);
+          
+          const newSpawn = { ...bonus, x, y, id, spawnedAt: now };
+          setSpawnedBonuses([newSpawn]);
+          
+          // Remove after 7s
+          setTimeout(() => {
+            setSpawnedBonuses(curr => curr.filter(b => b.id !== id));
+            scheduleNext();
+          }, 7000);
+        }, delay);
+        timers.push(tid);
+      };
+      scheduleNext();
+    });
+    
+    return () => timers.forEach(t => clearTimeout(t));
   }, []);
+
+  useEffect(() => { activeEffectsRef.current = activeBonusEffects; }, [activeBonusEffects]);
+  useEffect(() => { spawnedBonusesRef.current = spawnedBonuses; }, [spawnedBonuses]);
+
+  // Handle hold auto-click
+  useEffect(() => {
+    const holdBonus = activeBonusEffects.find(e => e.until > Date.now() && e.type === 'hold');
+    if (isMainMouseDown && holdBonus) {
+      const cps = holdBonus.cps || 10;
+      const msPerClick = Math.max(10, 1000 / cps);
+      const interval = setInterval(() => {
+        const rect = mainToothRef.current?.getBoundingClientRect() || { width: 300, height: 300, left: window.innerWidth/2 - 150, top: window.innerHeight/2 - 150 };
+        const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * 40;
+        const y = rect.top + rect.height / 2 + (Math.random() - 0.5) * 40;
+        performClick(x, y);
+      }, msPerClick);
+      return () => clearInterval(interval);
+    }
+  }, [isMainMouseDown, activeBonusEffects, performClick]);
+
 
   const performClick = useCallback((x, y) => {
     if (cheatLevel > 0) return;
@@ -963,8 +1147,17 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         }
       }
       const xpPerClickBase = 0.1;
-      const xpFromUpgrades = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades[up.id] ? up.xpPerClick : 0), 0);
-      const xpGained = xpPerClickBase + xpFromUpgrades;
+      const xpFromUpgrades = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades?.[up.id] ? up.xpPerClick : 0), 0);
+      const specialClickXpMult = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades?.[up.id] && (up.xpMultType === 'click' || up.xpMultType === 'both') ? (up.xpMult || 0) : 0), 0);
+      let activeGlobalBonusMult = 1;
+      activeEffectsRef.current.forEach(e => {
+        if (e.type === 'multiplier_global' && e.until > Date.now()) {
+          activeGlobalBonusMult *= (e.multiplier || 1);
+        }
+      });
+      
+      const globalClickXpMult = (1 + specialClickXpMult) * activeGlobalBonusMult;
+      const xpGained = (xpPerClickBase + xpFromUpgrades) * globalClickXpMult;
       
       let newXP = (s.xp || 0) + xpGained;
       let newLevel = s.level || 0;
@@ -1042,49 +1235,54 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     return () => clearTimeout(id);
   }, [bubbles]);
 
-  const handleGoldenClick = useCallback(() => {
-    setGolden(null);
+  const handleBonusClick = useCallback((bonus) => {
+    setSpawnedBonuses(curr => curr.filter(b => b.id !== bonus.id));
     const now = Date.now();
-    setCrystalFrenzyUntil(0);
-    setHoldBonusUntil(0);
-    setGoldenActiveUntil(now + 13000);
-    specialNextRef.current = getNextBonusTime(8, 15); // 8-15 min cooldown
-    setState((s) => ({ ...s, goldenClicks: s.goldenClicks + 1 }));
-    if (soundRef.current) {window.playTone(880, 0.1, 'triangle', 0.08);setTimeout(() => window.playTone(1320, 0.15, 'triangle', 0.08), 80);}
-  }, []);
+    
+    // Default duration is 10s if not specified, unless it's instant
+    const durMs = (bonus.duration || 10) * 1000;
+    
+    if (bonus.type === 'instant') {
+      const s = stateRef.current;
+      let amount = 0;
+      let descEs = '';
+      let descEn = '';
 
-  // Dismiss special tooth + start 5-min cooldown
-  const dismissSpecialTooth = useCallback((id) => {
-    if (specialToothRef.current?.id === id) {
-      specialToothRef.current = null;
-      setSpecialTooth(null);
-      specialNextRef.current = getNextBonusTime(8, 15); // 8-15 min cooldown
-    }
-  }, []);
-
-  useEffect(() => {
-    const now = Date.now();
-    const bType = holdBonusUntil > now ? 'hold' : goldenActiveUntil > now ? 'gold' : crystalFrenzyUntil > now ? 'crystal' : null;
-    if (bType) {
-      const col = bType === 'hold' ? 'rgba(230, 80, 200, 0.35)' : bType === 'gold' ? 'rgba(255, 194, 32, 0.35)' : 'rgba(80, 180, 230, 0.35)';
-      setSunColor(col);
-      setSunOpacity(1);
+      if (bonus.instantRewardType === 'percent') {
+        const pct = bonus.multiplier || 0;
+        amount = Math.floor((s.teeth * pct) / 100);
+        descEs = `+${pct}% de dientes actuales`;
+        descEn = `+${pct}% of current teeth`;
+      } else {
+        amount = bonus.multiplier || 0;
+        descEs = `+${window.formatNum(Math.floor(amount))} dientes`;
+        descEn = `+${window.formatNum(Math.floor(amount))} teeth`;
+      }
+      
+      setState((st) => ({ ...st, teeth: st.teeth + amount, totalEarned: st.totalEarned + amount }));
+      setToast({ id: 'bonus_' + bonus.id, es: descEs, en: descEn, img: bonus.image });
+      if (soundRef.current) [1047, 1319, 1568, 2093].forEach((f, i) => setTimeout(() => window.playTone(f, 0.14, 'triangle', 0.07), i * 65));
+      
     } else {
-      setSunOpacity(0);
+      // It's a duration-based effect
+      const newEffect = { ...bonus, until: now + durMs };
+      setActiveBonusEffects([newEffect]); // Only 1 effect at a time
+      
+      let msgEs = '', msgEn = '';
+      if (bonus.type === 'hold') {
+        msgEs = `¡Mantén presionado (${bonus.duration}s)!`;
+        msgEn = `Hold down (${bonus.duration}s)!`;
+        if (soundRef.current) [660, 880, 1320].forEach((f, i) => setTimeout(() => window.playTone(f, 0.1, 'triangle', 0.08), i * 100));
+      } else if (bonus.type && bonus.type.startsWith('multiplier_')) {
+        msgEs = bonus.name.es;
+        msgEn = bonus.name.en;
+        if (soundRef.current) [880, 1320].forEach((f, i) => setTimeout(() => window.playTone(f, 0.15, 'triangle', 0.08), i * 80));
+      }
+      
+      setToast({ id: 'eff_' + bonus.id, es: msgEs, en: msgEn, img: bonus.image });
     }
-  }, [holdBonusUntil, goldenActiveUntil, crystalFrenzyUntil, visualTick]);
-
-  const handleGoldBonusClick = useCallback(() => {
-    const id = specialToothRef.current?.id;
-    if (id) dismissSpecialTooth(id);
-    setGoldenActiveUntil(0);
-    setCrystalFrenzyUntil(0);
-    setHoldBonusUntil(Date.now() + 20000);
-    setState(s => ({ ...s, specialGoldClicks: (s.specialGoldClicks || 0) + 1 }));
-    setToast({ id: '__gold_hold', es: '¡Bonus de click mantenido activo (20s)!', en: 'Hold-to-click bonus active (20s)!' });
-    setTimeout(() => setToast(null), 3000);
-    if (soundRef.current) [660, 880, 1320].forEach((f, i) => setTimeout(() => window.playTone(f, 0.1, 'triangle', 0.08), i * 100));
-  }, [dismissSpecialTooth]);
+    setTimeout(() => setToast(null), 4000);
+  }, []);
 
   const buyStoreUpgrade = useCallback((up) => {
     if (state.teeth >= up.cost && !state.storeUpgrades[up.id]) {
@@ -1095,8 +1293,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       }));
       setToast({ 
         id: `buy_up_${up.id}`, 
-        es: `¡Mejora comprada: ${up.es}!`, 
-        en: `Upgrade bought: ${up.en}!` 
+        es: `¡Mejora comprada: ${up.es || up.name?.es || up.name || '(Sin nombre)'}!`, 
+        en: `Upgrade bought: ${up.en || up.name?.en || up.name || '(Unnamed)'}!` 
       });
       setTimeout(() => setToast(null), 3000);
       setGlobalTooltip(null);
@@ -1104,70 +1302,10 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     }
   }, [state.teeth, state.storeUpgrades]);
 
-  // Auto-clicker logic
-  useEffect(() => {
-    if (isMainMouseDown && holdBonusUntil > Date.now()) {
-      if (autoClickTimerRef.current) return;
-      autoClickTimerRef.current = setInterval(() => {
-        if (holdBonusUntil <= Date.now()) {
-          clearInterval(autoClickTimerRef.current);
-          autoClickTimerRef.current = null;
-          return;
-        }
-        // Fire click at center of tooth or random offset
-        const x = 130 + (Math.random() - 0.5) * 100;
-        const y = 130 + (Math.random() - 0.5) * 100;
-        performClick(x, y);
-      }, 100);
-    } else {
-      if (autoClickTimerRef.current) {
-        clearInterval(autoClickTimerRef.current);
-        autoClickTimerRef.current = null;
-      }
-    }
-    return () => {
-      if (autoClickTimerRef.current) {
-        clearInterval(autoClickTimerRef.current);
-        autoClickTimerRef.current = null;
-      }
-    };
-  }, [isMainMouseDown, holdBonusUntil, performClick]);
-
-  const startGoldHold = () => {}; // No longer used but kept to avoid breakage if referenced elsewhere
-  const stopGoldHold = () => {};
-
-  // Diamond tooth — instant 2h of passive production
-  const handleDiamondClick = useCallback(() => {
-    const id = specialToothRef.current?.id;
-    if (id) dismissSpecialTooth(id);
-    const s = stateRef.current;
-    let passive = 0; for (const g of window.GENERATORS) passive += (s.generators[g.id] || 0) * g.baseProduction;
-    const pMult = 1 + 0.05 * (s.prestige || 0);
-    const aMult = 1 + 0.01 * Object.values(s.achievements || {}).filter(Boolean).length;
-    const bonus = passive * pMult * aMult * 7200; // 2 h
-    setState((st) => ({ ...st, teeth: st.teeth + bonus, totalEarned: st.totalEarned + bonus, diamondClicks: (st.diamondClicks || 0) + 1 }));
-    setToast({ id: '__diamond', es: `+${fmt(Math.floor(bonus))} dientes (2h de producción)`, en: `+${fmt(Math.floor(bonus))} teeth (2h production)` });
-    setTimeout(() => setToast(null), 4500);
-    if (soundRef.current) [1047, 1319, 1568, 2093].forEach((f, i) => setTimeout(() => window.playTone(f, 0.14, 'triangle', 0.07), i * 65));
-  }, [fmt, dismissSpecialTooth]);
-
-  // Crystal tooth — x5 click multiplier for 45s
-  const handleCrystalClick = useCallback(() => {
-    const id = specialToothRef.current?.id;
-    if (id) dismissSpecialTooth(id);
-    setGoldenActiveUntil(0);
-    setHoldBonusUntil(0);
-    setCrystalFrenzyUntil(Date.now() + 45000);
-    setState(s => ({ ...s, crystalClicks: (s.crystalClicks || 0) + 1 }));
-    setToast({ id: '__crystal', es: '¡Frenesí de cristal! x5 clicks durante 45 s', en: 'Crystal frenzy! x5 clicks for 45 s' });
-    setTimeout(() => setToast(null), 4000);
-    if (soundRef.current) [440, 554, 659, 880, 1100].forEach((f, i) => setTimeout(() => window.playTone(f, 0.12, 'triangle', 0.06), i * 75));
-  }, [dismissSpecialTooth]);
-
-  const genBulkCost = useCallback((base, owned, qty) => {
-    // sum of geometric series: base * 1.15^owned * (1.15^qty - 1) / 0.15
-    const SCALE = 1.15;
-    return base * Math.pow(SCALE, owned) * (Math.pow(SCALE, qty) - 1) / (SCALE - 1);
+  const genBulkCost = useCallback((base, owned, qty, scale = 1.15) => {
+    // sum of geometric series: base * scale^owned * (scale^qty - 1) / (scale - 1)
+    if (scale === 1) return base * qty;
+    return Math.floor(base * Math.pow(scale, owned) * (Math.pow(scale, qty) - 1) / (scale - 1));
   }, []);
 
   const buyGenerator = useCallback((genId, qty) => {
@@ -1177,13 +1315,13 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       const owned = s.generators[genId] || 0;
       let cost, actualBuy;
       if (amount === 1) {
-        cost = window.genCost(gen.baseCost, owned);
+        cost = window.genCost(gen.baseCost, owned, gen.costScale);
         actualBuy = 1;
       } else {
         // Buy as many as we can afford up to `amount`
         let total = 0;actualBuy = 0;
         for (let i = 0; i < amount; i++) {
-          const c = window.genCost(gen.baseCost, owned + i);
+          const c = window.genCost(gen.baseCost, owned + i, gen.costScale);
           if (total + c > s.teeth) break;
           total += c;actualBuy++;
         }
@@ -1214,8 +1352,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     const oldPrestige = stateRef.current?.prestige || 0;
     const newPrestige = oldPrestige + gain;
     
-    // Find newly unlocked stages based on prestige COUNT gain
-    const newlyUnlocked = window.TOOTH_STAGES.filter((s) => s.prestige > 0 && s.prestige > oldCount && s.prestige <= newCount);
+    // We now handle tooth unlock notifications via a generic useEffect
 
     setState((s) => {
       const next = { 
@@ -1251,11 +1388,6 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     }, 100);
 
     if (soundRef.current) [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => window.playTone(f, 0.15, 'triangle', 0.06), i * 80));
-    if (newlyUnlocked.length > 0) {
-      const latestUnlocked = newlyUnlocked[newlyUnlocked.length - 1];
-      const idx = window.TOOTH_STAGES.indexOf(latestUnlocked);
-      setTimeout(() => setNewToothUnlock({ stage: latestUnlocked, idx }), 600);
-    }
   }, [prestigeGain, username, sessionId]);
 
   const doReset = useCallback(() => {
@@ -1298,18 +1430,18 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     const owned = state.generators[g.id] || 0;
     let cost, canAfford, actualQty;
     if (buyQty === 1) {
-      cost = window.genCost(g.baseCost, owned);
+      cost = window.genCost(g.baseCost, owned, g.costScale);
       canAfford = state.teeth >= cost;
       actualQty = 1;
     } else {
       // Calculate how many we can actually afford (up to buyQty)
       let total = 0;actualQty = 0;
       for (let i = 0; i < buyQty; i++) {
-        const c = window.genCost(g.baseCost, owned + i);
+        const c = window.genCost(g.baseCost, owned + i, g.costScale);
         if (total + c > state.teeth) break;
         total += c;actualQty++;
       }
-      cost = genBulkCost(g.baseCost, owned, buyQty);
+      cost = genBulkCost(g.baseCost, owned, buyQty, g.costScale);
       canAfford = actualQty >= buyQty; // can afford the full requested qty
     }
     const baseMult = (storeMults.gen[g.id] || 1) * globalMult;
@@ -1321,10 +1453,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   });
 
   const [clickFilter, setClickFilter] = React.useState('all');
+  const [achFilter, setAchFilter] = React.useState('all');
   const clickStatus = window.CLICK_UPGRADES.map((u) => {
     const purchased = !!state.clickUpgrades[u.id];
-    const unlocked = state.totalEarned >= u.unlockAt;
-    const revealed = unlocked || purchased || state.totalEarned >= u.unlockAt * 0.5 || window.CLICK_UPGRADES.indexOf(u) === 0;
+    const unlockAtVal = u.unlockAt !== undefined ? u.unlockAt : Math.floor(u.cost * 0.5);
+    const unlocked = state.totalEarned >= unlockAtVal;
+    const revealed = unlocked || purchased || state.totalEarned >= unlockAtVal * 0.5 || window.CLICK_UPGRADES.indexOf(u) === 0;
     return { up: u, purchased, unlocked, revealed, canAfford: state.teeth >= u.cost };
   });
   const filteredClickStatus = clickStatus.filter((c) => {
@@ -1334,7 +1468,15 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     return true;
   });
 
-  const currentToothImg = holdBonusUntil > Date.now() ? "uploads/gold-tooth-1.png" : crystalFrenzyUntil > Date.now() ? "uploads/crystal-tooth-1.png" : selectedStage.img;
+  const activeDurationBonus = activeBonusEffects.find(e => e.until > Date.now());
+  const currentToothImg = (activeDurationBonus && activeDurationBonus.image) ? activeDurationBonus.image : (
+    activeBonusEffects.some(e => e.until > Date.now() && e.type === 'hold') ? "uploads/gold-tooth-1.png" : 
+    activeBonusEffects.some(e => e.until > Date.now() && e.type === 'multiplier_click') ? "uploads/crystal-tooth-1.png" : 
+    selectedStage.img
+  );
+  const currentGlbData = (activeDurationBonus && activeDurationBonus.glbData) ? activeDurationBonus.glbData : selectedStage.glbData;
+  const isBonusOverride = currentToothImg !== selectedStage.img || currentGlbData !== selectedStage.glbData;
+  const show3D = !!currentGlbData;
 
   const renderMobileView = () => {
     return (
@@ -1403,41 +1545,54 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         <section className="mobile-stats-container">
            <div className="mobile-stat-row">
               <span className="mobile-stat-label">{t.currentTeeth}</span>
-              <span className="mobile-stat-value">{fmt(state.teeth)}</span>
-              <span className="mobile-stat-sub">{fmt(perSecond, true)}/s</span>
+              <span className="mobile-stat-value"><window.Odometer value={state.teeth} formatFn={fmt} /></span>
+              <span className="mobile-stat-sub"><window.Odometer value={displayedPerSecond} formatFn={(v) => fmt(v, true)} />/s</span>
            </div>
            <div className="mobile-stat-row">
               <span className="mobile-stat-label">{t.perClick}</span>
-              <span className="mobile-stat-value mobile-stat-click">{fmt(perClick, true)}</span>
-              <span className="mobile-stat-sub">x{fmt(Math.floor(globalMult * 100) / 100)}</span>
+              <span className="mobile-stat-value mobile-stat-click"><window.Odometer value={perClick} formatFn={(v) => fmt(v, true)} /></span>
+              <span className="mobile-stat-sub">x<window.Odometer value={globalMult} formatFn={(v) => fmt(Math.floor(v * 100) / 100)} /></span>
            </div>
         </section>
 
         <section className="mobile-tooth-area">
             <div 
-              onMouseDown={(e) => { handleClick(e); setIsMainMouseDown(true); }}
+              onMouseDown={show3D ? undefined : (e) => { handleClick(e); setIsMainMouseDown(true); }}
               onMouseUp={() => setIsMainMouseDown(false)}
               onMouseLeave={() => setIsMainMouseDown(false)}
-              onTouchStart={(e) => { handleClick(e); setIsMainMouseDown(true); }}
+              onTouchStart={show3D ? undefined : (e) => { handleClick(e); setIsMainMouseDown(true); }}
               onTouchEnd={() => setIsMainMouseDown(false)}
-              style={{ position: 'relative', cursor: 'pointer', zIndex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', width: 280, height: 280 }}
+              style={{ position: 'relative', cursor: show3D ? 'default' : 'pointer', zIndex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', width: 280, height: 280 }}
             >
-              {showSpinningBrushes && <window.ToothbrushRing count={state.generators.brush} radius={140} />}
-              <img 
-                src={currentToothImg} 
-                alt="tooth" 
-                className="mobile-main-tooth"
-                style={{
-                  width: 280, height: 280, objectFit: 'contain', position: 'relative', zIndex: 5,
-                  filter: holdBonusUntil > Date.now() ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : goldenMult > 1 ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : crystalMult > 1 ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))'
-                }}
-              />
+              {showSpinningBrushes && <window.ToothbrushRing count={window.GENERATORS?.length > 0 ? (state.generators[window.GENERATORS[0].id] || 0) : 0} radius={165} />}
+              {show3D ? (
+                <window.Tooth3DViewer 
+                  glbData={currentGlbData} 
+                  textureUrl={currentToothImg}
+                  onClick={(e) => { handleClick(e); setIsMainMouseDown(true); setTimeout(() => setIsMainMouseDown(false), 100); }} 
+                  onPointerDownOut={(e) => setIsMainMouseDown(true)}
+                  onPointerUpOut={(e) => setIsMainMouseDown(false)}
+                  disableRotation={activeBonusEffects.some(e => e.until > Date.now() && e.type === 'hold')}
+                  className="mobile-main-tooth"
+                  style={{ width: 320, height: 420, zIndex: 5, filter: activeBonusEffects.some(e => e.until > Date.now() && e.type === 'hold') ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : activeBonusEffects.some(e => e.until > Date.now() && e.type === 'multiplier_click') ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : activeBonusEffects.some(e => e.until > Date.now() && e.type === 'multiplier_gen') ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))' }} 
+                />
+              ) : (
+                <img 
+                  src={currentToothImg} 
+                  alt="tooth" 
+                  className="mobile-main-tooth"
+                  style={{
+                    width: 280, height: 280, objectFit: 'contain', position: 'relative', zIndex: 5,
+                    filter: activeBonusEffects.some(e => e.until > Date.now() && e.type === 'hold') ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : activeBonusEffects.some(e => e.until > Date.now() && e.type === 'multiplier_click') ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : activeBonusEffects.some(e => e.until > Date.now() && e.type === 'multiplier_gen') ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))'
+                  }}
+                />
+              )}
               {toothParticles.map((p) => (
                 <img key={p.id} src={currentToothImg} alt="" style={{ position: 'absolute', left: p.x, top: p.y, width: 34, height: 34, objectFit: 'contain', pointerEvents: 'none', animation: 'toothPop 2000ms ease-out forwards', '--tx': `${p.tx}px`, '--rot': `${p.rot}deg`, zIndex: 90, opacity: 0.9 }} />
               ))}
            </div>
            <div className="mobile-click-text">
-              <div className="mobile-click-me">{liveCPS > 0 ? `${liveCPS} CPS` : (lang === 'es' ? 'Toca el diente' : 'Tap the tooth')}</div>
+              <div className="mobile-click-me">{liveCPS > 0 ? `${liveCPS} CPS` : '\u00A0'}</div>
 
            </div>
 
@@ -1636,7 +1791,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                       ))}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <div id="generators-container-mobile" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
                     {genStatus.map((g) => (
                       <window.GeneratorRow key={g.gen.id} gen={g.gen} owned={g.owned} cost={g.cost} canAfford={g.canAfford} unlocked={g.unlocked} revealed={g.revealed} production={g.production} nextProduction={g.nextProduction} lang={lang} totalTeeth={state.totalEarned} buyQty={buyQty} actualQty={g.actualQty} onBuy={() => buyGenerator(g.gen.id, buyQty)} />
                     ))}
@@ -1673,7 +1828,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                       </select>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
+                  <div id="click-upgrades-container-mobile" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                     {filteredClickStatus.map((c) => (
                       <window.ClickUpgradeRow key={c.up.id} up={c.up} purchased={c.purchased} unlocked={c.unlocked} canAfford={c.canAfford} lang={lang} totalTeeth={state.totalEarned} onBuy={() => buyClickUpgrade(c.up.id)} />
                     ))}
@@ -1684,53 +1839,67 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               {tab === 'achievements' && (
                 <div>
                   <div style={{ marginBottom: 'var(--spacing-4)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
                       <div>
                         <div className="t-heading-m">{t.achTitle}</div>
-                        <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{t.achSub}</div>
                       </div>
-                      <select
-                        value={clickFilter}
-                        onChange={(e) => setClickFilter(e.target.value)}
-                        style={{
-                          fontFamily: 'inherit',
-                          fontSize: 'var(--t-body-s-size, 13px)',
-                          background: 'var(--neutral-i005)',
-                          color: 'var(--fg-1)',
-                          border: '1px solid var(--neutral-i020)',
-                          borderRadius: 6,
-                          padding: '4px 10px',
-                          cursor: 'pointer',
-                          outline: 'none',
-                        }}
-                      >
-                        <option value="all">{t.upgradeFilterAll}</option>
-                        <option value="unlocked">{t.upgradeFilterUnlocked}</option>
-                        <option value="locked">{t.upgradeFilterLocked}</option>
-                        <option value="new">{lang === 'es' ? 'Nuevos' : 'New'}</option>
-                      </select>
+                      <div style={{ display: 'flex', gap: 3, background: 'var(--bg-3)', padding: 3, borderRadius: 'var(--radius-s)', flexShrink: 0, width: '100%', overflowX: 'auto' }}>
+                        {['all', 'new', 'seen', 'locked'].map((f) => (
+                          <button key={f} onClick={() => { window.playClickSound && window.playClickSound(); setAchFilter(f); }} style={{
+                            all: 'unset', boxSizing: 'border-box', padding: '5px 9px', borderRadius: 6,
+                            fontSize: 12, fontWeight: achFilter === f ? 700 : 500, cursor: 'pointer',
+                            background: achFilter === f ? 'var(--primary-i100)' : 'transparent',
+                            color: achFilter === f ? '#fff' : 'var(--fg-2)',
+                            transition: 'all 120ms ease', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap'
+                          }}>
+                            {f === 'all' ? (lang === 'es' ? 'Todos' : 'All') : f === 'new' ? (lang === 'es' ? 'Nuevos' : 'New') : f === 'seen' ? (lang === 'es' ? 'Obtenidos' : 'Obtained') : (lang === 'es' ? 'Bloqueados' : 'Locked')}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: 'var(--spacing-2)' }}>
-                    {window.ACHIEVEMENTS.filter(a => {
-                      if (clickFilter === 'new') return !!state.newAchievementIds?.[a.id];
-                      if (clickFilter === 'unlocked') return !!state.achievements[a.id];
-                      if (clickFilter === 'locked') return !state.achievements[a.id];
+                  {(() => {
+                    const totalAch = Object.keys(state.achievements || {}).length;
+                    if (totalAch === 0) {
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
+                          <img src="assets/logros/logros-empty.png" alt="Empty" style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 16 }} />
+                          <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Juega para obtener logros que te darán muchos beneficios.' : 'Play to earn achievements that will give you many benefits.'}</div>
+                        </div>
+                      );
+                    }
+                    const filteredAch = window.ACHIEVEMENTS.filter(a => {
+                      if (achFilter === 'new') return !!state.newAchievementIds?.[a.id];
+                      if (achFilter === 'seen') return !!state.achievements[a.id] && !state.newAchievementIds?.[a.id];
+                      if (achFilter === 'locked') return !state.achievements[a.id];
                       return true;
-                    }).map((a) => (
-                      <window.AchievementCard 
-                        key={a.id} 
-                        ach={{ ...a, isNew: !!state.newAchievementIds?.[a.id] }} 
-                        unlocked={!!state.achievements[a.id]} 
-                        lang={lang} 
-                        onHover={(ach, pos, unlocked) => {
-                          setGlobalTooltip({ type: 'ach', data: ach, pos, unlocked });
-                          if (state.newAchievementIds?.[ach.id]) markAchievementSeen(ach.id);
-                        }} 
-                        onLeave={() => setGlobalTooltip(null)} 
-                      />
-                    ))}
-                  </div>
+                    });
+                    if (filteredAch.length === 0) {
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
+                          <img src="assets/logros/logros-empty.png" alt="Empty" style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 16 }} />
+                          <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'No se encontró ningún logro.' : 'No achievements found.'}</div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: '10px' }}>
+                        {filteredAch.map((a) => (
+                          <window.AchievementCard 
+                            key={a.id} 
+                            ach={{ ...a, isNew: !!state.newAchievementIds?.[a.id] }} 
+                            unlocked={!!state.achievements[a.id]} 
+                            lang={lang} 
+                            onHover={(ach, pos, unlocked) => {
+                              if (pos) setGlobalTooltip({ type: 'ach', data: ach, pos, unlocked });
+                              if (state.newAchievementIds?.[ach.id]) markAchievementSeen(ach.id);
+                            }} 
+                            onLeave={() => setGlobalTooltip(null)} 
+                          />
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -1760,7 +1929,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--spacing-2)' }}>
                       {window.TOOTH_STAGES.map((s, i) => {
-                        const unlocked = (state.prestigeCount || 0) >= s.prestige;
+                        const unlocked = window.isToothUnlocked(state, s);
                         const isCurrent = (state.selectedTooth || 0) === i && unlocked;
                         return (
                           <div key={i} 
@@ -1793,73 +1962,137 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                   <div style={{ marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                     <div>
                       <div className="t-heading-m">{lang === 'es' ? 'Academia Dental' : 'Dental Academy'}</div>
-                      <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Premios académicos por tus logros y nivel.' : 'Academic rewards for your achievements and level.'}</div>
                     </div>
-                    <div style={{ display: 'flex', gap: 4, background: 'var(--bg-3)', padding: 3, borderRadius: 8 }}>
-                      {['all', 'not_bought', 'bought'].map(f => (
-                        <button key={f} onClick={() => setAcademyFilter(f)} style={{
-                          all: 'unset', boxSizing: 'border-box', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                    <div style={{ display: 'flex', gap: 3, background: 'var(--bg-3)', padding: 3, borderRadius: 'var(--radius-s)', flexShrink: 0 }}>
+                      {['all', 'bought', 'not_bought'].map((f) => (
+                        <button key={f} onClick={() => { window.playClickSound && window.playClickSound(); setAcademyFilter(f); }} style={{
+                          all: 'unset', boxSizing: 'border-box', padding: '5px 9px', borderRadius: 6,
+                          fontSize: 12, fontWeight: academyFilter === f ? 700 : 500, cursor: 'pointer',
                           background: academyFilter === f ? 'var(--primary-i100)' : 'transparent',
-                          color: academyFilter === f ? '#fff' : 'var(--fg-2)', transition: 'all 150ms'
+                          color: academyFilter === f ? '#fff' : 'var(--fg-2)',
+                          transition: 'all 120ms ease', fontFamily: 'var(--font-sans)'
                         }}>
-                          {f === 'all' ? (lang === 'es' ? 'Todos' : 'All') : 
-                           f === 'not_bought' ? (lang === 'es' ? 'No comprados' : 'Not bought') : 
-                           (lang === 'es' ? 'Comprados' : 'Bought')}
+                          {f === 'all' ? (lang === 'es' ? 'Todos' : 'All') : f === 'bought' ? (lang === 'es' ? 'Comprados' : 'Bought') : (lang === 'es' ? 'No comprados' : 'Not bought')}
                         </button>
                       ))}
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {[...(window.LEVEL_UPGRADES || []), ...(window.XP_UPGRADES || [])].filter(up => {
-                      const purchased = !!state.xpUpgrades[up.id];
-                      const isUnlocked = up.achievementId ? !!state.achievements[up.achievementId] : (state.level >= up.levelReq);
-                      
-                      if (academyFilter === 'not_bought') return !purchased && isUnlocked;
-                      if (academyFilter === 'bought') return purchased;
-                      
-                      return isUnlocked || purchased; 
-                    })
-                    .map(up => {
-                      const purchased = !!state.xpUpgrades[up.id];
-                      const cost = up.baseCost;
-                      const canAfford = state.teeth >= cost;
-                      const isSpecial = up.isLevelSpecial;
-                      
-                      return (
-                        <div key={up.id} style={{ 
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', 
-                          background: purchased ? 'var(--positive-i005)' : (isSpecial ? 'var(--warning-i005)' : 'var(--bg-1)'), 
-                          border: purchased ? '1px solid var(--positive-i020)' : (isSpecial ? '1px solid var(--warning-i030)' : '1px solid var(--primary-i020)'), 
-                          borderRadius: 12,
-                          transition: 'all 200ms'
-                        }}>
-                          <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: purchased ? 'var(--positive-i100)' : 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {up.name[lang]}
-                              </div>
-                              {isSpecial && <i className="fa-solid fa-star" style={{ fontSize: 10, color: 'var(--warning-i100)' }}></i>}
-                            </div>
-                            <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2, lineHeight: 1.3 }}>
-                              {up.desc[lang]}
-                            </div>
+                    {(() => {
+                      const allUpgrades = [...(window.LEVEL_UPGRADES || []), ...(window.XP_UPGRADES || [])];
+                      if (allUpgrades.length === 0) {
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
+                            <img src="assets/academia/academia-empty.png" alt="Empty" style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 16 }} />
+                            <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Juega para obtener diplomas y títulos que te harán el mejor profesional' : 'Play to earn diplomas and titles that will make you the best professional'}</div>
                           </div>
-                          <button 
-                            disabled={purchased || !canAfford}
-                            onClick={() => buyXpUpgrade(up.id)}
-                            style={{
-                              all: 'unset', boxSizing: 'border-box', padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, 
-                              cursor: (purchased || !canAfford) ? 'not-allowed' : 'pointer',
-                              background: purchased ? 'var(--positive-i100)' : (canAfford ? 'var(--primary-i100)' : 'var(--bg-3)'),
-                              color: (purchased || canAfford) ? '#fff' : 'var(--fg-3)',
-                              minWidth: 90, textAlign: 'center', transition: 'all 150ms'
-                            }}
-                          >
-                            {purchased ? (lang === 'es' ? 'Completado' : 'Completed') : fmt(cost)}
-                          </button>
-                        </div>
-                      );
-                    })}
+                        );
+                      }
+                      const filteredUpgrades = allUpgrades.filter(up => {
+                        const purchased = !!state.xpUpgrades?.[up.id];
+                        const meetsGenQty = up.reqGeneratorId ? ((state.generators?.[up.reqGeneratorId] || 0) >= (up.reqGenQty || 1)) : true;
+                        const meetsAch = up.reqAchievementId ? !!state.achievements[up.reqAchievementId] : true;
+                        const legacyAch = up.achievementId ? !!state.achievements[up.achievementId] : true;
+                        const lvlReq = (up.levelReq !== undefined) ? up.levelReq : (up.reqLevel || 0);
+                        const meetsLevel = state.level >= lvlReq;
+                        
+                        const isUnlocked = meetsGenQty && meetsAch && legacyAch && meetsLevel;
+                        const isShown = purchased || (up.reqGeneratorId ? meetsGenQty : (isUnlocked || state.level >= Math.max(1, lvlReq - 2)));
+                        up._isUnlockedCache = isUnlocked;
+
+                        if (academyFilter === 'not_bought') return !purchased && isShown;
+                        if (academyFilter === 'bought') return purchased;
+                        return isShown; 
+                      });
+
+                      if (filteredUpgrades.length === 0) {
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
+                            <img src="assets/academia/academia-empty.png" alt="Empty" style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 16 }} />
+                            <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'No se encontró ninguna mejora.' : 'No upgrades found.'}</div>
+                          </div>
+                        );
+                      }
+
+                      return filteredUpgrades.map(up => {
+                        const purchased = !!state.xpUpgrades?.[up.id];
+                        const cost = up.baseCost;
+                        const canAfford = state.teeth >= cost;
+                        const isSpecial = up.isLevelSpecial;
+                        return (
+                          <React.Fragment key={up.id}>
+                          {!up._isUnlockedCache && !purchased ? (
+                            <div 
+                              onMouseEnter={(e) => {
+                                if (!setGlobalTooltip) return;
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                let text = lang === 'es' ? 'Bloqueado. Requisitos:\n' : 'Locked. Requirements:\n';
+                                const lvlReq = (up.levelReq !== undefined) ? up.levelReq : (up.reqLevel || 0);
+                                text += (lang === 'es' ? `- Nivel ${lvlReq}\n` : `- Level ${lvlReq}\n`);
+                                if (up.reqGeneratorId && up.reqGenQty) {
+                                  const gen = (window.GENERATORS || []).find(g => g.id === up.reqGeneratorId);
+                                  const gName = gen ? (gen.name?.[lang] || gen[lang] || gen.name?.es || gen.es || '(?)') : '(?)';
+                                  text += `- ${up.reqGenQty}x ${gName}\n`;
+                                }
+                                const achId = up.reqAchievementId || up.achievementId;
+                                if (achId) {
+                                  const ach = (window.ACHIEVEMENTS || []).find(a => a.id === achId);
+                                  const achName = ach ? (ach.name?.[lang] || ach[lang] || ach.name?.es || ach.es || '(?)') : '(?)';
+                                  text += (lang === 'es' ? `- Logro: ${achName}` : `- Achievement: ${achName}`);
+                                }
+                                setGlobalTooltip({ type: 'text', text: text.trim(), pos: { x: rect.left + rect.width / 2, y: rect.bottom }, direction: 'down' });
+                              }}
+                              onMouseLeave={() => setGlobalTooltip(null)}
+                              style={{ 
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', 
+                              background: 'var(--bg-3)', border: '1px solid var(--border-subtle)', borderRadius: 12, opacity: 0.6
+                            }}>
+                              <div style={{ flex: 1, minWidth: 0, paddingRight: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-4)' }}>
+                                  <i className="fa-solid fa-lock"></i>
+                                </div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-3)' }}>???</div>
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--fg-4)', fontWeight: 600 }}>{lang === 'es' ? 'BLOQUEADO' : 'LOCKED'}</div>
+                            </div>
+                          ) : (
+                            <div style={{ 
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', 
+                            background: purchased ? 'var(--positive-i005)' : (isSpecial ? 'var(--warning-i005)' : 'var(--bg-1)'), 
+                            border: purchased ? '1px solid var(--positive-i020)' : (isSpecial ? '1px solid var(--warning-i030)' : '1px solid var(--primary-i020)'), 
+                            borderRadius: 12,
+                            transition: 'all 200ms'
+                          }}>
+                            <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: purchased ? 'var(--positive-i100)' : 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {up.name[lang]}
+                                </div>
+                                {isSpecial && <i className="fa-solid fa-star" style={{ fontSize: 10, color: 'var(--warning-i100)' }}></i>}
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2, lineHeight: 1.3 }}>
+                                {up.desc[lang]}
+                              </div>
+                            </div>
+                            <button 
+                              disabled={purchased || !canAfford}
+                              onClick={() => buyXpUpgrade(up.id)}
+                              style={{
+                                all: 'unset', boxSizing: 'border-box', padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, 
+                                cursor: (purchased || !canAfford) ? 'not-allowed' : 'pointer',
+                                background: purchased ? 'var(--positive-i100)' : (canAfford ? 'var(--primary-i100)' : 'var(--bg-3)'),
+                                color: (purchased || canAfford) ? '#fff' : 'var(--fg-3)',
+                                minWidth: 90, textAlign: 'center', transition: 'all 150ms'
+                              }}
+                            >
+                              {purchased ? (lang === 'es' ? 'Completado' : 'Completed') : fmt(cost)}
+                            </button>
+                          </div>
+                          )}
+                          </React.Fragment>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               )}
@@ -1874,27 +2107,27 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                     <div className="t-heading-m">{t.statsTitle}</div>
                     <div className="t-body-s" style={{ color: 'var(--fg-3)', marginTop: 2 }}>{lang === 'es' ? 'Todo lo que pasó en tu consulta.' : 'Everything that happened in your practice.'}</div>
                   </div>
-                  <window.StatsGroup title={lang === 'es' ? 'Producción' : 'Production'} icon="fa-solid fa-gauge-high" accent="var(--primary-i100)" rows={[
-                    { label: t.currentTeeth, value: fmt(state.teeth), strong: true },
-                    { label: t.perSecond, value: fmt(perSecond, true), color: 'var(--positive-i100)' },
-                    { label: t.perClick, value: fmt(perClick, true), color: 'var(--alternative-i100)' },
-                    { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: `x${fmt(Math.floor(globalMult * 100) / 100)}`, color: 'var(--warning-i130)' },
-                    { label: lang === 'es' ? 'Récord CPS' : 'CPS Record', value: fmt(state.maxCPS || 0), color: 'var(--positive-i100)' }
+                  <window.StatsGroup title={t.general} icon="fa-solid fa-chart-line" rows={[
+                    { label: t.currentTeeth, value: <window.Odometer value={state.teeth} formatFn={fmt} />, strong: true },
+                    { label: t.perSecond, value: <><window.Odometer value={displayedPerSecond} formatFn={(v) => fmt(v, true)} />/s</>, color: 'var(--positive-i100)' },
+                    { label: t.perClick, value: <window.Odometer value={perClick} formatFn={(v) => fmt(v, true)} />, color: 'var(--alternative-i100)' },
+                    { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: <>x<window.Odometer value={globalMult} formatFn={(v) => fmt(Math.floor(v * 100) / 100)} /></>, color: 'var(--warning-i130)' },
+                    { label: lang === 'es' ? 'Récord CPS' : 'CPS Record', value: <window.Odometer value={state.maxCPS || 0} formatFn={fmt} />, color: 'var(--positive-i100)' }
                   ]} />
-                  <window.StatsGroup title={lang === 'es' ? 'Progreso' : 'Progress'} icon="fa-solid fa-chart-line" accent="var(--positive-i100)" rows={[
-                    { label: lang === 'es' ? 'Nivel del jugador' : 'Player level', value: fmt(state.level || 0), strong: true, color: 'var(--primary-i100)' },
-                    { label: lang === 'es' ? 'Experiencia (XP)' : 'Experience (XP)', value: `${(state.xp || 0).toLocaleString(lang === 'es' ? 'es-ES' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${fmt(window.getXPRequired(state.level || 0))}` },
-                    { label: t.totalTeeth, value: fmt(state.totalEarned) },
-                    { label: t.totalClicks, value: fmt(state.totalClicks) },
-                    { label: lang === 'es' ? 'Generadores totales' : 'Total generators', value: fmt(Object.values(state.generators || {}).reduce((a, b) => a + (b || 0), 0)) },
+                  <window.StatsGroup title={lang === 'es' ? 'Progresión' : 'Progression'} icon="fa-solid fa-arrow-trend-up" accent="var(--primary-i100)" rows={[
+                    { label: lang === 'es' ? 'Nivel del jugador' : 'Player level', value: <window.Odometer value={state.level || 0} formatFn={fmt} />, strong: true, color: 'var(--primary-i100)' },
+                    { label: lang === 'es' ? 'Experiencia (XP)' : 'Experience (XP)', value: <>{(state.xp || 0).toLocaleString(lang === 'es' ? 'es-ES' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / <window.Odometer value={window.getXPRequired(state.level || 0)} formatFn={fmt} /></> },
+                    { label: t.totalTeeth, value: <window.Odometer value={state.totalEarned} formatFn={fmt} /> },
+                    { label: t.totalClicks, value: <window.Odometer value={state.totalClicks} formatFn={fmt} /> },
+                    { label: lang === 'es' ? 'Generadores totales' : 'Total generators', value: <window.Odometer value={Object.values(state.generators || {}).reduce((a, b) => a + (b || 0), 0)} formatFn={fmt} /> },
                     { label: lang === 'es' ? 'Mejoras compradas' : 'Upgrades bought', value: `${Object.values(state.clickUpgrades || {}).filter(Boolean).length}/${window.CLICK_UPGRADES.length}` },
                     { label: lang === 'es' ? 'Logros' : 'Achievements', value: `${Object.keys(state.achievements || {}).length}/${window.ACHIEVEMENTS.length}` }
                   ]} />
-                  <window.StatsGroup title={t.prestige || 'Prestigio'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
-                    { label: t.prestigeHave, value: fmt(state.prestige), strong: true },
-                    { label: lang === 'es' ? 'Veces prestigiado' : 'Times prestiged', value: fmt(state.prestigeCount || 0), color: 'var(--warning-i100)' },
-                    { label: lang === 'es' ? 'Próxima ganancia' : 'Next gain', value: `+${fmt(prestigeGain)}` },
-                    { label: lang === 'es' ? 'Dientes dorados' : 'Golden teeth', value: fmt(state.goldenClicks), color: 'var(--warning-i100)' }
+                  <window.StatsGroup title={lang === 'es' ? 'Prestigio y Dientes Dorados' : 'Prestige & Golden Teeth'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
+                    { label: t.prestigeHave, value: <window.Odometer value={state.prestige} formatFn={fmt} />, strong: true },
+                    { label: lang === 'es' ? 'Veces prestigiado' : 'Times prestiged', value: <window.Odometer value={state.prestigeCount || 0} formatFn={fmt} />, color: 'var(--warning-i100)' },
+                    { label: lang === 'es' ? 'Próxima ganancia' : 'Next gain', value: <>+<window.Odometer value={prestigeGain} formatFn={fmt} /></> },
+                    { label: lang === 'es' ? 'Dientes dorados' : 'Golden teeth', value: <window.Odometer value={state.goldenClicks} formatFn={fmt} />, color: 'var(--warning-i100)' }
                   ]} />
                   <window.StatsGroup title={lang === 'es' ? 'Tiempo' : 'Time'} icon="fa-solid fa-clock" accent="var(--fg-2)" rows={[
                     { label: t.timePlayed, value: window.formatTime(state.timePlayed), strong: true },
@@ -1912,12 +2145,17 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
   return (
     <>
+      {activeSeasonConfig && seasonTimeLeft !== null && (
+        <div style={{ background: 'var(--primary-i100)', color: '#fff', textAlign: 'center', padding: '8px', fontWeight: 'bold', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', position: 'relative', zIndex: 10000 }}>
+          {lang === 'es' ? 'La temporada' : 'Season'} "{activeSeasonConfig.name}" {lang === 'es' ? 'termina en' : 'ends in'}: {formatSeasonTime(seasonTimeLeft)}
+        </div>
+      )}
       {isMobile ? renderMobileView() : (
         <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', fontFamily: 'var(--font-sans)', color: 'var(--fg-1)' }}>
       {/* Top bar */}
       <header style={{ height: 64, background: 'var(--bg-1)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', padding: '0 var(--spacing-6)', gap: 'var(--spacing-4)', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <img src="uploads/logo-horizontal-4d4fb63d.png" style={{ height: 44, width: 'auto', objectFit: 'contain', flexShrink: 0 }} alt="Tooth Clicker" />
+          <img src={window.GAME_CONTENT?.terminology?.images?.logoHorizontal || "uploads/logo-horizontal-4d4fb63d.png"} style={{ height: 44, width: 'auto', objectFit: 'contain', flexShrink: 0 }} alt="Tooth Clicker" />
           <button 
             id="manual-tour-trigger"
             onClick={() => setCurrentTourStep(0)}
@@ -1936,8 +2174,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             <i className="fa-solid fa-tooth" style={{ fontSize: 13, color: 'var(--primary-i100)' }}></i>
             <div>
               <span className="t-mini-caps" style={{ color: 'var(--fg-3)', marginRight: 6 }}>{t.currentTeeth}</span>
-              <span className="t-heading-s" style={{ color: 'var(--primary-i100)', fontVariantNumeric: 'tabular-nums' }}>{fmt(state.teeth)}</span>
-              <span className="t-body-s" style={{ color: 'var(--fg-3)', marginLeft: 4 }}>{fmt(perSecond, true)}/s</span>
+              <window.Odometer value={state.teeth} formatFn={fmt} className="t-heading-s" style={{ color: 'var(--primary-i100)' }} />
+              <span className="t-body-s" style={{ color: 'var(--fg-3)', marginLeft: 4 }}><window.Odometer value={displayedPerSecond} formatFn={(v) => fmt(v, true)} />/s</span>
             </div>
           </div>
           <div style={{ width: 1, height: 28, background: 'var(--border-subtle)' }} />
@@ -1945,26 +2183,16 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             <i className="fa-solid fa-hand-pointer" style={{ fontSize: 13, color: 'var(--alternative-i100)' }}></i>
             <div>
               <span className="t-mini-caps" style={{ color: 'var(--fg-3)', marginRight: 6 }}>{t.perClick}</span>
-              <span className="t-heading-s" style={{ color: 'var(--alternative-i100)', fontVariantNumeric: 'tabular-nums' }}>{fmt(perClick, true)}</span>
-              {globalMult > 1 && <span className="t-body-s" style={{ color: 'var(--fg-3)', marginLeft: 4 }}>x{fmt(Math.floor(globalMult * 100) / 100)}</span>}
+              <window.Odometer value={perClick} formatFn={(v) => fmt(v, true)} className="t-heading-s" style={{ color: 'var(--alternative-i100)' }} />
+              {globalMult > 1 && <span className="t-body-s" style={{ color: 'var(--fg-3)', marginLeft: 4 }}>x<window.Odometer value={globalMult} formatFn={(v) => fmt(Math.floor(v * 100) / 100)} /></span>}
             </div>
           </div>
         </div>
-        {goldenActiveUntil > Date.now() &&
-        <div style={{ padding: '6px 12px', background: 'var(--warning-i010)', border: '1px solid var(--warning-i050)', borderRadius: 'var(--radius-pill)', color: 'var(--warning-i130)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, animation: 'pulse 1s ease-in-out infinite' }}>
-            <i className="fa-solid fa-bolt"></i>{t.goldenActive} — {Math.max(0, Math.ceil((goldenActiveUntil - Date.now()) / 1000))}s
+        {activeBonusEffects.filter(e => e.until > Date.now()).map(eff => (
+          <div key={eff.id} style={{ padding: '6px 12px', background: 'var(--warning-i010)', border: '1px solid var(--warning-i050)', borderRadius: 'var(--radius-pill)', color: 'var(--warning-i130)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, animation: 'pulse 1s ease-in-out infinite' }}>
+            <i className="fa-solid fa-bolt"></i>{eff.name?.[lang] || eff.name?.es || ''} — {Math.max(0, Math.ceil((eff.until - Date.now()) / 1000))}s
           </div>
-        }
-        {crystalFrenzyUntil > Date.now() &&
-        <div style={{ padding: '6px 12px', background: 'oklch(0.93 0.06 220 / 0.3)', border: '1px solid oklch(0.7 0.12 220)', borderRadius: 'var(--radius-pill)', color: 'oklch(0.35 0.18 220)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, animation: 'pulse 1s ease-in-out infinite' }}>
-            <i className="fa-solid fa-snowflake"></i>{lang === 'es' ? 'Frenesí x5' : 'Frenzy x5'} — {Math.max(0, Math.ceil((crystalFrenzyUntil - Date.now()) / 1000))}s
-          </div>
-        }
-        {holdBonusUntil > Date.now() &&
-        <div style={{ padding: '6px 12px', background: 'oklch(0.9 0.15 80 / 0.3)', border: '1px solid oklch(0.7 0.2 80)', borderRadius: 'var(--radius-pill)', color: 'oklch(0.4 0.2 80)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, animation: 'pulse 1s ease-in-out infinite' }}>
-            <i className="fa-solid fa-hand-pointer"></i>{lang === 'es' ? 'Auto-click' : 'Auto-click'} — {Math.max(0, Math.ceil((holdBonusUntil - Date.now()) / 1000))}s
-          </div>
-        }
+        ))}
         <button onClick={doManualSave} style={topBtnStyle} title={t.saveNow}>
           <i className={saveFlash ? 'fa-solid fa-check' : 'fa-solid fa-floppy-disk'} style={{ marginRight: 6, color: saveFlash ? 'var(--positive-i100)' : 'inherit' }}></i>
           {saveFlash ? t.savedJustNow : t.saveNow}
@@ -2012,6 +2240,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           </button>
           {menuOpen &&
           <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, minWidth: 260, background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', boxShadow: 'var(--elevation-20)', padding: 6, zIndex: 20, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {onBackToAdmin && (
+                <>
+                  <window.MenuItem icon="fa-shield-halved" label={lang === 'es' ? 'Volver a Administración' : 'Back to Administration'} onClick={() => { setMenuOpen(false); onBackToAdmin(); }} />
+                  <window.MenuDivider />
+                </>
+              )}
               <window.MenuItem icon="fa-sliders" label={lang === 'es' ? 'Configuración' : 'Settings'} onClick={() => { setMenuOpen(false); setShowSettingsModal(true); }} />
               <window.MenuItem icon="fa-circle-info" label={lang === 'es' ? 'Acerca de' : 'About'} onClick={() => {setMenuOpen(false);setShowAbout(true);}} />
               <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => {setMenuOpen(false);setShowFeedbackModal(true);}} />
@@ -2045,42 +2279,16 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         </div>
       </header>
 
-      <main style={{ display: 'grid', gridTemplateColumns: 'minmax(380px,1fr) minmax(560px,1.4fr)', gap: 'var(--spacing-6)', padding: 'var(--spacing-6)', maxWidth: 1440, margin: '0 auto', alignItems: 'start', height: 'calc(100vh - 64px)', boxSizing: 'border-box' }}>
+      <main style={{ display: 'flex', width: '100%', gap: 'var(--spacing-6)', padding: 'var(--spacing-6)', margin: '0 auto', alignItems: 'start', height: 'calc(100vh - 64px)', boxSizing: 'border-box' }}>
         {/* LEFT */}
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)', alignSelf: 'start', position: 'sticky', top: 'var(--spacing-6)' }}>
-          <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-m)', padding: 'var(--spacing-8) var(--spacing-6)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-5)', boxShadow: 'var(--elevation-10)', overflow: 'hidden', position: 'relative' }}>
+        <section style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)' }}>
+          <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 0, padding: 'var(--spacing-8) var(--spacing-6)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-5)', overflow: 'hidden', position: 'relative', height: '100%', boxSizing: 'border-box' }}>
             {visualEffects && (
               <FallingTeethSimulation clickPulse={clickPulse} totalGenerators={Object.values(state.generators || {}).reduce((a, b) => a + b, 0)} toothImg={currentToothImg} />
             )}
             {username === 'James' && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 4 }}>
-                <button onClick={() => { 
-                  const now = Date.now(); const id = Math.random().toString(36);
-                  setGolden({ x: 80 + Math.random() * (window.innerWidth - 160), y: 120 + Math.random() * (window.innerHeight - 240), id, spawnedAt: now });
-                  setSpecialTooth(null); specialToothRef.current = null;
-                  setTimeout(() => setGolden((g) => g && g.id === id ? null : g), 7000);
-                }} style={debugBtnStyle}>Spawn Gold x7</button>
-                <button onClick={() => {
-                  const now = Date.now(); const id = Math.random().toString(36);
-                  const tooth = { type: 'gold', x: 80 + Math.random() * (window.innerWidth - 160), y: 120 + Math.random() * (window.innerHeight - 240), id, spawnedAt: now };
-                  setSpecialTooth(tooth); specialToothRef.current = tooth;
-                  setGolden(null);
-                  setTimeout(() => { if (specialToothRef.current?.id === id) { specialToothRef.current = null; setSpecialTooth(null); } }, 7000);
-                }} style={debugBtnStyle}>Spawn Hold</button>
-                <button onClick={() => {
-                  const now = Date.now(); const id = Math.random().toString(36);
-                  const tooth = { type: 'diamond', x: 80 + Math.random() * (window.innerWidth - 160), y: 120 + Math.random() * (window.innerHeight - 240), id, spawnedAt: now };
-                  setSpecialTooth(tooth); specialToothRef.current = tooth;
-                  setGolden(null);
-                  setTimeout(() => { if (specialToothRef.current?.id === id) { specialToothRef.current = null; setSpecialTooth(null); } }, 7000);
-                }} style={debugBtnStyle}>Spawn Diamond</button>
-                <button onClick={() => {
-                  const now = Date.now(); const id = Math.random().toString(36);
-                  const tooth = { type: 'crystal', x: 80 + Math.random() * (window.innerWidth - 160), y: 120 + Math.random() * (window.innerHeight - 240), id, spawnedAt: now };
-                  setSpecialTooth(tooth); specialToothRef.current = tooth;
-                  setGolden(null);
-                  setTimeout(() => { if (specialToothRef.current?.id === id) { specialToothRef.current = null; setSpecialTooth(null); } }, 7000);
-                }} style={debugBtnStyle}>Spawn Crystal</button>
+
                 <button onClick={() => {
                   if (customMessages.length > 0) {
                     const pick = customMessages[Math.floor(Math.random() * customMessages.length)];
@@ -2107,31 +2315,22 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                   }
                 }} style={{ ...debugBtnStyle, background: 'var(--primary-i010)', color: 'var(--primary-i100)', borderColor: 'var(--primary-i030)' }}>Trigger Msg ({customMessages.length})</button>
                 <button onClick={() => {
-                  const bossPool = customMessages.filter(m => m.milestone >= 0);
-                  if (bossPool.length > 0) {
-                    const pick = bossPool[Math.floor(Math.random() * bossPool.length)];
-                    setBossMsg({ 
-                      who: pick.who, 
-                      es: pick.text, 
-                      en: pick.text, 
-                      isCustom: true,
-                      danger: false,
-                      color: pick.color,
-                      position: pick.position,
-                      size: pick.size,
-                      animation: pick.animation,
-                      particles: pick.particles,
-                      ...(pick.msgType === 'question' ? {
-                        msgType: 'question',
-                        options: pick.options,
-                        correctOptionIndex: pick.correctOptionIndex,
-                        explanationText: pick.explanationText,
-                        correctReward: pick.correctReward,
-                        wrongReward: pick.wrongReward
-                      } : {})
-                    });
+                  const list = window.GAME_CONTENT?.randomBonuses || [];
+                  if (list.length > 0) {
+                    const bonus = list[Math.floor(Math.random() * list.length)];
+                    const w = window.innerWidth;
+                    const h = window.innerHeight;
+                    const x = 80 + Math.random() * (w - 160);
+                    const y = 120 + Math.random() * (h - 240);
+                    const id = Math.random().toString(36).substring(2, 9);
+                    const newSpawn = { ...bonus, x, y, id, spawnedAt: Date.now() };
+                    // Replace entirely any existing floating bonuses with this new one
+                    setSpawnedBonuses([newSpawn]);
+                    setTimeout(() => {
+                      setSpawnedBonuses(curr => curr.filter(b => b.id !== id));
+                    }, 7000);
                   }
-                }} style={{ ...debugBtnStyle, background: 'var(--warning-i010)', color: 'var(--warning-i100)', borderColor: 'var(--warning-i030)' }}>Trigger Boss Msg ({customMessages.filter(m => m.milestone >= 0).length})</button>
+                }} style={{ ...debugBtnStyle, background: 'var(--warning-i010)', color: 'var(--warning-i100)', borderColor: 'var(--warning-i030)' }}>Trigger Bonus ({(window.GAME_CONTENT?.randomBonuses || []).length})</button>
               </div>
             )}
             <div style={{ textAlign: 'center', marginBottom: 16, marginTop: -10, position: 'relative', zIndex: 10 }}>
@@ -2195,16 +2394,28 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                   transition: 'opacity 1.2s ease-out',
                   animation: 'rotateSun 40s linear infinite'
                 }} />
-                {showSpinningBrushes && <window.ToothbrushRing count={state.generators.brush} />}
+                {showSpinningBrushes && <window.ToothbrushRing count={window.GENERATORS?.length > 0 ? (state.generators[window.GENERATORS[0].id] || 0) : 0} />}
                 <div 
                   id="main-tooth-target"
-                  onMouseDown={(e) => { handleClick(e); setIsMainMouseDown(true); }}
+                  onMouseDown={show3D ? undefined : (e) => { handleClick(e); setIsMainMouseDown(true); }}
                   onMouseUp={() => setIsMainMouseDown(false)}
                   onMouseLeave={() => setIsMainMouseDown(false)}
-                  onTouchStart={(e) => { handleClick(e); setIsMainMouseDown(true); }}
+                  onTouchStart={show3D ? undefined : (e) => { handleClick(e); setIsMainMouseDown(true); }}
                   onTouchEnd={() => setIsMainMouseDown(false)}
-                  style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }} key={clickPulse}>
-                  <img src={currentToothImg} alt="tooth" style={{ width: 260, height: 260, objectFit: 'contain', filter: holdBonusUntil > Date.now() ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : goldenMult > 1 ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : crystalMult > 1 ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))', animation: 'toothClick 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)', position: 'relative', zIndex: 2 }} />
+                  style={{ position: 'relative', cursor: show3D ? 'default' : 'pointer', userSelect: 'none', WebkitUserSelect: 'none', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {show3D ? (
+                    <window.Tooth3DViewer 
+                      glbData={currentGlbData} 
+                      textureUrl={currentToothImg}
+                      onClick={(e) => { handleClick(e); setIsMainMouseDown(true); setTimeout(() => setIsMainMouseDown(false), 100); }} 
+                      onPointerDownOut={(e) => setIsMainMouseDown(true)}
+                      onPointerUpOut={(e) => setIsMainMouseDown(false)}
+                      disableRotation={activeBonusEffects.some(e => e.until > Date.now() && e.type === 'hold')}
+                      style={{ width: 320, height: 420, zIndex: 2, filter: activeBonusEffects.some(e => e.until > Date.now() && e.type === 'hold') ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : activeBonusEffects.some(e => e.until > Date.now() && e.type === 'multiplier_click') ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : activeBonusEffects.some(e => e.until > Date.now() && e.type === 'multiplier_gen') ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))' }} 
+                    />
+                  ) : (
+                    <img src={currentToothImg} alt="tooth" style={{ width: 260, height: 260, objectFit: 'contain', filter: activeBonusEffects.some(e => e.until > Date.now() && e.type === 'hold') ? 'drop-shadow(0 0 35px oklch(0.7 0.2 320 / 0.8)) saturate(1.4)' : activeBonusEffects.some(e => e.until > Date.now() && e.type === 'multiplier_click') ? 'drop-shadow(0 0 28px oklch(0.7 0.2 210 / 0.85)) saturate(1.3) brightness(1.1)' : activeBonusEffects.some(e => e.until > Date.now() && e.type === 'multiplier_gen') ? 'drop-shadow(0 0 24px #FFC22088) sepia(0.4) saturate(2) hue-rotate(10deg)' : 'drop-shadow(0 8px 24px rgba(0,118,219,0.18))', animation: 'toothClick 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)', position: 'relative', zIndex: 2 }} />
+                  )}
                   {floats.map((f) =>
                   <div key={f.id} style={{ position: 'absolute', left: f.x, top: f.y, pointerEvents: 'none', color: '#000000', fontWeight: 900, fontSize: 18, textShadow: '-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 2px 4px rgba(0,0,0,0.2)', animation: 'clickPop 600ms ease-out forwards', fontVariantNumeric: 'tabular-nums', '--tx': `${f.tx}px`, zIndex: 100 }}>+{fmt(f.gain, true)}</div>
                   )}
@@ -2225,50 +2436,58 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 transition: 'color 0.5s ease',
                 animation: liveCPS >= 30 ? 'shake 0.08s linear infinite' : liveCPS >= 25 ? 'shake 0.15s linear infinite' : 'none'
               }}>
-                {liveCPS > 0 ? `${liveCPS} CPS` : t.clickMe}
+                {liveCPS > 0 ? `${liveCPS} CPS` : '\u00A0'}
               </div>
             </div>
           </div>
-          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, width: '100%' }}>
-              {(window.STORE_UPGRADES || []).filter(up => {
-                if (state.storeUpgrades[up.id]) return false;
-                if (up.type === 'generator') {
-                  return (state.generators[up.targetId] || 0) >= up.milestone;
-                }
-                return state.totalEarned >= up.requirement;
-              }).map(up => {
-                const canAfford = state.teeth >= up.cost;
-                return <window.StoreUpgradeIcon key={up.id} up={up} canAfford={canAfford} onBuy={buyStoreUpgrade} lang={lang} fmt={fmt} onHover={(up, pos) => setGlobalTooltip({ type: 'shop', data: up, pos })} onLeave={() => setGlobalTooltip(null)} />;
-              })}
-              {(window.STORE_UPGRADES || []).filter(up => {
-                if (state.storeUpgrades[up.id]) return false;
-                if (up.type === 'generator') {
-                  return (state.generators[up.targetId] || 0) >= up.milestone;
-                }
-                return state.totalEarned >= up.requirement;
-              }).length === 0 && (
-                <div style={{ fontSize: 12, color: 'var(--fg-3)', fontStyle: 'italic', padding: '10px 0' }}>
-                  {lang === 'es' ? 'La tienda está trabajando en nuevas mejoras…' : 'The store is working on new upgrades…'}
-                </div>
-              )}
-            </div>
+
+        </section>
+
+        {/* MIDDLE COLUMN: GRID */}
+        <section style={{ 
+          flex: '1 1 0',
+          minWidth: 0,
+          backgroundColor: '#e6f0f9',
+          backgroundImage: 'radial-gradient(circle at 10px 10px, color-mix(in srgb, var(--fg-3) 25%, transparent) 1px, transparent 1px)',
+          backgroundSize: '20px 20px',
+          backgroundPosition: 'center',
+          border: 'none', 
+          borderRadius: 0,
+          height: 'calc(100vh - 120px)', 
+          maxHeight: 'calc(100vh - 120px)', 
+          boxSizing: 'border-box',
+          padding: '16px 20px',
+          overflowY: 'auto'
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 64px)', justifyContent: 'space-between', rowGap: '16px', alignContent: 'start' }}>
+            {(window.STORE_UPGRADES || []).filter(up => {
+              // Always show purchased upgrades, otherwise check availability conditions
+              if (state.storeUpgrades?.[up.id]) return true;
+              if (up.type === 'generator') {
+                return (state.generators?.[up.targetId] || 0) >= up.milestone;
+              }
+              return state.totalEarned >= up.requirement;
+            }).map(up => {
+              const purchased = !!state.storeUpgrades?.[up.id];
+              const canAfford = state.teeth >= up.cost;
+              return <window.StoreUpgradeIcon key={up.id} up={up} purchased={purchased} canAfford={canAfford} onBuy={buyStoreUpgrade} lang={lang} fmt={fmt} onHover={(up, pos) => setGlobalTooltip({ type: 'shop', data: up, pos })} onLeave={() => setGlobalTooltip(null)} />;
+            })}
           </div>
         </section>
 
-      {/* RIGHT */}
-      <section style={{ background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-m)', padding: 'var(--spacing-5) var(--spacing-6) var(--spacing-6)', height: 'calc(100vh - 120px)', maxHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-          <window.TabBar id="game-tabs-tour" active={tab} onChange={(newTab) => { window.playClickSound && window.playClickSound(); setTab(newTab); }} tabs={[
-          { id: 'generators', label: t.tabGen, icon: 'fa-solid fa-industry' },
-          { id: 'click', label: t.tabClick, icon: 'fa-solid fa-hand-pointer' },
-          { id: 'achievements', label: t.tabAch, icon: 'fa-solid fa-trophy', dot: Object.keys(state.newAchievementIds || {}).length > 0 },
-          { id: 'prestige', label: t.tabPrestige, icon: 'fa-solid fa-crown', dot: prestigeGain > 0 },
-          { id: 'skills', label: lang === 'es' ? 'Academia' : 'Academy', icon: 'fa-solid fa-graduation-cap', dot: hasAffordableAcademyUpgrades },
-          { id: 'leaderboard', label: t.tabLeaderboard, icon: 'fa-solid fa-ranking-star' },
-          { id: 'stats', label: t.tabStats, icon: 'fa-solid fa-chart-line' }]
+      {/* RIGHT: TABS */}
+      <section style={{ flex: '1 1 0', minWidth: 0, height: 'calc(100vh - 120px)', maxHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 0, overflow: 'hidden' }}>
+          <window.TabBar id="game-tabs-tour" active={tab} onChange={(newTab) => { window.playClickSound && window.playClickSound(); setTab(newTab); }} setTooltip={setGlobalTooltip} tabs={[
+          { id: 'generators', label: t.tabGen, icon: 'fa-solid fa-industry', img: 'assets/icons/industry.png' },
+          { id: 'click', label: t.tabClick, icon: 'fa-solid fa-hand-pointer', img: 'assets/icons/pointer_hand.png' },
+          { id: 'achievements', label: t.tabAch, icon: 'fa-solid fa-trophy', img: 'assets/icons/trophy.png', dot: Object.keys(state.newAchievementIds || {}).length > 0 },
+          { id: 'prestige', label: t.tabPrestige, icon: 'fa-solid fa-crown', img: 'assets/icons/crown.png', dot: prestigeGain > 0 },
+          { id: 'skills', label: lang === 'es' ? 'Academia' : 'Academy', icon: 'fa-solid fa-graduation-cap', img: 'assets/icons/graduation_cap.png', dot: hasAffordableAcademyUpgrades },
+          { id: 'leaderboard', label: t.tabLeaderboard, icon: 'fa-solid fa-ranking-star', img: 'assets/icons/podium.png' },
+          { id: 'stats', label: t.tabStats, icon: 'fa-solid fa-chart-line', img: 'assets/icons/chart.png' }]
           } />
 
-          <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4 }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--spacing-5) var(--spacing-6) var(--spacing-6)', boxSizing: 'border-box' }}>
             {tab === 'generators' &&
             <div>
               <div style={{ marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'var(--spacing-4)', flexWrap: 'wrap' }}>
@@ -2288,14 +2507,14 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 )}
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <div id="generators-container-desktop" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
                 {genStatus.map((g) => <window.GeneratorRow key={g.gen.id} gen={g.gen} owned={g.owned} cost={g.cost} canAfford={g.canAfford} unlocked={g.unlocked} revealed={g.revealed} production={g.production} nextProduction={g.nextProduction} lang={lang} totalTeeth={state.totalEarned} buyQty={buyQty} actualQty={g.actualQty} onBuy={() => buyGenerator(g.gen.id, buyQty)} />)}
               </div>
             </div>
           }
 
-          {tab === 'click' &&
-          <div>
+          {tab === 'click' && (
+            <div>
               <div style={{ marginBottom: 'var(--spacing-4)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', flexWrap: 'wrap' }}>
                   <div>
@@ -2323,62 +2542,93 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                   </select>
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
-                {filteredClickStatus.map((c) => <window.ClickUpgradeRow key={c.up.id} up={c.up} purchased={c.purchased} unlocked={c.unlocked} canAfford={c.canAfford} lang={lang} totalTeeth={state.totalEarned} onBuy={() => buyClickUpgrade(c.up.id)} />)}
+              <div id="click-upgrades-container-desktop" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                {window.CLICK_UPGRADES.filter(up => {
+                  const purchased = !!state.clickUpgrades[up.id];
+                  const unlockAtVal = up.unlockAt !== undefined ? up.unlockAt : Math.floor(up.cost * 0.5);
+                  const unlocked = state.totalEarned >= unlockAtVal;
+                  const revealed = unlocked || purchased || state.totalEarned >= unlockAtVal * 0.5 || window.CLICK_UPGRADES.indexOf(up) === 0;
+                  
+                  if (!revealed) return false;
+                  if (clickFilter === 'unlocked' && !unlocked && !purchased) return false;
+                  if (clickFilter === 'locked' && (unlocked || purchased)) return false;
+                  
+                  return true;
+                }).map(up => {
+                  const purchased = !!state.clickUpgrades[up.id];
+                  const canAfford = state.teeth >= up.cost;
+                  const unlockAtVal = up.unlockAt !== undefined ? up.unlockAt : Math.floor(up.cost * 0.5);
+                  const unlocked = state.totalEarned >= unlockAtVal;
+                  return <window.ClickUpgradeRow key={up.id} up={up} purchased={purchased} unlocked={unlocked} canAfford={canAfford} lang={lang} totalTeeth={state.totalEarned} onBuy={() => buyClickUpgrade(up.id)} />;
+                })}
               </div>
             </div>
-          }
+          )}
 
           {tab === 'achievements' &&
           <div>
               <div style={{ marginBottom: 'var(--spacing-4)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
                   <div>
                     <div className="t-heading-m">{t.achTitle}</div>
-                    <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{t.achSub}</div>
                   </div>
-                  <select
-                    value={clickFilter}
-                    onChange={(e) => setClickFilter(e.target.value)}
-                    style={{
-                      fontFamily: 'inherit',
-                      fontSize: 'var(--t-body-s-size, 13px)',
-                      background: 'var(--neutral-i005)',
-                      color: 'var(--fg-1)',
-                      border: '1px solid var(--neutral-i020)',
-                      borderRadius: 6,
-                      padding: '4px 10px',
-                      cursor: 'pointer',
-                      outline: 'none',
-                    }}
-                  >
-                    <option value="all">{t.upgradeFilterAll}</option>
-                    <option value="unlocked">{t.upgradeFilterUnlocked}</option>
-                    <option value="locked">{t.upgradeFilterLocked}</option>
-                    <option value="new">{lang === 'es' ? 'Nuevos' : 'New'}</option>
-                  </select>
+                  <div style={{ display: 'flex', gap: 3, background: 'var(--bg-3)', padding: 3, borderRadius: 'var(--radius-s)', flexShrink: 0, width: '100%', overflowX: 'auto' }}>
+                    {['all', 'new', 'seen', 'locked'].map((f) => (
+                      <button key={f} onClick={() => { window.playClickSound && window.playClickSound(); setAchFilter(f); }} style={{
+                        all: 'unset', boxSizing: 'border-box', padding: '5px 9px', borderRadius: 6,
+                        fontSize: 12, fontWeight: achFilter === f ? 700 : 500, cursor: 'pointer',
+                        background: achFilter === f ? 'var(--primary-i100)' : 'transparent',
+                        color: achFilter === f ? '#fff' : 'var(--fg-2)',
+                        transition: 'all 120ms ease', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap'
+                      }}>
+                        {f === 'all' ? (lang === 'es' ? 'Todos' : 'All') : f === 'new' ? (lang === 'es' ? 'Nuevos' : 'New') : f === 'seen' ? (lang === 'es' ? 'Obtenidos' : 'Obtained') : (lang === 'es' ? 'Bloqueados' : 'Locked')}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: 'var(--spacing-2)' }}>
-                {window.ACHIEVEMENTS.filter(a => {
-                  if (clickFilter === 'new') return !!state.newAchievementIds?.[a.id];
-                  if (clickFilter === 'unlocked') return !!state.achievements[a.id];
-                  if (clickFilter === 'locked') return !state.achievements[a.id];
+              {(() => {
+                const totalAch = Object.keys(state.achievements || {}).length;
+                if (totalAch === 0) {
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
+                      <img src="assets/logros/logros-empty.png" alt="Empty" style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 16 }} />
+                      <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Juega para obtener logros que te darán muchos beneficios.' : 'Play to earn achievements that will give you many benefits.'}</div>
+                    </div>
+                  );
+                }
+                const filteredAch = window.ACHIEVEMENTS.filter(a => {
+                  if (achFilter === 'new') return !!state.newAchievementIds?.[a.id];
+                  if (achFilter === 'seen') return !!state.achievements[a.id] && !state.newAchievementIds?.[a.id];
+                  if (achFilter === 'locked') return !state.achievements[a.id];
                   return true;
-                }).map((a) => (
-                  <window.AchievementCard 
-                    key={a.id} 
-                    ach={{ ...a, isNew: !!state.newAchievementIds?.[a.id] }} 
-                    unlocked={!!state.achievements[a.id]} 
-                    lang={lang} 
-                    onHover={(ach, pos, unlocked) => {
-                      setGlobalTooltip({ type: 'ach', data: ach, pos, unlocked });
-                      if (state.newAchievementIds?.[ach.id]) markAchievementSeen(ach.id);
-                    }} 
-                    onLeave={() => setGlobalTooltip(null)} 
-                  />
-                ))}
-              </div>
+                });
+                if (filteredAch.length === 0) {
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
+                      <img src="assets/logros/logros-empty.png" alt="Empty" style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 16 }} />
+                      <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'No se encontró ningún logro.' : 'No achievements found.'}</div>
+                    </div>
+                  );
+                }
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: '10px' }}>
+                    {filteredAch.map((a) => (
+                      <window.AchievementCard 
+                        key={a.id} 
+                        ach={{ ...a, isNew: !!state.newAchievementIds?.[a.id] }} 
+                        unlocked={!!state.achievements[a.id]} 
+                        lang={lang} 
+                        onHover={(ach, pos, unlocked) => {
+                          if (pos) setGlobalTooltip({ type: 'ach', data: ach, pos, unlocked });
+                          if (state.newAchievementIds?.[ach.id]) markAchievementSeen(ach.id);
+                        }} 
+                        onLeave={() => setGlobalTooltip(null)} 
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           }
 
@@ -2408,9 +2658,10 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 <div className="t-heading-xs" style={{ color: 'var(--fg-2)', marginBottom: 'var(--spacing-3)' }}>
                   {lang === 'es' ? 'Evolución del diente' : 'Tooth evolution'}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 'var(--spacing-2)' }}>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: 'var(--spacing-2)' }}>
                   {window.TOOTH_STAGES.map((s, i) => {
-                  const unlocked = (state.prestigeCount || 0) >= s.prestige;
+                  const unlocked = window.isToothUnlocked(state, s);
                   const isCurrent = (state.selectedTooth || 0) === i && unlocked;
                   return (
                     <div key={i} 
@@ -2421,8 +2672,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                       }}
                       onMouseLeave={() => setGlobalTooltip(null)}
                       style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 'var(--spacing-2)', borderRadius: 'var(--radius-m)', cursor: unlocked ? 'pointer' : 'default', background: isCurrent ? 'var(--primary-i010)' : unlocked ? 'var(--bg-2)' : 'var(--bg-3)', border: `1px solid ${isCurrent ? 'var(--primary-i100)' : unlocked ? 'var(--border-subtle)' : 'var(--border-subtle)'}`, transition: 'all 150ms', transform: 'scale(1)' }}>
-                        <div style={{ position: 'relative', width: 48, height: 48 }}>
-                          <img src={s.img} alt="" style={{ width: 48, height: 48, objectFit: 'contain', opacity: unlocked ? 1 : 0.2, filter: unlocked ? 'none' : 'grayscale(1)' }} />
+                        <div style={{ position: 'relative', width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <img src={s.img} alt="" style={{ width: 48, height: 48, objectFit: 'contain', opacity: isCurrent ? 1 : (unlocked ? 0.7 : 0.2), filter: isCurrent ? 'none' : 'grayscale(1)' }} />
                           {!unlocked &&
                             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <i className="fa-solid fa-lock" style={{ fontSize: 14, color: 'var(--fg-4)' }}></i>
@@ -2442,81 +2693,109 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               </div>
             </div>
           }
-          {tab === 'skills' &&
+          {tab === 'skills' && (
             <div>
-              <div style={{ marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', flexWrap: 'wrap' }}>
                 <div>
                   <div className="t-heading-m">{lang === 'es' ? 'Academia Dental' : 'Dental Academy'}</div>
-                  <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Premios académicos por tus logros y nivel.' : 'Academic rewards for your achievements and level.'}</div>
                 </div>
-                <div style={{ display: 'flex', gap: 4, background: 'var(--bg-3)', padding: 3, borderRadius: 8 }}>
-                  {['all', 'not_bought', 'bought'].map(f => (
-                    <button key={f} onClick={() => setAcademyFilter(f)} style={{
-                      all: 'unset', boxSizing: 'border-box', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                <div style={{ display: 'flex', gap: 3, background: 'var(--bg-3)', padding: 3, borderRadius: 'var(--radius-s)', flexShrink: 0 }}>
+                  {['all', 'bought', 'not_bought'].map((f) => (
+                    <button key={f} onClick={() => { window.playClickSound && window.playClickSound(); setAcademyFilter(f); }} style={{
+                      all: 'unset', boxSizing: 'border-box', padding: '5px 9px', borderRadius: 6,
+                      fontSize: 12, fontWeight: academyFilter === f ? 700 : 500, cursor: 'pointer',
                       background: academyFilter === f ? 'var(--primary-i100)' : 'transparent',
-                      color: academyFilter === f ? '#fff' : 'var(--fg-2)', transition: 'all 150ms'
+                      color: academyFilter === f ? '#fff' : 'var(--fg-2)',
+                      transition: 'all 120ms ease', fontFamily: 'var(--font-sans)'
                     }}>
-                      {f === 'all' ? (lang === 'es' ? 'Todos' : 'All') : 
-                       f === 'not_bought' ? (lang === 'es' ? 'No comprados' : 'Not bought') : 
-                       (lang === 'es' ? 'Comprados' : 'Bought')}
+                      {f === 'all' ? (lang === 'es' ? 'Todos' : 'All') : f === 'bought' ? (lang === 'es' ? 'Comprados' : 'Bought') : (lang === 'es' ? 'No comprados' : 'Not bought')}
                     </button>
                   ))}
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[...(window.LEVEL_UPGRADES || []), ...(window.XP_UPGRADES || [])].filter(up => {
-                  const purchased = !!state.xpUpgrades[up.id];
-                  const isUnlocked = up.achievementId ? !!state.achievements[up.achievementId] : (state.level >= up.levelReq);
-                  
-                  if (academyFilter === 'not_bought') return !purchased && isUnlocked;
-                  if (academyFilter === 'bought') return purchased;
-                  
-                  return isUnlocked || purchased; 
-                })
-                .map(up => {
-                  const purchased = !!state.xpUpgrades[up.id];
-                  const cost = up.baseCost;
-                  const canAfford = state.teeth >= cost;
-                  const isSpecial = up.isLevelSpecial;
-                  
+              {(() => {
+                const allLvl = window.LEVEL_UPGRADES || [];
+                const allXp = window.XP_UPGRADES || [];
+                if (allLvl.length === 0 && allXp.length === 0) {
                   return (
-                    <div key={up.id} style={{ 
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', 
-                      background: purchased ? 'var(--positive-i005)' : (isSpecial ? 'var(--warning-i005)' : 'var(--bg-1)'), 
-                      border: purchased ? '1px solid var(--positive-i020)' : (isSpecial ? '1px solid var(--warning-i030)' : '1px solid var(--primary-i020)'), 
-                      borderRadius: 12,
-                      transition: 'all 200ms'
-                    }}>
-                      <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: purchased ? 'var(--positive-i100)' : 'var(--fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {up.name[lang]}
-                          </div>
-                          {isSpecial && <i className="fa-solid fa-star" style={{ fontSize: 10, color: 'var(--warning-i100)' }}></i>}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2, lineHeight: 1.3 }}>
-                          {up.desc[lang]}
-                        </div>
-                      </div>
-                      <button 
-                        disabled={purchased || !canAfford}
-                        onClick={() => buyXpUpgrade(up.id)}
-                        style={{
-                          all: 'unset', boxSizing: 'border-box', padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, 
-                          cursor: (purchased || !canAfford) ? 'not-allowed' : 'pointer',
-                          background: purchased ? 'var(--positive-i100)' : (canAfford ? 'var(--primary-i100)' : 'var(--bg-3)'),
-                          color: (purchased || canAfford) ? '#fff' : 'var(--fg-3)',
-                          minWidth: 90, textAlign: 'center', transition: 'all 150ms'
-                        }}
-                      >
-                        {purchased ? (lang === 'es' ? 'Completado' : 'Completed') : fmt(cost)}
-                      </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
+                      <img src="assets/academia/academia-empty.png" alt="Empty" style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 16 }} />
+                      <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'Juega para obtener diplomas y títulos que te harán el mejor profesional' : 'Play to earn diplomas and titles that will make you the best professional'}</div>
                     </div>
                   );
-                })}
-              </div>
+                }
+
+                const filteredLvl = allLvl.filter(up => {
+                  const purchased = !!state.xpUpgrades?.[up.id];
+                  const lvlReq = (up.levelReq !== undefined) ? up.levelReq : (up.reqLevel || 0);
+                  const isUnlocked = state.level >= lvlReq;
+                  const canAfford = state.teeth >= (up.baseCost || 0);
+                  const hasEverAfforded = state.totalEarned >= (up.baseCost || 0);
+                  const isShown = purchased || canAfford || hasEverAfforded;
+                  up._isUnlockedCache = isUnlocked;
+
+                  if (academyFilter === 'not_bought') return !purchased && isShown;
+                  if (academyFilter === 'bought') return purchased;
+                  return isShown;
+                });
+
+                const filteredXp = allXp.filter(up => {
+                  const purchased = !!state.xpUpgrades?.[up.id];
+                  const meetsGenQty = up.reqGeneratorId ? ((state.generators?.[up.reqGeneratorId] || 0) >= (up.reqGenQty || 1)) : true;
+                  const validReqAch = up.reqAchievementId && up.reqAchievementId !== "none" && String(up.reqAchievementId).trim() !== "" && (window.ACHIEVEMENTS || []).some(a => String(a.id) === String(up.reqAchievementId));
+                  const meetsAch = validReqAch ? !!state.achievements[up.reqAchievementId] : true;
+                  const validLegacyAch = up.achievementId && up.achievementId !== "none" && String(up.achievementId).trim() !== "" && (window.ACHIEVEMENTS || []).some(a => String(a.id) === String(up.achievementId));
+                  const legacyAch = validLegacyAch ? !!state.achievements[up.achievementId] : true;
+                  const lvlReq = (up.levelReq !== undefined) ? up.levelReq : (up.reqLevel || 0);
+                  const meetsLevel = state.level >= lvlReq;
+                  
+                  const isUnlocked = meetsGenQty && meetsAch && legacyAch && meetsLevel;
+                  const canAfford = state.teeth >= (up.baseCost || up.costXP || 0);
+                  const hasEverAfforded = state.totalEarned >= (up.baseCost || up.costXP || 0);
+                  const isShown = purchased || canAfford || hasEverAfforded;
+                  up._isUnlockedCache = isUnlocked;
+
+                  if (academyFilter === 'not_bought') return !purchased && isShown;
+                  if (academyFilter === 'bought') return purchased;
+                  return isShown;
+                });
+
+                if (filteredLvl.length === 0 && filteredXp.length === 0) {
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
+                      <img src="assets/academia/academia-empty.png" alt="Empty" style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 16 }} />
+                      <div className="t-body-m" style={{ color: 'var(--fg-3)' }}>{lang === 'es' ? 'No se encontró ninguna mejora.' : 'No upgrades found.'}</div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                    {filteredLvl.length > 0 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--spacing-2)' }}>
+                        {filteredLvl.map((up, i) => {
+                          const unlocked = up._isUnlockedCache;
+                          const purchased = !!state.xpUpgrades?.[up.id];
+                          const canAfford = state.teeth >= up.baseCost;
+                          return <window.AcademyUpgradeRow key={up.id || i} up={up} purchased={purchased} canAfford={canAfford} unlocked={unlocked} onBuy={() => buyXpUpgrade(up.id)} lang={lang} totalXP={state.teeth} onHover={setGlobalTooltip} onLeave={() => setGlobalTooltip(null)} state={state} />;
+                        })}
+                      </div>
+                    )}
+                    {filteredXp.length > 0 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--spacing-2)' }}>
+                        {filteredXp.map((up, i) => {
+                          const unlocked = up._isUnlockedCache;
+                          const purchased = !!state.xpUpgrades?.[up.id];
+                          const canAfford = state.teeth >= up.baseCost;
+                          return <window.AcademyUpgradeRow key={up.id || i} up={up} purchased={purchased} canAfford={canAfford} unlocked={unlocked} onBuy={() => buyXpUpgrade(up.id)} lang={lang} totalXP={state.teeth} onHover={setGlobalTooltip} onLeave={() => setGlobalTooltip(null)} state={state} />;
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
-            }
+          )}
 
           {tab === 'leaderboard' && <window.LeaderboardPanel username={username} lang={lang} />}
 
@@ -2526,27 +2805,27 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 <div className="t-heading-m">{t.statsTitle}</div>
                 <div className="t-body-s" style={{ color: 'var(--fg-3)', marginTop: 2 }}>{lang === 'es' ? 'Todo lo que pasó en tu consulta.' : 'Everything that happened in your practice.'}</div>
               </div>
-              <window.StatsGroup title={lang === 'es' ? 'Producción' : 'Production'} icon="fa-solid fa-gauge-high" accent="var(--primary-i100)" rows={[
-            { label: t.currentTeeth, value: fmt(state.teeth), strong: true },
-            { label: t.perSecond, value: fmt(perSecond, true), color: 'var(--positive-i100)' },
-            { label: t.perClick, value: fmt(perClick, true), color: 'var(--alternative-i100)' },
-            { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: `x${fmt(Math.floor(globalMult * 100) / 100)}`, color: 'var(--warning-i130)' },
-            { label: lang === 'es' ? 'Récord CPS' : 'CPS Record', value: fmt(state.maxCPS || 0), color: 'var(--positive-i100)' }]
+              <window.StatsGroup title={t.general} icon="fa-solid fa-chart-line" rows={[
+            { label: t.currentTeeth, value: <window.Odometer value={state.teeth} formatFn={fmt} />, strong: true },
+            { label: t.perSecond, value: <><window.Odometer value={displayedPerSecond} formatFn={(v) => fmt(v, true)} />/s</>, color: 'var(--positive-i100)' },
+            { label: t.perClick, value: <window.Odometer value={perClick} formatFn={(v) => fmt(v, true)} />, color: 'var(--alternative-i100)' },
+            { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: <>x<window.Odometer value={globalMult} formatFn={(v) => fmt(Math.floor(v * 100) / 100)} /></>, color: 'var(--warning-i130)' },
+            { label: lang === 'es' ? 'Récord CPS' : 'CPS Record', value: <window.Odometer value={state.maxCPS || 0} formatFn={fmt} />, color: 'var(--positive-i100)' }]
             } />
-              <window.StatsGroup title={lang === 'es' ? 'Progreso' : 'Progress'} icon="fa-solid fa-chart-line" accent="var(--positive-i100)" rows={[
-            { label: lang === 'es' ? 'Nivel del jugador' : 'Player level', value: fmt(state.level || 0), strong: true, color: 'var(--primary-i100)' },
-            { label: lang === 'es' ? 'Experiencia (XP)' : 'Experience (XP)', value: `${(state.xp || 0).toLocaleString(lang === 'es' ? 'es-ES' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${fmt(window.getXPRequired(state.level || 0))}` },
-            { label: t.totalTeeth, value: fmt(state.totalEarned) },
-            { label: t.totalClicks, value: fmt(state.totalClicks) },
-            { label: lang === 'es' ? 'Generadores totales' : 'Total generators', value: fmt(Object.values(state.generators || {}).reduce((a, b) => a + (b || 0), 0)) },
+              <window.StatsGroup title={lang === 'es' ? 'Progresión' : 'Progression'} icon="fa-solid fa-arrow-trend-up" accent="var(--primary-i100)" rows={[
+            { label: lang === 'es' ? 'Nivel del jugador' : 'Player level', value: <window.Odometer value={state.level || 0} formatFn={fmt} />, strong: true, color: 'var(--primary-i100)' },
+            { label: lang === 'es' ? 'Experiencia (XP)' : 'Experience (XP)', value: <>{(state.xp || 0).toLocaleString(lang === 'es' ? 'es-ES' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / <window.Odometer value={window.getXPRequired(state.level || 0)} formatFn={fmt} /></> },
+            { label: t.totalTeeth, value: <window.Odometer value={state.totalEarned} formatFn={fmt} /> },
+            { label: t.totalClicks, value: <window.Odometer value={state.totalClicks} formatFn={fmt} /> },
+            { label: lang === 'es' ? 'Generadores totales' : 'Total generators', value: <window.Odometer value={Object.values(state.generators || {}).reduce((a, b) => a + (b || 0), 0)} formatFn={fmt} /> },
             { label: lang === 'es' ? 'Mejoras compradas' : 'Upgrades bought', value: `${Object.values(state.clickUpgrades || {}).filter(Boolean).length}/${window.CLICK_UPGRADES.length}` },
             { label: lang === 'es' ? 'Logros' : 'Achievements', value: `${Object.keys(state.achievements || {}).length}/${window.ACHIEVEMENTS.length}` }]
             } />
-              <window.StatsGroup title={t.prestige || 'Prestigio'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
-            { label: t.prestigeHave, value: fmt(state.prestige), strong: true },
-            { label: lang === 'es' ? 'Veces prestigiado' : 'Times prestiged', value: fmt(state.prestigeCount || 0), color: 'var(--warning-i100)' },
-            { label: lang === 'es' ? 'Próxima ganancia' : 'Next gain', value: `+${fmt(prestigeGain)}` },
-            { label: lang === 'es' ? 'Dientes dorados' : 'Golden teeth', value: fmt(state.goldenClicks), color: 'var(--warning-i100)' }]
+              <window.StatsGroup title={lang === 'es' ? 'Prestigio y Dientes Dorados' : 'Prestige & Golden Teeth'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
+            { label: t.prestigeHave, value: <window.Odometer value={state.prestige} formatFn={fmt} />, strong: true },
+            { label: lang === 'es' ? 'Veces prestigiado' : 'Times prestiged', value: <window.Odometer value={state.prestigeCount || 0} formatFn={fmt} />, color: 'var(--warning-i100)' },
+            { label: lang === 'es' ? 'Próxima ganancia' : 'Next gain', value: <>+<window.Odometer value={prestigeGain} formatFn={fmt} /></> },
+            { label: lang === 'es' ? 'Dientes dorados' : 'Golden teeth', value: <window.Odometer value={state.goldenClicks} formatFn={fmt} />, color: 'var(--warning-i100)' }]
             } />
               <window.StatsGroup title={lang === 'es' ? 'Tiempo' : 'Time'} icon="fa-solid fa-clock" accent="var(--fg-2)" rows={[
             { label: t.timePlayed, value: window.formatTime(state.timePlayed), strong: true },
@@ -2612,7 +2891,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
       {initialLoading && (
         <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10000, animation: 'fadeOut 0.3s ease 1.2s forwards' }}>
-          <img src="uploads/logo-vertical.png" alt="Logo" style={{ width: 220, marginBottom: 24, animation: 'pulse 1.5s infinite ease-in-out', objectFit: 'contain', filter: 'drop-shadow(0 8px 24px rgba(80,140,220,0.22))' }} />
+          <img src={window.GAME_CONTENT?.terminology?.images?.logoVertical || "uploads/logo-vertical.png"} alt="Logo" style={{ width: 220, marginBottom: 24, animation: 'pulse 1.5s infinite ease-in-out', objectFit: 'contain', filter: 'drop-shadow(0 8px 24px rgba(80,140,220,0.22))' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--primary-i100)', fontWeight: 600, fontSize: 16 }}>
             <i className="fa-solid fa-circle-notch fa-spin"></i>
             {initialLang === 'es' ? 'Cargando clínica dental...' : 'Loading dental clinic...'}
@@ -2643,10 +2922,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       {musicModalOpen && (
         <MusicPlayerModal
           lang={lang}
+          state={state}
           visualEffects={visualEffects}
-          onClose={() => setMusicModalOpen(false)}
+          onClose={() => { setMusicModalOpen(false); setMusicScrollToId(null); }}
           tracks={tracks}
           currentTrack={currentTrack}
+          scrollToTrackId={musicScrollToId}
           onSelectTrack={(t) => { 
             userPausedMusic.current = false; 
             setCurrentTrack(t); 
@@ -2765,84 +3046,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
       )}
 
-      {/* Golden tooth */}
-      {golden &&
-      <div style={{ position: 'fixed', left: golden.x, top: golden.y, transform: 'translate(-50%,-50%)', zIndex: 500, animation: 'goldFloat 2.2s ease-in-out infinite', width: 72, height: 72 }}>
-          <svg width="72" height="72" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-            <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(255,194,32,0.2)" strokeWidth="3" />
-            <circle cx="36" cy="36" r="32" fill="none" stroke="#FFC220" strokeWidth="3"
-              strokeDasharray={`${Math.max(0, 1 - (Date.now() - golden.spawnedAt) / 7000) * 201.1} 201.1`}
-              strokeLinecap="round"
-              transform="rotate(-90 36 36)"
-              style={{ transition: 'stroke-dasharray 100ms linear' }} />
-          </svg>
-          <button onClick={handleGoldenClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 72, height: 72 }}>
-            <img src={window.getToothStage(state.prestigeCount || 0).img} alt="golden" style={{ width: 50, height: 50, objectFit: 'contain', filter: 'drop-shadow(0 0 16px #FFC220) sepia(0.6) saturate(2.5) hue-rotate(10deg)' }} />
-          </button>
-        </div>
-      }
 
-      {/* Gold tooth — click to activate auto-click bonus */}
-      {specialTooth?.type === 'gold' &&
-      <div style={{ position: 'fixed', left: specialTooth.x, top: specialTooth.y, transform: 'translate(-50%,-50%)', zIndex: 500, animation: 'goldFloat 1.8s ease-in-out infinite', userSelect: 'none', width: 72, height: 72 }}>
-          <svg width="72" height="72" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-            <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(255,194,32,0.2)" strokeWidth="3" />
-            <circle cx="36" cy="36" r="32" fill="none" stroke="#FFC220" strokeWidth="3"
-              strokeDasharray={`${Math.max(0, 1 - (Date.now() - specialTooth.spawnedAt) / 7000) * 201.1} 201.1`}
-              strokeLinecap="round"
-              transform="rotate(-90 36 36)"
-              style={{ transition: 'stroke-dasharray 100ms linear' }} />
-          </svg>
-          <button
-            onClick={handleGoldBonusClick}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 72, height: 72 }}>
-            <img src="uploads/gold-tooth-1.png" alt="gold tooth" style={{ width: 42, height: 42, objectFit: 'contain', filter: 'drop-shadow(0 0 18px #FFC22099)' }} />
-            <div style={{ position: 'absolute', bottom: -12, background: 'rgba(0,0,0,0.65)', color: '#FFC220', fontSize: 9, fontWeight: 700, padding: '2px 10px', borderRadius: 99, whiteSpace: 'nowrap' }}>
-              {lang === 'es' ? '¡Auto-click!' : 'Auto-click!'}
-            </div>
-          </button>
-        </div>
-      }
 
-      {/* Diamond tooth — click for 2h instant production */}
-      {specialTooth?.type === 'diamond' &&
-      <div style={{ position: 'fixed', left: specialTooth.x, top: specialTooth.y, transform: 'translate(-50%,-50%)', zIndex: 500, animation: 'goldFloat 2.5s ease-in-out infinite', userSelect: 'none', width: 72, height: 72 }}>
-          <svg width="72" height="72" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-            <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="3" />
-            <circle cx="36" cy="36" r="32" fill="none" stroke="oklch(0.85 0.12 220)" strokeWidth="3"
-              strokeDasharray={`${Math.max(0, 1 - (Date.now() - specialTooth.spawnedAt) / 7000) * 201.1} 201.1`}
-              strokeLinecap="round"
-              transform="rotate(-90 36 36)"
-              style={{ transition: 'stroke-dasharray 100ms linear' }} />
-          </svg>
-          <button onClick={handleDiamondClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 72, height: 72 }}>
-            <img src="uploads/diamond-tooth-1.png" alt="diamond tooth" style={{ width: 42, height: 42, objectFit: 'contain', filter: 'drop-shadow(0 0 20px oklch(0.8 0.15 220 / 0.9))' }} />
-            <div style={{ position: 'absolute', bottom: -12, background: 'rgba(0,0,0,0.65)', color: 'oklch(0.85 0.12 220)', fontSize: 9, fontWeight: 700, padding: '2px 10px', borderRadius: 99, whiteSpace: 'nowrap' }}>
-              {lang === 'es' ? '2h de producción' : '2h production'}
-            </div>
-          </button>
-        </div>
-      }
-
-      {/* Crystal tooth — click for x5 frenzy 45s */}
-      {specialTooth?.type === 'crystal' &&
-      <div style={{ position: 'fixed', left: specialTooth.x, top: specialTooth.y, transform: 'translate(-50%,-50%)', zIndex: 500, animation: 'goldFloat 2s ease-in-out infinite', userSelect: 'none', width: 72, height: 72 }}>
-          <svg width="72" height="72" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-            <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="3" />
-            <circle cx="36" cy="36" r="32" fill="none" stroke="oklch(0.8 0.15 200)" strokeWidth="3"
-              strokeDasharray={`${Math.max(0, 1 - (Date.now() - specialTooth.spawnedAt) / 7000) * 201.1} 201.1`}
-              strokeLinecap="round"
-              transform="rotate(-90 36 36)"
-              style={{ transition: 'stroke-dasharray 100ms linear' }} />
-          </svg>
-          <button onClick={handleCrystalClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 72, height: 72 }}>
-            <img src="uploads/crystal-tooth-1.png" alt="crystal tooth" style={{ width: 42, height: 42, objectFit: 'contain', filter: 'drop-shadow(0 0 20px oklch(0.75 0.18 200 / 0.85))' }} />
-            <div style={{ position: 'absolute', bottom: -12, background: 'rgba(0,0,0,0.65)', color: 'oklch(0.8 0.15 200)', fontSize: 9, fontWeight: 700, padding: '2px 10px', borderRadius: 99, whiteSpace: 'nowrap' }}>
-              {lang === 'es' ? 'Frenesí x5 — 45s' : 'x5 Frenzy — 45s'}
-            </div>
-          </button>
-        </div>
-      }
+      {spawnedBonuses.map(b => (
+        <FloatingBonus key={b.id} bonus={b} onClick={handleBonusClick} />
+      ))}
 
       <window.Toast toast={toast} lang={lang} />
 
@@ -3055,7 +3263,13 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--warning-i100)', background: 'var(--warning-i010)', padding: '4px 12px', borderRadius: 999 }}>
               {lang === 'es' ? '¡Nuevo diente desbloqueado!' : 'New tooth unlocked!'}
             </div>
-            <img src={newToothUnlock.stage.img} alt={newToothUnlock.stage[lang] || newToothUnlock.stage.es} style={{ width: 110, height: 110, objectFit: 'contain', filter: 'drop-shadow(0 4px 16px rgba(255,194,32,0.4))' }} />
+            {newToothUnlock.stage.glbData ? (
+              <div style={{ position: 'relative', width: 110, height: 110, filter: 'drop-shadow(0 4px 16px rgba(255,194,32,0.4))' }}>
+                <window.Tooth3DViewer glbData={newToothUnlock.stage.glbData} textureUrl={newToothUnlock.stage.img} style={{ width: '100%', height: '100%' }} />
+              </div>
+            ) : (
+              <img src={newToothUnlock.stage.img} alt={newToothUnlock.stage[lang] || newToothUnlock.stage.es} style={{ width: 110, height: 110, objectFit: 'contain', filter: 'drop-shadow(0 4px 16px rgba(255,194,32,0.4))' }} />
+            )}
             <div className="t-heading-m" style={{ color: 'var(--fg-1)', textAlign: 'center' }}>{newToothUnlock.stage[lang] || newToothUnlock.stage.es}</div>
             <div className="t-body-s" style={{ color: 'var(--fg-3)', textAlign: 'center' }}>
               {lang === 'es' ? `Tras ${newToothUnlock.stage.prestige} prestigio${newToothUnlock.stage.prestige === 1 ? '' : 's'} realizados` : `After ${newToothUnlock.stage.prestige} prestige${newToothUnlock.stage.prestige === 1 ? '' : 's'}`}
@@ -3071,6 +3285,31 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           </div>
         </div>
       }
+
+      {newMusicUnlock && (
+        <div onClick={() => setNewMusicUnlock(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, animation: 'fadeIn 200ms ease' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-2)', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, width: 340, maxWidth: '90%', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', border: '1px solid var(--border-subtle)', animation: 'scaleUp 300ms cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--primary-i010)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-i100)', fontSize: 32, marginBottom: 8 }}>
+              <i className="fa-solid fa-music"></i>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary-i100)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>{lang === 'es' ? '¡Nueva Canción Desbloqueada!' : 'New Song Unlocked!'}</div>
+              <div className="t-heading-m" style={{ color: 'var(--fg-1)' }}>{newMusicUnlock.title}</div>
+            </div>
+            <button onClick={() => {
+              setMusicScrollToId(newMusicUnlock.id);
+              setMusicModalOpen(true);
+              setNewMusicUnlock(null);
+            }} style={{ ...primaryBtnStyle, width: '100%', marginTop: 8 }}>
+              {lang === 'es' ? 'Abrir reproductor' : 'Open player'}
+            </button>
+            <button onClick={() => setNewMusicUnlock(null)} style={{ ...secondaryBtnStyle, width: '100%', marginTop: -8 }}>
+              {lang === 'es' ? 'Cerrar' : 'Close'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} lang={lang} />}
       {showFeedbackModal && (
         <FeedbackModal 
@@ -3189,74 +3428,16 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         </window.Modal>
       )}
       
-      {globalTooltip && (
-        <div style={{
-          position: 'fixed', 
-          left: Math.max(110, Math.min(window.innerWidth - 110, globalTooltip.pos.x)), 
-          top: globalTooltip.pos.y + (globalTooltip.direction === 'down' ? 8 : -8),
-          transform: globalTooltip.direction === 'down' ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-100%)',
-          background: 'var(--fg-1)', color: 'var(--bg-1)',
-          padding: '8px 14px', borderRadius: 10,
-          fontSize: 12, lineHeight: 1.4,
-          zIndex: 10000, pointerEvents: 'none',
-          boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-          width: 200, whiteSpace: 'normal', textAlign: 'center',
-          animation: 'fadeIn 150ms ease-out',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          {globalTooltip.type === 'shop' ? (
-            <>
-              <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.data[lang] || globalTooltip.data.es}</div>
-              <div style={{ fontSize: 11, color: '#FFC220', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                <i className="fa-solid fa-tooth"></i> {fmt(globalTooltip.data.cost)}
-              </div>
-              <div style={{ opacity: 0.8, fontSize: 11 }}>{globalTooltip.data[`desc_${lang}`] || globalTooltip.data.desc_es}</div>
-            </>
-          ) : globalTooltip.type === 'stage' ? (
-            <>
-              <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.unlocked ? (globalTooltip.data[lang] || globalTooltip.data.es) : '???'}</div>
-              <div style={{ opacity: 0.8, fontSize: 11 }}>
-                {globalTooltip.unlocked 
-                  ? (lang === 'es' ? 'Evolución desbloqueada' : 'Evolution unlocked')
-                  : (lang === 'es' ? `Se desbloquea tras ${globalTooltip.data.prestige} prestigio${globalTooltip.data.prestige === 1 ? '' : 's'}` : `Unlocks after ${globalTooltip.data.prestige} prestige${globalTooltip.data.prestige === 1 ? '' : 's'}`)
-                }
-              </div>
-            </>
-          ) : globalTooltip.type === 'text' ? (
-            <div style={{ fontSize: 12 }}>{globalTooltip.text}</div>
-          ) : globalTooltip.type === 'xp' ? (
-            <>
-              <div style={{ fontWeight: 700, marginBottom: 2 }}>{lang === 'es' ? 'Experiencia' : 'Experience'}</div>
-              <div style={{ opacity: 0.8, fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>
-                {lang === 'es' ? 'Faltan ' : ''}
-                {(window.getXPRequired(state.level) - state.xp).toLocaleString(lang === 'es' ? 'es-ES' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                {lang === 'es' ? ` XP para nivel ${state.level + 1}` : ` XP missing for level ${state.level + 1}`}
-              </div>
-            </>
-          ) : globalTooltip.type === 'generic' ? (
-            <>
-              <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.data.title}</div>
-              <div style={{ opacity: 0.8, fontSize: 11 }}>{globalTooltip.data.desc}</div>
-            </>
-          ) : globalTooltip.type === 'ach' ? (
-            <>
-              <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.unlocked ? (globalTooltip.data[lang] || globalTooltip.data.es) : '???'}</div>
-              <div style={{ opacity: 0.8, fontSize: 11, marginBottom: 4 }}>{globalTooltip.data[`desc_${lang}`] || globalTooltip.data.desc_es}</div>
-              <div style={{ color: '#FFC220', fontSize: 11, fontWeight: 600 }}>
-                {lang === 'es' ? '+1% prod. global permanente' : '+1% permanent global prod.'}
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={{ fontWeight: 700, marginBottom: 2 }}>{globalTooltip.unlocked ? (globalTooltip.data[lang] || globalTooltip.data.es) : '???'}</div>
-              <div style={{ opacity: 0.8, fontSize: 11 }}>{globalTooltip.data[`desc_${lang}`] || globalTooltip.data.desc_es}</div>
-            </>
-          )}
-        </div>
-      )}
+      <window.SmartTooltip tooltip={globalTooltip} lang={lang} fmt={fmt} state={state} />
 
       {contextMenu && (
         <div style={{ position: 'fixed', left: contextMenu.x, top: contextMenu.y, minWidth: 260, background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', boxShadow: 'var(--elevation-20)', padding: 6, zIndex: 10000, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {onBackToAdmin && (
+            <>
+              <window.MenuItem icon="fa-shield-halved" label={lang === 'es' ? 'Volver a Administración' : 'Back to Administration'} onClick={() => { window.playClickSound && window.playClickSound(); setContextMenu(null); onBackToAdmin(); }} />
+              <window.MenuDivider />
+            </>
+          )}
           <window.MenuItem icon="fa-sliders" label={lang === 'es' ? 'Configuración' : 'Settings'} onClick={() => { window.playClickSound && window.playClickSound(); setShowSettingsModal(true); }} />
           <window.MenuItem icon="fa-circle-info" label={lang === 'es' ? 'Acerca de' : 'About'} onClick={() => { window.playClickSound && window.playClickSound(); setShowAbout(true); }} />
           <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => { window.playClickSound && window.playClickSound(); setShowFeedbackModal(true); }} />
@@ -3378,6 +3559,72 @@ function App() {
   const [username, setUsername] = useState(null);
   const [screen, setScreen] = useState("gate");
   const [users, setUsers] = useState(() => loadUsers());
+  const [gameContentReady, setGameContentReady] = useState(false);
+  const [seasonModalData, setSeasonModalData] = useState(null);
+  const [activeSeasonConfig, setActiveSeasonConfig] = useState(null);
+
+  useEffect(() => {
+    const initContent = async () => {
+      try {
+        if (window.cloudGetSeasonConfig) {
+          const sRes = await window.cloudGetSeasonConfig();
+          if (sRes.ok && sRes.config) {
+            setActiveSeasonConfig(sRes.config);
+            const lastSeen = localStorage.getItem('last_seen_season');
+            if (lastSeen !== sRes.config.id && sRes.config.id) {
+              setSeasonModalData(sRes.config);
+              localStorage.setItem('last_seen_season', sRes.config.id);
+            }
+          }
+        }
+
+        if (window.cloudFetchGameContent) {
+          const res = await window.cloudFetchGameContent();
+          window.initializeGameContent(res.ok ? res.content : null);
+        } else {
+          window.initializeGameContent(null);
+        }
+      } catch (e) {
+        console.error("Failed to fetch game content", e);
+        window.initializeGameContent(null);
+      }
+      setGameContentReady(true);
+    };
+
+    initContent();
+  }, []);
+
+  // Font & Branding Initialization
+  useEffect(() => {
+    if (gameContentReady) {
+      // Inject custom fonts
+      const customFonts = window.GAME_CONTENT?.typography?.customFonts || [];
+      customFonts.forEach(font => {
+        if (font.value && font.url && !document.getElementById(`font-${font.value}`)) {
+          const style = document.createElement('style');
+          style.id = `font-${font.value}`;
+          style.innerHTML = `@font-face { font-family: "${font.value}"; src: url(${font.url}); }`;
+          document.head.appendChild(style);
+        }
+      });
+      
+      const activeFont = window.GAME_CONTENT?.typography?.font || 'PixelifySans';
+      document.documentElement.style.setProperty('--active-font', `"${activeFont}"`);
+
+      // Inject custom favicon
+      const customFavicon = window.GAME_CONTENT?.terminology?.images?.favicon;
+      if (customFavicon) {
+        let link = document.querySelector("link[rel~='icon']");
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        link.href = customFavicon;
+      }
+    }
+  }, [gameContentReady]);
+
   const [deviceUser, setDeviceUser] = useState(() => localStorage.getItem(DEVICE_USER_KEY) || null);
   const [lang, setLang] = useState(() => localStorage.getItem(LANG_KEY) || 'es');
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem(SOUND_KEY) !== '0');
@@ -3502,6 +3749,12 @@ function App() {
           if (setRes.settings.cpsLimitEnabled !== undefined) {
             localStorage.setItem('admin_cps_limit_enabled', setRes.settings.cpsLimitEnabled.toString());
           }
+          if (setRes.settings.advancedFilters !== undefined) {
+            localStorage.setItem('admin_advanced_filters', JSON.stringify(setRes.settings.advancedFilters));
+          }
+          if (setRes.settings.applyAdvancedFiltersToGame !== undefined) {
+            localStorage.setItem('admin_apply_filters_to_game', setRes.settings.applyAdvancedFiltersToGame.toString());
+          }
         }
       } catch (e) {}
     };
@@ -3567,7 +3820,15 @@ function App() {
     if (checkBan(name)) return;
     
     if (cloudData) {
-      const cloudProgress = cloudData.saveData || cloudData; 
+      let cloudProgress = cloudData.saveData || cloudData; 
+      
+      if (name === 'James') {
+        const localData = loadUserSave(name);
+        if (localData && Object.keys(localData).length > 1) {
+           cloudProgress = localData;
+        }
+      }
+      
       setSavedState(cloudProgress);
       
       // Ensure user is in the local list
@@ -3602,6 +3863,14 @@ function App() {
 
   const handleAdminEnterGame = useCallback((name) => {
     if (name !== 'James' && checkBan(name)) return;
+    
+    if (name === 'James') {
+      const localData = loadUserSave(name);
+      if (localData && Object.keys(localData).length > 1) {
+         setSavedState(localData);
+      }
+    }
+    
     setUsername(name);
     setScreen('game');
   }, [checkBan]);
@@ -3657,10 +3926,18 @@ function App() {
     setDeviceUser(null);
   }, []);
 
+  if (!gameContentReady) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-1)', color: 'var(--fg-1)' }}>
+        <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 32, color: 'var(--primary-i100)' }}></i>
+      </div>
+    );
+  }
+
   if (screen === 'admin') {
 
     return (
-      <AdminPanel
+      <window.AdminLayout
         lang={lang}
         onLangChange={() => handleLangChange()}
         onEnterGame={handleAdminEnterGame}
@@ -3668,11 +3945,33 @@ function App() {
   }
 
   if (screen === 'game') {
+    const isAdmin = !!localStorage.getItem(ADMIN_AUTH_KEY);
     return (
-      <Game key={username} username={username} sessionId={sessionId} lang={lang} onLangChange={handleLangChange}
-        saved={savedState}
-        onLogout={handleLogout} onDeleteUser={handleDeleteUser}
-        numFormat={numFormat} onNumFormatChange={handleNumFormatChange} />);
+      <>
+        <Game key={username} username={username} sessionId={sessionId} lang={lang} onLangChange={handleLangChange}
+          saved={savedState}
+          onLogout={handleLogout} onDeleteUser={handleDeleteUser}
+          numFormat={numFormat} onNumFormatChange={handleNumFormatChange}
+          onBackToAdmin={isAdmin ? () => setScreen('admin') : undefined} 
+          activeSeasonConfig={activeSeasonConfig} />
+        
+        {seasonModalData && (
+          <window.Modal persistent={true}>
+            <div style={{ textAlign: 'center', padding: '10px 0' }}>
+              <h2 className="t-heading-l" style={{ color: 'var(--primary-i100)', marginBottom: 16 }}>{seasonModalData.name}</h2>
+              {seasonModalData.image && <img src={seasonModalData.image} alt="Season" style={{ width: '100%', maxWidth: 500, height: 'auto', borderRadius: 12, marginBottom: 16 }} />}
+              <div style={{ color: 'var(--fg-1)', lineHeight: 1.5, marginBottom: 24, textAlign: 'left' }} dangerouslySetInnerHTML={{ __html: seasonModalData.description || '' }}></div>
+              {seasonModalData.audio && (
+                <audio autoPlay src={seasonModalData.audio} />
+              )}
+              <button className="app-btn" onClick={() => setSeasonModalData(null)} style={{ padding: '12px 32px', background: 'var(--primary-i100)', color: '#fff', fontSize: 16, width: '100%' }}>
+                {lang === 'es' ? '¡Empezar a Jugar!' : 'Start Playing!'}
+              </button>
+            </div>
+          </window.Modal>
+        )}
+      </>
+    );
   }
 
   return (

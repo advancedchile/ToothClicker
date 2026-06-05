@@ -82,7 +82,7 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
     </div>
   );
 
-  const gridCols = `36px 1fr 90px 140px 48px ${extraColumns}`;
+  const gridCols = `18px 1fr 90px 48px ${extraColumns}`;
 
   return (
     <React.Fragment>
@@ -129,7 +129,6 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
         <div className="leaderboard-header-row t-mini-caps" style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 'var(--spacing-3)', padding: '0 var(--spacing-3)', color: 'var(--fg-3)', marginBottom: 2 }}>
           <div>{t.lbRank}</div><div>{t.lbPlayer}</div>
           <div style={{ textAlign: 'right' }}>{t.lbPrestige}</div>
-          <div style={{ textAlign: 'right' }}>{t.lbTotal}</div>
           <div style={{ textAlign: 'center' }}>Info</div>
           {extraColumns && <div></div>}
         </div>
@@ -138,10 +137,19 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
           const medal = i === 0 ? '#FFC220' : i === 1 ? '#A6B5C5' : i === 2 ? '#E8A06E' : null;
           return (
             <div key={r.name + '-' + i} className={`leaderboard-row ${isCurrent ? 'current-player' : ''}`} style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 'var(--spacing-3)', alignItems: 'center', padding: '10px var(--spacing-3)', background: isCurrent ? 'var(--primary-i010)' : 'var(--bg-1)', border: `1px solid ${isCurrent ? 'var(--primary-i100)' : 'var(--border-subtle)'}`, borderRadius: 'var(--radius-s)' }}>
-              <div className="leaderboard-rank-num" style={{ width: 28, height: 28, borderRadius: '50%', background: medal || 'var(--bg-3)', color: medal ? '#fff' : 'var(--fg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{i + 1}</div>
-              <div className="leaderboard-player-col" style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="leaderboard-rank-num" style={{ color: medal || 'var(--fg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800 }}>{i + 1}</div>
+              <div className="leaderboard-player-col" style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
                 <div className="leaderboard-tooth-wrapper" style={{ position: 'relative', width: 40, height: 40, flexShrink: 0 }}>
-                  {window.TOOTH_STAGES && <img src={window.getToothStage(r.prestigeCount || 0).img} alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />}
+                  {window.TOOTH_STAGES && (() => {
+                    const stage = window.getToothStage(r.prestigeCount || 0, r.level || 1);
+                    return (i === 0 && stage.glbData) ? (
+                      <div style={{ position: 'absolute', width: 64, height: 64, pointerEvents: 'none', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1 }}>
+                        <window.Tooth3DViewer glbData={stage.glbData} textureUrl={stage.img} style={{ width: '100%', height: '100%' }} animateFloat={false} />
+                      </div>
+                    ) : (
+                      <img src={stage.img} alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                    );
+                  })()}
                   {(() => {
                     const timeSince = Date.now() - r.updatedAt;
                     const online = r.isOnline !== false && timeSince < 60000;
@@ -162,21 +170,20 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
                   })()}
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div className="t-heading-xs" style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {r.name}
-                    {isCurrent && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: 'var(--primary-i100)', color: '#fff', padding: '2px 6px', borderRadius: 999 }}>{t.lbYou}</span>}
+                  <div className="t-heading-xs" style={{ color: 'var(--fg-1)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                    {isCurrent && <span style={{ marginLeft: 'auto', flexShrink: 0, fontSize: 10, fontWeight: 600, background: 'var(--primary-i100)', color: '#fff', padding: '2px 6px', borderRadius: 999 }}>{t.lbYou}</span>}
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--primary-i100)', fontWeight: 600, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {r.clinicName ? r.clinicName : (lang === 'es' ? `Clínica de ${r.name}` : `${r.name}'s Clinic`)}
-                    <span style={{ marginLeft: 8, color: 'var(--fg-3)', fontWeight: 400 }}>• Niv. {r.level || 0}</span>
+                  <div style={{ fontSize: 10, color: 'var(--primary-i100)', fontWeight: 600, marginBottom: 2, display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.clinicName ? r.clinicName : (lang === 'es' ? `Clínica de ${r.name}` : `${r.name}'s Clinic`)}</span>
+                    <span style={{ color: 'var(--fg-3)', fontWeight: 400, flexShrink: 0 }}>Niv. {r.level || 0}</span>
                   </div>
                 </div>
               </div>
               <div className="leaderboard-prestige-col" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--warning-i130)', fontWeight: 600 }}>
                 <i className="fa-solid fa-crown" style={{ color: 'var(--warning-i100)', fontSize: 11, marginRight: 4 }}></i>
-                {window.formatNum(r.prestigeCount || 0)}
+                <window.Odometer value={r.prestigeCount || 0} />
               </div>
-              <div className="leaderboard-total-col" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--primary-i100)', fontWeight: 600 }}>{window.formatNum(r.totalEarned || 0)}</div>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <button 
                   onClick={(e) => { 
@@ -287,7 +294,7 @@ function LeaderboardPanel({ username, lang }) {
 function PlayerDetailSidebar({ player, lang }) {
   const { name, clinicName, level, teeth, prestigeCount, totalEarned, timePlayed, isOnline, updatedAt, saveData } = player;
   
-  const stage = window.getToothStage ? window.getToothStage(prestigeCount || 0) : { img: 'uploads/tooth1.png' };
+  const stage = window.getToothStage ? window.getToothStage(prestigeCount || 0, level || 1) : { img: 'uploads/tooth1.png' };
   const displayClinic = clinicName || (lang === 'es' ? `Clínica de ${name}` : `${name}'s Clinic`);
   const online = isOnline !== false && (Date.now() - updatedAt) < 60000;
 
@@ -313,7 +320,8 @@ function PlayerDetailSidebar({ player, lang }) {
       if (up.type === 'generator') storeMults.gen[up.targetId] = (storeMults.gen[up.targetId] || 1) * up.multiplier;
     });
 
-    const prestigeMult = 1 + 0.05 * (sd.prestige || 0);
+    const bonusPerSmile = window.GAME_CONTENT?.prestigeConfig?.bonusPerSmile ?? 0.05;
+    const prestigeMult = 1 + bonusPerSmile * (sd.prestige || 0);
     const achUnlockedCount = Object.values(sd.achievements || {}).filter(Boolean).length;
     const achMult = 1 + 0.01 * achUnlockedCount;
     
@@ -433,7 +441,13 @@ function PlayerDetailSidebar({ player, lang }) {
   return (
     <React.Fragment>
       <div className="player-sidebar-header">
-        <img src={stage.img} className="player-sidebar-avatar" alt="" />
+        {stage.glbData ? (
+          <div className="player-sidebar-avatar" style={{ position: 'relative', width: 200, height: 200, marginTop: -20, marginBottom: -10, cursor: 'grab' }}>
+            <window.Tooth3DViewer glbData={stage.glbData} textureUrl={stage.img} style={{ width: '100%', height: '100%' }} />
+          </div>
+        ) : (
+          <img src={stage.img} className="player-sidebar-avatar" alt="" />
+        )}
         <h2 className="player-sidebar-name">{name}</h2>
         <div className="player-sidebar-subtitle">
           <span>{displayClinic}</span>
@@ -465,11 +479,11 @@ function PlayerDetailSidebar({ player, lang }) {
             </div>
             <div className="player-sidebar-card">
               <span className="player-sidebar-card-label">{t.teeth}</span>
-              <span className="player-sidebar-card-value">{window.formatNum(teeth || 0)}</span>
+              <span className="player-sidebar-card-value"><window.Odometer value={teeth || 0} /></span>
             </div>
             <div className="player-sidebar-card">
               <span className="player-sidebar-card-label">{t.totalTeeth}</span>
-              <span className="player-sidebar-card-value">{window.formatNum(totalEarned || 0)}</span>
+              <span className="player-sidebar-card-value"><window.Odometer value={totalEarned || 0} /></span>
             </div>
             <div className="player-sidebar-card">
               <span className="player-sidebar-card-label">{t.time}</span>
@@ -490,23 +504,23 @@ function PlayerDetailSidebar({ player, lang }) {
           <div className="player-sidebar-grid">
             <div className="player-sidebar-card">
               <span className="player-sidebar-card-label">{t.totalClicks}</span>
-              <span className="player-sidebar-card-value">{stats ? window.formatNum(stats.totalClicks) : 'N/A'}</span>
+              <span className="player-sidebar-card-value">{stats ? <window.Odometer value={stats.totalClicks} /> : 'N/A'}</span>
             </div>
             <div className="player-sidebar-card">
               <span className="player-sidebar-card-label">{t.clickPower}</span>
-              <span className="player-sidebar-card-value">{stats ? window.formatNum(stats.perClick) : 'N/A'}</span>
+              <span className="player-sidebar-card-value">{stats ? <window.Odometer value={stats.perClick} /> : 'N/A'}</span>
             </div>
             <div className="player-sidebar-card">
               <span className="player-sidebar-card-label">{t.golden}</span>
-              <span className="player-sidebar-card-value">{stats ? window.formatNum(stats.goldenClicks) : 'N/A'}</span>
+              <span className="player-sidebar-card-value">{stats ? <window.Odometer value={stats.goldenClicks} /> : 'N/A'}</span>
             </div>
             <div className="player-sidebar-card">
               <span className="player-sidebar-card-label">{t.diamond}</span>
-              <span className="player-sidebar-card-value">{stats ? window.formatNum(stats.diamondClicks) : 'N/A'}</span>
+              <span className="player-sidebar-card-value">{stats ? <window.Odometer value={stats.diamondClicks} /> : 'N/A'}</span>
             </div>
             <div className="player-sidebar-card">
               <span className="player-sidebar-card-label">{t.crystal}</span>
-              <span className="player-sidebar-card-value">{stats ? window.formatNum(stats.crystalClicks) : 'N/A'}</span>
+              <span className="player-sidebar-card-value">{stats ? <window.Odometer value={stats.crystalClicks} /> : 'N/A'}</span>
             </div>
           </div>
         </div>
@@ -520,12 +534,12 @@ function PlayerDetailSidebar({ player, lang }) {
             <div className="player-sidebar-card" style={{ gridColumn: 'span 2' }}>
               <span className="player-sidebar-card-label">{t.cps}</span>
               <span className="player-sidebar-card-value" style={{ color: 'var(--primary-i100)' }}>
-                {stats ? window.formatNum(stats.perSecond) : 'N/A'}
+                {stats ? <window.Odometer value={stats.perSecond} /> : 'N/A'}
               </span>
             </div>
             <div className="player-sidebar-card">
               <span className="player-sidebar-card-label">{t.generators}</span>
-              <span className="player-sidebar-card-value">{stats ? window.formatNum(stats.totalGenerators) : 'N/A'}</span>
+              <span className="player-sidebar-card-value">{stats ? <window.Odometer value={stats.totalGenerators} /> : 'N/A'}</span>
             </div>
             <div className="player-sidebar-card">
               <span className="player-sidebar-card-label">{t.clickUps}</span>
@@ -833,7 +847,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
 
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 24px 24px', width: '100%', maxWidth: 400 }}>
 
-        <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 220, objectFit: 'contain', marginBottom: 24, filter: 'drop-shadow(0 8px 24px rgba(80,140,220,0.22))', animation: 'pulse 1.5s infinite ease-in-out' }} />
+        <img src={window.GAME_CONTENT?.terminology?.images?.logoVertical || "uploads/logo-vertical.png"} alt="ToothClicker" style={{ width: 220, objectFit: 'contain', marginBottom: 24, filter: 'drop-shadow(0 8px 24px rgba(80,140,220,0.22))', animation: 'pulse 1.5s infinite ease-in-out' }} />
 
         {/* Registration/Login — only if this device hasn't registered yet */}
         {!deviceUser && (
@@ -970,7 +984,20 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
             </div>
             <UserPill 
               name={deviceUser} 
-              onSelect={onSelectUser} 
+              onSelect={async (name) => {
+                const save = window.loadUserSave(name);
+                const pass = save ? save.password : null;
+                if (pass) {
+                  const res = await window.cloudAuthenticate(name, pass);
+                  if (res.ok) {
+                    onSelectUser(name, res.player, pass);
+                  } else {
+                    onLogoutDeviceUser();
+                  }
+                } else {
+                  onLogoutDeviceUser();
+                }
+              }} 
               isOwn={true} 
               onLogout={onLogoutDeviceUser}
               isOnline={(lb.scores || []).some(s => s.name === deviceUser && (Date.now() - s.updatedAt) < 120000)}

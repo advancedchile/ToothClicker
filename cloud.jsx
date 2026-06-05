@@ -188,7 +188,7 @@ async function cloudFetchPlayer(name) {
       ok: true, 
       player: {
         ...data,
-        sessionId: data.save_data ? data.save_data.sessionId : null
+        sessionId: sd ? sd.sessionId : null
       } 
     };
   } catch (e) { return { ok: false, error: e.message }; }
@@ -451,3 +451,373 @@ Object.assign(window, {
   cloudFetchVersionMetadata,
   cloudSaveVersionHistory
 });
+
+window.cloudFetchGameContent = async function() {
+  try {
+    if (!_supabase) return { ok: true, content: null };
+    const { data, error } = await _supabase.from('settings').select('value').eq('key', 'game_content').single();
+    if (error) {
+      if (error.code === 'PGRST116') return { ok: true, content: null }; 
+      return { ok: false, error: error.message };
+    }
+    
+    if (data.value && data.value.useExternalTemplate && data.value.path) {
+      // It's an external template! Fetch it.
+      const res = await fetch(data.value.path);
+      if (!res.ok) throw new Error("Failed to load external template from " + data.value.path);
+      const content = await res.json();
+      return { ok: true, content: content };
+    }
+    
+    return { ok: true, content: data.value };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+window.cloudSaveGameContent = async function(content) {
+  try {
+    if (!_supabase) return { ok: false, error: 'No Supabase' };
+    const { error } = await _supabase.from('settings').upsert({ key: 'game_content', value: content });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+// ── Content Templates ──────────────────────────────────────────────────────────
+window.cloudFetchTemplates = async function() {
+  try {
+    if (!_supabase) return { ok: true, templates: [] };
+    const { data, error } = await _supabase.from('settings').select('value').eq('key', 'content_templates').single();
+    if (error) {
+      if (error.code === 'PGRST116') return { ok: true, templates: [] }; // no rows
+      return { ok: false, error: error.message };
+    }
+    return { ok: true, templates: data.value || [] };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+window.cloudFetchTemplateContent = async function(id) {
+  try {
+    if (!_supabase) return { ok: true, content: null };
+
+    // First, check if it's an external template to fetch from local file
+    const { data: listData } = await _supabase.from('settings').select('value').eq('key', 'content_templates').single();
+    if (listData && listData.value) {
+      const templateMeta = listData.value.find(t => t.id === id);
+      if (templateMeta && templateMeta.isExternal && templateMeta.path) {
+        // Fetch from local path with a cache buster
+        const res = await fetch(`${templateMeta.path}?t=${Date.now()}`);
+        if (res.ok) {
+          const content = await res.json();
+          return { ok: true, content };
+        }
+        console.warn(`Could not fetch external template from ${templateMeta.path}, falling back to Supabase...`);
+      }
+    }
+
+    const { data, error } = await _supabase.from('settings').select('value').eq('key', 'template_' + id).single();
+    if (error) {
+      if (error.code === 'PGRST116') return { ok: true, content: null }; 
+      return { ok: false, error: error.message };
+    }
+    return { ok: true, content: data.value };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+window.cloudSaveTemplate = async function(id, name, content) {
+  try {
+    if (!_supabase) return { ok: false, error: 'No Supabase' };
+    
+    // 1. Save the content
+    const { error: err1 } = await _supabase.from('settings').upsert({ key: 'template_' + id, value: content });
+    if (err1) throw err1;
+
+    // 2. Update metadata in the list
+    let templates = [];
+    const { data: listData, error: listErr } = await _supabase.from('settings').select('value').eq('key', 'content_templates').single();
+    if (!listErr && listData) templates = listData.value || [];
+
+    const existingIndex = templates.findIndex(t => t.id === id);
+    if (existingIndex >= 0) {
+      templates[existingIndex].name = name;
+      templates[existingIndex].updatedAt = Date.now();
+    } else {
+      templates.push({ id, name, createdAt: Date.now(), updatedAt: Date.now() });
+    }
+
+    const { error: err2 } = await _supabase.from('settings').upsert({ key: 'content_templates', value: templates });
+    if (err2) throw err2;
+
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+window.cloudRegisterExternalTemplate = async function(id, name, path) {
+  try {
+    if (!_supabase) return { ok: false, error: 'No Supabase' };
+    
+    let templates = [];
+    const { data: listData, error: listErr } = await _supabase.from('settings').select('value').eq('key', 'content_templates').single();
+    if (!listErr && listData) templates = listData.value || [];
+
+    const existingIndex = templates.findIndex(t => t.id === id);
+    if (existingIndex >= 0) {
+      templates[existingIndex].name = name;
+      templates[existingIndex].path = path;
+      templates[existingIndex].isExternal = true;
+      templates[existingIndex].updatedAt = Date.now();
+    } else {
+      templates.push({ id, name, path, isExternal: true, createdAt: Date.now(), updatedAt: Date.now() });
+    }
+
+    const { error: err2 } = await _supabase.from('settings').upsert({ key: 'content_templates', value: templates });
+    if (err2) throw err2;
+
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+window.cloudDeleteTemplate = async function(id) {
+  try {
+    if (!_supabase) return { ok: false, error: 'No Supabase' };
+    
+    // Delete content
+    await _supabase.from('settings').delete().eq('key', 'template_' + id);
+
+    // Update list
+    let templates = [];
+    const { data: listData, error: listErr } = await _supabase.from('settings').select('value').eq('key', 'content_templates').single();
+    if (!listErr && listData) templates = listData.value || [];
+    
+    templates = templates.filter(t => t.id !== id);
+    await _supabase.from('settings').upsert({ key: 'content_templates', value: templates });
+
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+window.cloudPublishTemplate = async function(id, templateContent) {
+  try {
+    if (!_supabase) return { ok: false, error: 'No Supabase' };
+    
+    // 1. Fetch current live game content
+    const { data: liveData } = await _supabase.from('settings').select('value').eq('key', 'game_content').single();
+    const liveContent = liveData ? liveData.value : null;
+
+    // 2. Fetch all players (pagination just in case)
+    let allPlayers = [];
+    let page = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: players, error: errPlayers } = await _supabase
+        .from('players')
+        .select('*')
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      
+      if (errPlayers) throw errPlayers;
+      if (!players || players.length === 0) break;
+      allPlayers = allPlayers.concat(players);
+      if (players.length < pageSize) break;
+      page++;
+    }
+
+    // 3. Save to archive
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const archiveKey = 'archive_' + timestamp;
+    const archivePayload = {
+      timestamp: Date.now(),
+      templateId: id,
+      oldContent: liveContent,
+      players: allPlayers
+    };
+    
+    const { error: errArchive } = await _supabase.from('settings').upsert({ key: archiveKey, value: archivePayload });
+    if (errArchive) throw errArchive;
+
+    // 4. Overwrite game content with template content (or external pointer)
+    const newGameContent = templateContent.isExternalPointer ? templateContent.pointerObj : templateContent;
+    const { error: errPublish } = await _supabase.from('settings').upsert({ key: 'game_content', value: newGameContent });
+    if (errPublish) throw errPublish;
+
+    // 5. Wipe all players (reset progress)
+    await _supabase.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    
+    // Reset lastResetAt to now
+    await _supabase.from('settings').upsert({ key: 'lastResetAt', value: Date.now() });
+
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+// ── Seasons ────────────────────────────────────────────────────────────────
+window.cloudGetSeasonConfig = async function() {
+  try {
+    if (!_supabase) return { ok: true, config: null };
+    const { data, error } = await _supabase.from('settings').select('value').eq('key', 'active_season_config').single();
+    if (error) {
+      if (error.code === 'PGRST116') return { ok: true, config: null };
+      return { ok: false, error: error.message };
+    }
+    return { ok: true, config: data.value };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+window.cloudSaveSeasonConfig = async function(config) {
+  try {
+    if (!_supabase) return { ok: false, error: 'No Supabase' };
+    
+    if (config === null) {
+      const { error } = await _supabase.from('settings').delete().eq('key', 'active_season_config');
+      if (error) return { ok: false, error: error.message };
+    } else {
+      const { error } = await _supabase.from('settings').upsert({ key: 'active_season_config', value: config });
+      if (error) return { ok: false, error: error.message };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+window.cloudGetSeasonLogs = async function() {
+  try {
+    if (!_supabase) return { ok: true, logs: [] };
+    const { data, error } = await _supabase.from('settings').select('value').eq('key', 'season_logs').single();
+    if (error) {
+      if (error.code === 'PGRST116') return { ok: true, logs: [] };
+      return { ok: false, error: error.message };
+    }
+    return { ok: true, logs: data.value || [] };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+window.cloudSaveSeasonLog = async function(logEntry) {
+  try {
+    if (!_supabase) return { ok: false, error: 'No Supabase' };
+    const res = await window.cloudGetSeasonLogs();
+    const logs = res.ok ? res.logs : [];
+    logs.unshift(logEntry); // Add to beginning
+    const { error } = await _supabase.from('settings').upsert({ key: 'season_logs', value: logs });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+window.cloudTriggerSeasonWipe = async function(seasonConfig) {
+  try {
+    if (!_supabase) return { ok: false, error: 'No Supabase' };
+    
+    // 1. Fetch template content or pointer
+    let templates = [];
+    const { data: listData } = await _supabase.from('settings').select('value').eq('key', 'content_templates').single();
+    if (listData && listData.value) templates = listData.value;
+    const templateMeta = templates.find(t => t.id === seasonConfig.templateId);
+    if (!templateMeta) throw new Error("Plantilla no encontrada en la lista");
+
+    let templateContent = null;
+    if (templateMeta.isExternal) {
+      templateContent = { useExternalTemplate: true, path: templateMeta.path };
+    } else {
+      const tRes = await window.cloudFetchTemplateContent(seasonConfig.templateId);
+      if (!tRes.ok) throw new Error("Error fetching template: " + tRes.error);
+      templateContent = tRes.content;
+      if (!templateContent) throw new Error("Plantilla no encontrada");
+    }
+
+    // 2. Fetch all players and determine top 5
+    let allPlayers = [];
+    let page = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: players, error: errPlayers } = await _supabase
+        .from('players')
+        .select('*')
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      
+      if (errPlayers) throw errPlayers;
+      if (!players || players.length === 0) break;
+      allPlayers = allPlayers.concat(players);
+      if (players.length < pageSize) break;
+      page++;
+    }
+
+    // Sort players to get top 5 (same logic as leaderboard)
+    const sortedPlayers = [...allPlayers].sort((a, b) => {
+      if (b.prestige_count !== a.prestige_count) return (b.prestige_count || 0) - (a.prestige_count || 0);
+      if (b.level !== a.level) return (b.level || 0) - (a.level || 0);
+      return (b.total_earned || 0) - (a.total_earned || 0);
+    });
+    
+    const top5 = sortedPlayers.slice(0, 5).map(p => ({
+      name: p.name,
+      prestigeCount: p.prestige_count || 0,
+      level: p.level || 0,
+      teeth: p.teeth || 0,
+      totalEarned: p.total_earned || 0
+    }));
+
+    // 3. Create season log entry
+    const logEntry = {
+      id: seasonConfig.id || ('season_' + Date.now()),
+      name: seasonConfig.name,
+      startDate: seasonConfig.createdAt || (Date.now() - 86400000), // Fallback
+      endDate: Date.now(),
+      totalParticipants: allPlayers.length,
+      top5: top5
+    };
+    
+    await window.cloudSaveSeasonLog(logEntry);
+
+    // 4. Save to archive
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const archiveKey = 'archive_season_' + timestamp;
+    const { data: liveData } = await _supabase.from('settings').select('value').eq('key', 'game_content').single();
+    const liveContent = liveData ? liveData.value : null;
+
+    const archivePayload = {
+      timestamp: Date.now(),
+      seasonLog: logEntry,
+      oldContent: liveContent,
+      players: allPlayers
+    };
+    await _supabase.from('settings').upsert({ key: archiveKey, value: archivePayload });
+
+    // 5. Overwrite game content with template content
+    const { error: errPublish } = await _supabase.from('settings').upsert({ key: 'game_content', value: templateContent });
+    if (errPublish) throw errPublish;
+
+    // 6. Wipe all players (reset progress)
+    await _supabase.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    
+    // 7. Reset lastResetAt to now
+    await _supabase.from('settings').upsert({ key: 'lastResetAt', value: Date.now() });
+
+    // 8. Clear active season config so it doesn't re-trigger
+    await window.cloudSaveSeasonConfig(null);
+
+    return { ok: true, seasonConfig }; 
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};

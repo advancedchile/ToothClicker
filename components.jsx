@@ -35,7 +35,7 @@ function ToothIcon({ size = 220, golden = false }) {
  * Renders a ring of toothbrushes around the main tooth.
  * Each purchase of "brush" adds one toothbrush (max 100).
  */
-function ToothbrushRing({ count, radius = 160 }) {
+function ToothbrushRing({ count, radius = 180 }) {
   const max = 100;
   const displayCount = Math.min(count || 0, max);
   
@@ -147,73 +147,83 @@ function StatsGroup({ title, icon, accent, rows }) {
 
 }
 
-function TabBar({ tabs, active, onChange, id }) {
+function TabBar({ tabs, active, onChange, id, setTooltip, style = {} }) {
   return (
     <div id={id} style={{ 
       display: 'flex', 
       gap: 6, 
-      background: 'rgba(255,255,255,0.5)', 
-      padding: 4, 
-      borderRadius: 12, 
-      border: '1px solid rgba(100,160,230,0.2)',
-      marginBottom: 'var(--spacing-5)', 
-      overflowX: 'auto' 
+      background: 'var(--bg-2)', 
+      padding: '8px 8px 8px 8px', 
+      borderBottom: '1px solid var(--border-subtle)',
+      overflowX: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
+      ...style
     }}>
-      {tabs.map((t) => {
+      {tabs.filter(Boolean).map((t) => {
         const isActive = active === t.id;
         return (
           <button 
             key={t.id} 
             id={`tab-${t.id}`} 
             onClick={() => { window.playClickSound && window.playClickSound(); onChange(t.id); }} 
+            onMouseEnter={(e) => {
+              if (setTooltip) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setTooltip({ type: 'text', text: t.label, pos: { x: rect.left + rect.width / 2, y: rect.bottom }, direction: 'down' });
+              }
+            }}
+            onMouseLeave={() => {
+              if (setTooltip) setTooltip(null);
+            }}
             style={{
               all: 'unset',
               position: 'relative',
               boxSizing: 'border-box',
               flex: 1,
-              background: isActive ? '#1a8fff' : 'transparent', 
-              padding: '8px 12px', 
-              color: isActive ? '#fff' : '#4a6a8a',
+              background: isActive ? 'var(--bg-1)' : 'transparent', 
+              padding: '10px 0', 
               borderRadius: 10,
-              fontWeight: 600, 
-              fontSize: 12, 
               cursor: 'pointer',
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              gap: 8, 
-              fontFamily: 'var(--font-sans)',
-              transition: 'all 140ms ease', 
-              whiteSpace: 'nowrap', 
-              flexShrink: 0,
-              boxShadow: isActive ? '0 4px 12px rgba(26,143,255,0.25)' : 'none'
+              transition: 'all 200ms ease', 
+              boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'
             }}
           >
-            <i className={t.icon} style={{ fontSize: 11 }}></i>
-            {t.label}
+            {t.img ? 
+              <img src={t.img} style={{ width: 32, height: 32, objectFit: 'contain', filter: isActive ? 'none' : 'grayscale(1) opacity(0.5)', transform: isActive ? 'scale(1.2)' : 'scale(0.95)', transition: 'all 200ms ease' }} /> 
+              : <i className={t.icon} style={{ fontSize: 24, color: isActive ? 'var(--primary-i100)' : 'var(--fg-4)', transform: isActive ? 'scale(1.2)' : 'scale(0.95)', transition: 'all 200ms ease' }}></i>
+            }
             {t.badge != null &&
               <span style={{ 
+                position: 'absolute',
+                top: 4,
+                right: 'calc(50% - 24px)',
                 fontSize: 9, 
                 fontWeight: 700, 
-                background: isActive ? 'rgba(255,255,255,0.2)' : 'rgba(100,140,220,0.1)', 
-                color: isActive ? '#fff' : '#4a6a8a', 
+                background: 'var(--primary-i100)', 
+                color: '#fff', 
                 padding: '2px 6px', 
                 borderRadius: 999, 
                 minWidth: 16, 
-                textAlign: 'center' 
+                textAlign: 'center',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
               }}>{t.badge}</span>
             }
             {t.dot && (
               <span style={{ 
                 position: 'absolute', 
                 top: 6, 
-                right: 6, 
-                width: 7, 
-                height: 7, 
+                right: 'calc(50% - 20px)', 
+                width: 10, 
+                height: 10, 
                 borderRadius: '50%', 
                 background: '#e11d24', 
-                border: '1.5px solid #fff',
-                boxShadow: '0 0 0 2px rgba(225,29,36,0.1)'
+                border: '2px solid var(--bg-1)',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
               }}></span>
             )}
           </button>
@@ -226,125 +236,628 @@ function TabBar({ tabs, active, onChange, id }) {
 
 function GeneratorRow({ gen, owned, cost, canAfford, unlocked, revealed, onBuy, lang, totalTeeth, production, nextProduction, buyQty, actualQty }) {
   const t = window.STRINGS[lang];
-  const name = gen[lang] || gen.es;
-  const desc = gen[`desc_${lang}`] || gen.desc_es;
+  const name = gen.name?.[lang] || gen[lang] || gen.es;
+  const desc = gen.description?.[lang] || gen[`desc_${lang}`] || gen.desc_es;
+  const [isPressed, setIsPressed] = React.useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [tooltipPos, setTooltipPos] = React.useState({ top: 0, left: 0 });
+  const rowRef = React.useRef(null);
+
   if (!revealed) return null;
+
+  const sharedGrid = { display: 'grid', gridTemplateColumns: '32px 1fr auto', gap: '8px', alignItems: 'center', padding: '5px 8px', boxSizing: 'border-box', borderRadius: 'var(--radius-s)' };
+
+  const handleEnter = () => {
+    setIsHovered(true);
+    if (rowRef.current) {
+      const rect = rowRef.current.getBoundingClientRect();
+      const container = rowRef.current.closest('section') || rowRef.current.closest('.mobile-tab-view-body') || rowRef.current.closest('#generators-container-desktop');
+      const containerRect = container ? container.getBoundingClientRect() : rect;
+      let leftPos = containerRect.left - 250 - 5;
+      if (leftPos < 5) {
+        leftPos = containerRect.right + 5;
+      }
+      setTooltipPos({ top: rect.top, left: leftPos });
+    }
+  };
+
+  const handleLeave = () => {
+    setIsPressed(false);
+    setIsHovered(false);
+  };
+
   if (!unlocked) {
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr auto auto', gap: '8px', alignItems: 'center', padding: '5px 8px', background: 'var(--bg-3)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-s)', opacity: 0.55, boxSizing: 'border-box' }}>
+      <div style={{ ...sharedGrid, background: 'var(--bg-2)', border: '1px solid var(--border-subtle)', opacity: 0.5, cursor: 'not-allowed' }}>
         <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-4)', flexShrink: 0 }}>
           <i className="fa-solid fa-lock" style={{ fontSize: 12 }}></i>
         </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-3)', lineHeight: 1.2 }}>???</div>
-          <div style={{ fontSize: 11, color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.unlockAt} {window.formatNum(gen.unlockAt)} {t.teeth}</div>
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-3)', lineHeight: 1.2 }}>???</div>
+          <div style={{ fontSize: 10, color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.unlockAt} <window.Odometer value={gen.unlockAt || 0} /> {t.teeth}</div>
         </div>
-        <div></div>
-        <div style={{ textAlign: 'right', minWidth: 72, flexShrink: 0 }}>
-          <div style={{ fontSize: 10, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t.cost}</div>
-          <div style={{ fontSize: 11, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>−{window.formatNum(Math.max(0, gen.unlockAt - totalTeeth))}</div>
+        <div style={{ textAlign: 'right', minWidth: 50, flexShrink: 0 }}>
+          <div style={{ fontSize: 10, color: 'var(--fg-4)' }}>{t.cost}</div>
+          <div style={{ fontSize: 11, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>−<window.Odometer value={Math.max(0, (gen.unlockAt || 0) - totalTeeth)} /></div>
         </div>
       </div>);
   }
+  
   return (
-    <button onClick={onBuy} disabled={!canAfford} className="app-btn" style={{
-      all: 'unset', display: 'grid', gridTemplateColumns: '32px 1fr auto auto', gap: '8px',
-      alignItems: 'center', padding: '5px 8px',
-      background: 'var(--bg-1)', border: `1px solid ${canAfford ? 'var(--primary-i020)' : 'var(--border-subtle)'}`,
-      borderRadius: 'var(--radius-s)', cursor: canAfford ? 'pointer' : 'not-allowed',
-      opacity: canAfford ? 1 : 0.75, transition: 'all 150ms ease', boxSizing: 'border-box'
-    }}>
-      
-      <div style={{ width: 32, height: 32, borderRadius: 6, background: canAfford ? 'var(--primary-i010)' : 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: canAfford ? 'var(--primary-i100)' : 'var(--fg-3)', flexShrink: 0, transition: 'all 150ms ease' }}>
-        <i className={gen.icon} style={{ fontSize: 14 }}></i>
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-1)', lineHeight: 1.2 }}>{name}</div>
-        <div style={{ fontSize: 11, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{desc}</div>
-      </div>
-      <div style={{ textAlign: 'right', minWidth: 56, flexShrink: 0 }}>
-        <div style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t.owned}</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-1)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>{owned}</div>
-        <div style={{ fontSize: 10, color: 'var(--positive-i100)', fontVariantNumeric: 'tabular-nums' }}>+{window.formatNum(owned > 0 ? production : nextProduction, null, null, true)}/s</div>
-      </div>
-      <div style={{ textAlign: 'right', minWidth: 72, flexShrink: 0 }}>
-        <div style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+    <>
+      <div 
+        ref={rowRef}
+        onMouseEnter={handleEnter}
+        onMouseLeave={handleLeave} 
+        onClick={canAfford ? onBuy : undefined}
+        onMouseDown={() => canAfford && setIsPressed(true)}
+        onMouseUp={() => setIsPressed(false)}
+        style={{
+          ...sharedGrid,
+          background: canAfford ? 'var(--bg-1)' : 'var(--bg-2)',
+          border: canAfford ? '1px solid var(--primary-i100)' : '1px solid var(--border-subtle)',
+          boxShadow: canAfford ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+          cursor: canAfford ? 'pointer' : 'not-allowed',
+          opacity: canAfford ? 1 : 0.65,
+          transform: isPressed ? 'translateY(1px)' : 'none',
+          transition: 'transform 100ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease'
+        }}
+      >
+        <div style={{ width: 32, height: 32, borderRadius: 6, background: canAfford ? 'var(--primary-i010)' : 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: canAfford ? 'var(--primary-i100)' : 'var(--fg-3)', flexShrink: 0, transition: 'background 150ms ease, color 150ms ease', overflow: 'hidden' }}>
+          {gen.iconUrl ? <img src={gen.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={gen.icon} style={{ fontSize: 14 }}></i>}
+        </div>
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Cant. <span style={{fontWeight: 700, color: 'var(--fg-1)'}}>{owned}</span></div>
+          <div style={{ fontSize: 10, color: 'var(--positive-i100)', fontVariantNumeric: 'tabular-nums' }}>+<window.Odometer value={owned > 0 ? production : nextProduction} formatFn={(v) => window.formatNum(v, null, null, true)} />/s</div>
+        </div>
+        <div style={{ textAlign: 'right', minWidth: 50, flexShrink: 0 }}>
           {buyQty > 1 &&
-            <span style={{ background: canAfford ? 'var(--primary-i010)' : 'var(--bg-3)', color: canAfford ? 'var(--primary-i100)' : 'var(--fg-3)', padding: '1px 4px', borderRadius: 3, fontSize: 9, fontWeight: 700 }}>
+            <div style={{ fontSize: 9, color: canAfford ? 'var(--primary-i100)' : 'var(--fg-4)', textTransform: 'uppercase', marginBottom: 2 }}>
               x{actualQty < buyQty ? `${actualQty}/${buyQty}` : buyQty}
-            </span>
+            </div>
           }
-          {t.cost}
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: canAfford ? 'var(--primary-i100)' : 'var(--fg-2)', fontVariantNumeric: 'tabular-nums', display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end', lineHeight: 1.2 }}>
-          <i className="fa-solid fa-tooth" style={{ fontSize: 11, color: 'inherit' }}></i>
-          {window.formatNum(cost)}
+          <div style={{ fontSize: 13, fontWeight: canAfford ? 700 : 400, color: canAfford ? 'var(--fg-1)' : 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>
+            <window.Odometer value={cost} />
+          </div>
         </div>
       </div>
-    </button>);
-
+      
+      {isHovered && window.ReactDOM && window.ReactDOM.createPortal(
+        <div style={{
+          position: 'absolute',
+          top: tooltipPos.top,
+          left: tooltipPos.left,
+          width: 250,
+          minHeight: 100,
+          background: 'var(--bg-1)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-m)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          padding: '12px',
+          boxSizing: 'border-box',
+          display: 'flex',
+          gap: '12px',
+          zIndex: 99999,
+          animation: 'fadeIn 0.2s ease-out',
+          pointerEvents: 'none'
+        }}>
+          <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+            {gen.iconUrl ? <img src={gen.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={gen.icon} style={{ fontSize: 24, color: 'var(--fg-2)' }}></i>}
+          </div>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-1)', lineHeight: 1.2 }}>{name}</div>
+              <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.3, marginTop: 4 }}>{desc}</div>
+            </div>
+            <div style={{ background: 'var(--bg-2)', borderRadius: 6, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ fontSize: 11, color: 'var(--fg-2)', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Cantidad:</span> <span style={{fontWeight: 600}}>{owned}</span>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--positive-i100)', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Producción:</span> <span>+<window.Odometer value={owned > 0 ? production : nextProduction} formatFn={(v) => window.formatNum(v, null, null, true)} />/s</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--fg-4)', fontWeight: 600 }}>Coste</span>
+              <div style={{ fontSize: 13, fontWeight: 700, color: canAfford ? 'var(--positive-i100)' : 'var(--negative-i100)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <i className="fa-solid fa-tooth" style={{ fontSize: 11 }}></i>
+                <window.Odometer value={cost} />
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  );
 }
 
 function ClickUpgradeRow({ up, purchased, canAfford, unlocked, onBuy, lang, totalTeeth }) {
   const t = window.STRINGS[lang];
-  const name = up[lang] || up.es;
-  const desc = up[`desc_${lang}`] || up.desc_es;
+  const name = up.name?.[lang] || up[lang] || up.es;
+  const desc = up.description?.[lang] || up[`desc_${lang}`] || up.desc_es;
+  const [isPressed, setIsPressed] = React.useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [tooltipPos, setTooltipPos] = React.useState({ top: 0, left: 0 });
+  const rowRef = React.useRef(null);
 
-  const sharedGrid = { display: 'grid', gridTemplateColumns: '32px 1fr auto', gap: '8px', alignItems: 'center', padding: '5px 8px', boxSizing: 'border-box', borderRadius: 'var(--radius-s)' };
+  const prevPurchased = React.useRef(purchased);
+  const [showConfetti, setShowConfetti] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!prevPurchased.current && purchased) {
+      setShowConfetti(true);
+      const id = setTimeout(() => setShowConfetti(false), 200);
+      return () => clearTimeout(id);
+    }
+    prevPurchased.current = purchased;
+  }, [purchased]);
+
+  const sharedGrid = { display: 'grid', gridTemplateColumns: '32px 1fr', gap: '8px', alignItems: 'center', padding: '5px 8px', boxSizing: 'border-box', borderRadius: 'var(--radius-s)' };
+
+  const handleEnter = () => {
+    setIsHovered(true);
+    if (rowRef.current) {
+      const rect = rowRef.current.getBoundingClientRect();
+      const container = rowRef.current.closest('section') || rowRef.current.closest('.mobile-tab-view-body') || rowRef.current.closest('#click-upgrades-container-desktop');
+      const containerRect = container ? container.getBoundingClientRect() : rect;
+      let leftPos = containerRect.left - 250 - 5;
+      if (leftPos < 5) {
+        leftPos = containerRect.right + 5;
+      }
+      setTooltipPos({ top: rect.top, left: leftPos });
+    }
+  };
+
+  const handleLeave = () => {
+    setIsPressed(false);
+    setIsHovered(false);
+  };
+
+  const ConfettiParticle = () => {
+    const [active, setActive] = React.useState(false);
+    
+    const { startX, startY, tx, ty } = React.useMemo(() => {
+      const edge = Math.random();
+      let x, y, angle;
+      if (edge < 0.25) {
+        x = Math.random() * 100; y = 0;
+        angle = -Math.PI / 2 + (Math.random() - 0.5);
+      } else if (edge < 0.5) {
+        x = 100; y = Math.random() * 100;
+        angle = (Math.random() - 0.5);
+      } else if (edge < 0.75) {
+        x = Math.random() * 100; y = 100;
+        angle = Math.PI / 2 + (Math.random() - 0.5);
+      } else {
+        x = 0; y = Math.random() * 100;
+        angle = Math.PI + (Math.random() - 0.5);
+      }
+      const dist = 30 + Math.random() * 30;
+      return { startX: x, startY: y, tx: Math.cos(angle) * dist, ty: Math.sin(angle) * dist };
+    }, []);
+
+    React.useEffect(() => {
+      let raf = requestAnimationFrame(() => requestAnimationFrame(() => setActive(true)));
+      return () => cancelAnimationFrame(raf);
+    }, []);
+    
+    const color = ['#ff3366', '#33ccff', '#ffcc00', '#33ff66', '#a64dff'][Math.floor(Math.random() * 5)];
+    return (
+      <div style={{
+        position: 'absolute', top: `${startY}%`, left: `${startX}%`, width: 6, height: 6, background: color, borderRadius: '50%',
+        transform: active ? `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0)` : 'translate(-50%, -50%) scale(1.5)',
+        opacity: active ? 0 : 1,
+        transition: 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease-out',
+        pointerEvents: 'none'
+      }} />
+    );
+  };
 
   if (!unlocked) {
     return (
-      <div style={{ ...sharedGrid, background: 'var(--bg-3)', border: '1px solid var(--border-subtle)', opacity: 0.55 }}>
+      <div style={{ ...sharedGrid, background: 'var(--bg-2)', border: '1px solid var(--border-subtle)', opacity: 0.5, cursor: 'not-allowed' }}>
         <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-4)', flexShrink: 0 }}>
           <i className="fa-solid fa-lock" style={{ fontSize: 12 }}></i>
         </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-3)', lineHeight: 1.2 }}>???</div>
-          <div style={{ fontSize: 11, color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.unlockAt} {window.formatNum(up.unlockAt)} {t.teeth}</div>
-        </div>
-        <div style={{ textAlign: 'right', minWidth: 72, flexShrink: 0 }}>
-          <div style={{ fontSize: 10, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t.cost}</div>
-          <div style={{ fontSize: 11, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>−{window.formatNum(Math.max(0, up.unlockAt - totalTeeth))}</div>
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-3)', lineHeight: 1.2 }}>???</div>
+          <div style={{ fontSize: 11, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>
+            −<window.Odometer value={Math.max(0, (up.unlockAt !== undefined ? up.unlockAt : Math.floor(up.cost * 0.5)) - totalTeeth)} />
+          </div>
         </div>
       </div>);
   }
+
+  const tooltipPortal = isHovered && window.ReactDOM && window.ReactDOM.createPortal(
+    <div style={{
+      position: 'absolute',
+      top: tooltipPos.top,
+      left: tooltipPos.left,
+      width: 250,
+      minHeight: 100,
+      background: 'var(--bg-1)',
+      border: '1px solid var(--border-subtle)',
+      borderRadius: 'var(--radius-m)',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+      padding: '12px',
+      boxSizing: 'border-box',
+      display: 'flex',
+      gap: '12px',
+      zIndex: 99999,
+      animation: 'fadeIn 0.2s ease-out',
+      pointerEvents: 'none'
+    }}>
+      <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+        {up.iconUrl ? <img src={up.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={up.icon || "fa-solid fa-arrow-up-right-dots"} style={{ fontSize: 24, color: 'var(--fg-2)' }}></i>}
+      </div>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-1)', lineHeight: 1.2 }}>{name}</div>
+          <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.3, marginTop: 4 }}>{desc}</div>
+        </div>
+        <div style={{ background: 'var(--bg-2)', borderRadius: 6, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ fontSize: 11, color: 'var(--positive-i100)', display: 'flex', justifyContent: 'space-between' }}>
+            <span>Prod. x click:</span> <span>{up.type === 'mult' ? `x${up.value || up.multiplier || 1}` : `+${up.value || up.multiplier || 0}`}</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+          <span style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--fg-4)', fontWeight: 600 }}>Coste</span>
+          <div style={{ fontSize: 13, fontWeight: 700, color: purchased ? 'var(--fg-2)' : (canAfford ? 'var(--positive-i100)' : 'var(--negative-i100)'), display: 'flex', alignItems: 'center', gap: 4 }}>
+            <i className="fa-solid fa-tooth" style={{ fontSize: 11 }}></i>
+            <window.Odometer value={up.cost} formatFn={(v) => window.formatNum(Math.floor(v))} />
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
 
   if (purchased) {
     return (
-      <div style={{ ...sharedGrid, background: 'var(--positive-i010)', border: '1px solid var(--positive-i050)' }}>
-        <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--positive-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
-          <i className="fa-solid fa-check" style={{ fontSize: 13 }}></i>
+      <>
+        <div 
+          ref={rowRef}
+          onMouseEnter={handleEnter} 
+          onMouseLeave={handleLeave} 
+          style={{ ...sharedGrid, gridTemplateColumns: '32px 1fr', background: 'var(--positive-i010)', border: '1px solid var(--positive-i100)', position: 'relative', transform: isHovered ? 'translateY(-1px)' : 'none', transition: 'transform 150ms ease' }}
+        >
+          {showConfetti && Array.from({ length: 16 }).map((_, i) => <ConfettiParticle key={i} />)}
+          <div style={{ width: 32, height: 32, borderRadius: 6, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0, overflow: 'hidden' }}>
+            {up.iconUrl ? <img src={up.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={up.icon || "fa-solid fa-arrow-up-right-dots"} style={{ fontSize: 13 }}></i>}
+          </div>
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'baseline' }}>
+              <span style={{ fontSize: 10, color: 'var(--positive-i150)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                {up.type === 'mult' ? `x${up.value || up.multiplier || 1}` : `+${up.value || up.multiplier || 0}`}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--positive-i130)', whiteSpace: 'nowrap' }}>x click</span>
+            </div>
+          </div>
+          <div style={{ position: 'absolute', top: -8, right: -8, width: 16, height: 16, borderRadius: '50%', background: 'var(--positive-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 2 }}>
+            <i className="fa-solid fa-check" style={{ fontSize: 8 }}></i>
+          </div>
         </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--positive-i150)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-          <div style={{ fontSize: 11, color: 'var(--positive-i130)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{desc}</div>
-        </div>
-        <div style={{ fontSize: 10, color: 'var(--positive-i130)', textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0 }}>{t.ach_unlocked}</div>
-      </div>);
+        {tooltipPortal}
+      </>
+    );
   }
 
   return (
-    <button onClick={onBuy} disabled={!canAfford} className="app-btn" style={{
-      all: 'unset', ...sharedGrid,
-      background: 'var(--bg-1)', border: `1px solid ${canAfford ? 'var(--primary-i020)' : 'var(--border-subtle)'}`,
-      cursor: canAfford ? 'pointer' : 'not-allowed',
-      opacity: canAfford ? 1 : 0.75, transition: 'all 150ms ease',
-    }}>
-      <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--alternative-i010)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--alternative-i100)', flexShrink: 0 }}>
-        <i className="fa-solid fa-arrow-up-right-dots" style={{ fontSize: 13 }}></i>
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-1)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-        <div style={{ fontSize: 11, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{desc}</div>
-      </div>
-      <div style={{ textAlign: 'right', minWidth: 72, flexShrink: 0 }}>
-        <div style={{ fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t.cost}</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: canAfford ? 'var(--primary-i100)' : 'var(--fg-2)', fontVariantNumeric: 'tabular-nums', display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end', lineHeight: 1.2 }}>
-          <i className="fa-solid fa-tooth" style={{ fontSize: 11 }}></i>
-          {window.formatNum(up.cost)}
+    <>
+      <div 
+        ref={rowRef}
+        onMouseEnter={handleEnter} 
+        onMouseLeave={handleLeave} 
+        onClick={canAfford ? onBuy : undefined}
+        onMouseDown={() => canAfford && setIsPressed(true)}
+        onMouseUp={() => setIsPressed(false)}
+        style={{
+          ...sharedGrid,
+          position: 'relative',
+          background: canAfford ? 'var(--bg-1)' : 'var(--bg-2)',
+          border: canAfford ? '1px solid var(--primary-i100)' : '1px solid var(--border-subtle)',
+          boxShadow: canAfford ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+          cursor: canAfford ? 'pointer' : 'not-allowed',
+          opacity: canAfford ? 1 : 0.65,
+          transform: isPressed ? 'translateY(1px)' : (isHovered ? 'translateY(-1px)' : 'none'),
+          transition: 'transform 100ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease'
+        }}
+      >
+        <div style={{ width: 32, height: 32, borderRadius: 6, background: canAfford ? 'var(--alternative-i010)' : 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: canAfford ? 'var(--alternative-i100)' : 'var(--fg-3)', flexShrink: 0, overflow: 'hidden', transition: 'background 150ms ease, color 150ms ease' }}>
+          {up.iconUrl ? <img src={up.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={up.icon || "fa-solid fa-arrow-up-right-dots"} style={{ fontSize: 13 }}></i>}
+        </div>
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'baseline' }}>
+            <span style={{ fontSize: 10, color: 'var(--positive-i100)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+              {up.type === 'mult' ? `x${up.value || up.multiplier || 1}` : `+${up.value || up.multiplier || 0}`}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>x click</span>
+          </div>
+          <div style={{ fontSize: 13, fontWeight: canAfford ? 700 : 400, color: canAfford ? 'var(--fg-1)' : 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>
+            <window.Odometer value={up.cost} formatFn={(v) => window.formatNum(Math.floor(v))} />
+          </div>
         </div>
       </div>
-    </button>);
+      {tooltipPortal}
+    </>
+  );
+}
+
+function AcademyUpgradeRow({ up, purchased, canAfford, unlocked, onBuy, lang, totalXP, isCoins, onHover, onLeave, state }) {
+  const name = up.name?.[lang] || up[lang] || up.name?.es || up.es || "Mejora";
+  const desc = up.desc?.[lang] || up.description?.[lang] || up.desc?.es || up.description?.es || "";
+  const isSpecial = up.isLevelSpecial;
+  const cost = isCoins ? up.costCoins : up.baseCost || up.costXP;
+  
+  const [isPressed, setIsPressed] = React.useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [tooltipPos, setTooltipPos] = React.useState({ top: 0, left: 0 });
+  const rowRef = React.useRef(null);
+  
+  const prevPurchased = React.useRef(purchased);
+  const [showConfetti, setShowConfetti] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!prevPurchased.current && purchased) {
+      setShowConfetti(true);
+      const id = setTimeout(() => setShowConfetti(false), 200);
+      return () => clearTimeout(id);
+    }
+    prevPurchased.current = purchased;
+  }, [purchased]);
+
+  const sharedGrid = { display: 'grid', gridTemplateColumns: '32px 1fr', gap: '8px', alignItems: 'center', padding: '5px 8px', boxSizing: 'border-box', borderRadius: 'var(--radius-s)' };
+
+  const handleEnter = () => {
+    setIsHovered(true);
+    if (rowRef.current) {
+      const rect = rowRef.current.getBoundingClientRect();
+      const container = rowRef.current.closest('section') || rowRef.current.closest('.mobile-tab-view-body') || rowRef.current.closest('#click-upgrades-container-desktop') || rowRef.current.closest('div');
+      const containerRect = container ? container.getBoundingClientRect() : rect;
+      let leftPos = containerRect.left - 250 - 5;
+      if (leftPos < 5) {
+        leftPos = containerRect.right + 5;
+      }
+      setTooltipPos({ top: rect.top, left: leftPos });
+    }
+  };
+
+  const handleLeave = () => {
+    setIsPressed(false);
+    setIsHovered(false);
+  };
+
+  const ConfettiParticle = () => {
+    const [active, setActive] = React.useState(false);
+    
+    const { startX, startY, tx, ty } = React.useMemo(() => {
+      const edge = Math.random();
+      let x, y, angle;
+      if (edge < 0.25) {
+        x = Math.random() * 100; y = 0;
+        angle = -Math.PI / 2 + (Math.random() - 0.5);
+      } else if (edge < 0.5) {
+        x = 100; y = Math.random() * 100;
+        angle = (Math.random() - 0.5);
+      } else if (edge < 0.75) {
+        x = Math.random() * 100; y = 100;
+        angle = Math.PI / 2 + (Math.random() - 0.5);
+      } else {
+        x = 0; y = Math.random() * 100;
+        angle = Math.PI + (Math.random() - 0.5);
+      }
+      const dist = 30 + Math.random() * 30;
+      return { startX: x, startY: y, tx: Math.cos(angle) * dist, ty: Math.sin(angle) * dist };
+    }, []);
+
+    React.useEffect(() => {
+      let raf = requestAnimationFrame(() => requestAnimationFrame(() => setActive(true)));
+      return () => cancelAnimationFrame(raf);
+    }, []);
+    
+    const color = ['#ff3366', '#33ccff', '#ffcc00', '#33ff66', '#a64dff'][Math.floor(Math.random() * 5)];
+    return (
+      <div style={{
+        position: 'absolute', top: `${startY}%`, left: `${startX}%`, width: 6, height: 6, background: color, borderRadius: '50%',
+        transform: active ? `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0)` : 'translate(-50%, -50%) scale(1.5)',
+        opacity: active ? 0 : 1,
+        transition: 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease-out',
+        pointerEvents: 'none'
+      }} />
+    );
+  };
+
+  if (!unlocked) {
+    return (
+      <div ref={rowRef} onMouseEnter={handleEnter} onMouseLeave={handleLeave} style={{ ...sharedGrid, background: 'var(--bg-2)', border: '1px solid var(--border-subtle)', opacity: 0.5, cursor: 'not-allowed' }}>
+        <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-4)', flexShrink: 0 }}>
+          <i className="fa-solid fa-lock" style={{ fontSize: 12 }}></i>
+        </div>
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-3)', lineHeight: 1.2 }}>???</div>
+          <div style={{ fontSize: 11, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>
+             {lang === 'es' ? 'Bloqueado' : 'Locked'}
+          </div>
+        </div>
+        
+        {isHovered && window.ReactDOM && window.ReactDOM.createPortal(
+          <div style={{
+            position: 'absolute',
+            top: tooltipPos.top,
+            left: tooltipPos.left,
+            width: 250,
+            background: 'var(--bg-1)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-m)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            padding: '12px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            zIndex: 99999,
+            animation: 'fadeIn 0.2s ease-out',
+            pointerEvents: 'none'
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-1)' }}>{lang === 'es' ? 'Bloqueado' : 'Locked'}</div>
+            <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>{lang === 'es' ? 'Requisitos:' : 'Requirements:'}</div>
+            <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', fontSize: 11, color: 'var(--fg-3)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {(() => {
+                const reqs = [];
+                const lvlReq = (up.levelReq !== undefined) ? up.levelReq : (up.reqLevel || 0);
+                if (lvlReq > 0) {
+                  const met = state && state.level >= lvlReq;
+                  reqs.push({ text: lang === 'es' ? `Nivel ${lvlReq}` : `Level ${lvlReq}`, met });
+                }
+                if (up.reqGeneratorId && up.reqGenQty) {
+                  const gen = (window.GENERATORS || []).find(g => g.id === up.reqGeneratorId);
+                  const gName = gen ? (gen.name?.[lang] || gen[lang] || gen.name?.es || gen.es || '(?)') : '(?)';
+                  const met = state && (state.generators?.[up.reqGeneratorId] || 0) >= up.reqGenQty;
+                  reqs.push({ text: `${up.reqGenQty}x ${gName}`, met });
+                }
+                const achId = up.reqAchievementId || up.achievementId;
+                if (achId && achId !== "none" && String(achId).trim() !== "") {
+                  const ach = (window.ACHIEVEMENTS || []).find(a => String(a.id) === String(achId));
+                  if (ach) {
+                    const achName = ach.name?.[lang] || ach[lang] || ach.name?.es || ach.es || '(?)';
+                    const met = state && !!state.achievements[achId];
+                    reqs.push({ text: lang === 'es' ? `Logro: ${achName}` : `Achievement: ${achName}`, met });
+                  }
+                }
+                return reqs.map((r, idx) => (
+                  <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6, color: r.met ? 'var(--positive-i100)' : 'var(--fg-3)' }}>
+                    <i className={r.met ? "fa-solid fa-circle-check" : "fa-solid fa-circle-xmark"} style={{ fontSize: 12 }}></i>
+                    <span style={{ fontWeight: r.met ? 600 : 400 }}>{r.text}</span>
+                  </li>
+                ));
+              })()}
+            </ul>
+            {cost > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+                <span style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--fg-4)', fontWeight: 600 }}>Coste</span>
+                <div style={{ fontSize: 13, fontWeight: 700, color: canAfford ? 'var(--positive-i100)' : 'var(--negative-i100)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {isCoins ? <span style={{ fontSize: 11 }}>{lang === 'es' ? 'Monedas' : 'Coins'}</span> : <i className="fa-solid fa-tooth" style={{ fontSize: 11 }}></i>}
+                  <window.Odometer value={cost} formatFn={(v) => window.formatNum(Math.floor(v))} />
+                </div>
+              </div>
+            )}
+          </div>,
+          document.body
+        )}
+      </div>
+    );
+  }
+
+  const tooltipPortal = isHovered && window.ReactDOM && window.ReactDOM.createPortal(
+    <div style={{
+      position: 'absolute',
+      top: tooltipPos.top,
+      left: tooltipPos.left,
+      width: 250,
+      minHeight: 100,
+      background: 'var(--bg-1)',
+      border: '1px solid var(--border-subtle)',
+      borderRadius: 'var(--radius-m)',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+      padding: '12px',
+      boxSizing: 'border-box',
+      display: 'flex',
+      gap: '12px',
+      zIndex: 99999,
+      animation: 'fadeIn 0.2s ease-out',
+      pointerEvents: 'none'
+    }}>
+      <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+        {up.iconUrl ? <img src={up.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={up.icon || "fa-solid fa-graduation-cap"} style={{ fontSize: 24, color: 'var(--fg-2)' }}></i>}
+      </div>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-1)', lineHeight: 1.2 }}>{name}</div>
+        </div>
+        <div style={{ background: 'var(--bg-2)', borderRadius: 6, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {up.passiveMult > 0 && <div style={{ fontSize: 11, color: 'var(--positive-i100)', display: 'flex', justifyContent: 'space-between' }}><span>Pasiva:</span> <span>+{up.passiveMult}%</span></div>}
+          {up.clickMult > 0 && <div style={{ fontSize: 11, color: 'var(--positive-i100)', display: 'flex', justifyContent: 'space-between' }}><span>Click:</span> <span>+{up.clickMult}%</span></div>}
+          {up.globalMult > 0 && <div style={{ fontSize: 11, color: 'var(--positive-i100)', display: 'flex', justifyContent: 'space-between' }}><span>Global:</span> <span>+{up.globalMult}%</span></div>}
+          {up.xpMult > 0 && <div style={{ fontSize: 11, color: 'var(--positive-i100)', display: 'flex', justifyContent: 'space-between' }}><span>XP:</span> <span>+{up.xpMult}%</span></div>}
+          {up.genProdMult > 0 && up.reqGeneratorId && (() => {
+             const gen = (window.GENERATORS || []).find(g => g.id === up.reqGeneratorId);
+             const gName = gen ? (gen.name?.[lang] || gen[lang] || gen.name?.es || gen.es || '(?)') : '(?)';
+             return <div style={{ fontSize: 11, color: 'var(--positive-i100)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}><span>{gName}:</span> <span>+{up.genProdMult}%</span></div>;
+          })()}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+          <span style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--fg-4)', fontWeight: 600 }}>Coste</span>
+          <div style={{ fontSize: 13, fontWeight: 700, color: purchased ? 'var(--fg-2)' : (canAfford ? 'var(--positive-i100)' : 'var(--negative-i100)'), display: 'flex', alignItems: 'center', gap: 4 }}>
+            {isCoins ? <span style={{ fontSize: 11 }}>{lang === 'es' ? 'Monedas' : 'Coins'}</span> : <i className="fa-solid fa-tooth" style={{ fontSize: 11 }}></i>}
+            <window.Odometer value={cost} formatFn={(v) => window.formatNum(Math.floor(v))} />
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+
+  if (purchased) {
+    return (
+      <>
+        <div 
+          ref={rowRef}
+          onMouseEnter={handleEnter} 
+          onMouseLeave={handleLeave} 
+          style={{ ...sharedGrid, background: 'var(--positive-i010)', border: '1px solid var(--positive-i100)', position: 'relative', transform: isHovered ? 'translateY(-1px)' : 'none', transition: 'transform 150ms ease' }}
+        >
+          {showConfetti && Array.from({ length: 16 }).map((_, i) => <ConfettiParticle key={i} />)}
+          <div style={{ width: 32, height: 32, borderRadius: 6, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0, overflow: 'hidden' }}>
+            {up.iconUrl ? <img src={up.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={up.icon || "fa-solid fa-graduation-cap"} style={{ fontSize: 13 }}></i>}
+          </div>
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--positive-i150)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+          </div>
+          <div style={{ position: 'absolute', top: -8, right: -8, width: 16, height: 16, borderRadius: '50%', background: 'var(--positive-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 2 }}>
+            <i className="fa-solid fa-check" style={{ fontSize: 8 }}></i>
+          </div>
+        </div>
+        {tooltipPortal}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div 
+        ref={rowRef}
+        onMouseEnter={handleEnter} 
+        onMouseLeave={handleLeave} 
+        onClick={canAfford ? onBuy : undefined}
+        onMouseDown={() => canAfford && setIsPressed(true)}
+        onMouseUp={() => setIsPressed(false)}
+        style={{
+          ...sharedGrid,
+          position: 'relative',
+          background: isSpecial ? 'var(--warning-i005)' : (canAfford ? 'var(--bg-1)' : 'var(--bg-2)'),
+          border: canAfford ? (isSpecial ? '1px solid var(--warning-i030)' : '1px solid var(--primary-i100)') : '1px solid var(--border-subtle)',
+          boxShadow: canAfford ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+          cursor: canAfford ? 'pointer' : 'not-allowed',
+          opacity: canAfford ? 1 : 0.65,
+          transform: isPressed ? 'translateY(1px)' : (isHovered ? 'translateY(-1px)' : 'none'),
+          transition: 'transform 100ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease'
+        }}
+      >
+        <div style={{ width: 32, height: 32, borderRadius: 6, background: canAfford ? (isSpecial ? 'var(--warning-i010)' : 'var(--alternative-i010)') : 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: canAfford ? (isSpecial ? 'var(--warning-i100)' : 'var(--alternative-i100)') : 'var(--fg-3)', flexShrink: 0, overflow: 'hidden', transition: 'background 150ms ease, color 150ms ease' }}>
+          {up.iconUrl ? <img src={up.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={up.icon || "fa-solid fa-graduation-cap"} style={{ fontSize: 13 }}></i>}
+        </div>
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fg-1)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+          <div style={{ fontSize: 12, fontWeight: canAfford ? 700 : 400, color: canAfford ? 'var(--fg-1)' : 'var(--fg-3)', fontVariantNumeric: 'tabular-nums', display: 'flex', alignItems: 'center', gap: 4 }}>
+            {isCoins ? <span style={{ fontSize: 10, fontWeight: 600 }}>{lang === 'es' ? 'Monedas' : 'Coins'}</span> : <i className="fa-solid fa-tooth" style={{ fontSize: 11 }}></i>}
+            <window.Odometer value={cost} formatFn={(v) => window.formatNum(Math.floor(v))} />
+          </div>
+        </div>
+      </div>
+      {tooltipPortal}
+    </>
+  );
 }
 
 function achIcon(ach) {
@@ -384,42 +897,129 @@ function achIcon(ach) {
   return 'fa-trophy';
 }
 
+window.achIcon = achIcon;
+
 function AchievementCard({ ach, unlocked, lang, onHover, onLeave }) {
-  const [hov, setHov] = useStateC(false);
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [tooltipPos, setTooltipPos] = React.useState({ top: 0, left: 0 });
+  const rowRef = React.useRef(null);
   const icon = achIcon(ach);
+  
+  const handleEnter = () => {
+    setIsHovered(true);
+    if (rowRef.current) {
+      const rect = rowRef.current.getBoundingClientRect();
+      
+      if (!unlocked) {
+        if (onHover) onHover(ach, {
+          top: rect.top + 7,
+          bottom: rect.bottom - 7,
+          left: rect.left,
+          right: rect.right,
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2
+        }, unlocked);
+        return;
+      }
+      
+      const container = rowRef.current.closest('section') || rowRef.current.closest('.mobile-tab-view-body') || rowRef.current.closest('#achievements-container-desktop');
+      const containerRect = container ? container.getBoundingClientRect() : rect;
+      
+      let leftPos = containerRect.left - 250 - 5;
+      if (leftPos < 5) {
+        leftPos = containerRect.right + 5;
+      }
+      
+      let topPos = rect.top;
+      if (topPos + 100 > window.innerHeight) {
+        topPos = window.innerHeight - 100 - 10;
+      }
+      
+      setTooltipPos({ top: topPos, left: leftPos });
+      
+      // We pass null for pos to signal that we are handling the tooltip internally
+      if (onHover) {
+         onHover(ach, null, unlocked);
+      }
+    }
+  };
+
+  const handleLeave = () => {
+    setIsHovered(false);
+    if (onLeave) onLeave();
+  };
+
   return (
-    <div
-      style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
-      onMouseEnter={(e) => {
-        setHov(true);
-        if (onHover) {
-          const rect = e.currentTarget.getBoundingClientRect();
-          onHover(ach, { x: rect.left + rect.width / 2, y: rect.top }, unlocked);
-        }
-      }}
-      onMouseLeave={() => {
-        setHov(false);
-        if (onLeave) onLeave();
-      }}
-    >
-      <div style={{
-        width: 44, height: 44, borderRadius: 10,
-        background: unlocked ? 'var(--warning-i100)' : 'var(--bg-3)',
-        border: `1.5px solid ${unlocked ? 'var(--warning-i070)' : 'var(--border-subtle)'}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: unlocked ? '#fff' : 'var(--fg-4)',
-        opacity: unlocked ? 1 : 0.5,
-        cursor: 'default',
-        transition: 'transform 120ms, box-shadow 120ms',
-        transform: hov ? 'scale(1.12)' : 'scale(1)',
-        boxShadow: hov && unlocked ? '0 4px 12px rgba(255,194,32,0.35)' : hov ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
-      }}>
-        <i className={`fa-solid ${icon}`} style={{ fontSize: 16 }}></i>
+    <>
+      <div 
+        ref={rowRef}
+        onMouseEnter={handleEnter} 
+        onMouseLeave={handleLeave} 
+        style={{
+          width: 48, height: 48, padding: 4, boxSizing: 'border-box',
+          borderRadius: 'var(--radius-s)',
+          position: 'relative',
+          background: unlocked ? 'var(--warning-i010)' : 'var(--bg-2)',
+          border: unlocked ? '1px solid var(--warning-i100)' : '1px solid var(--border-subtle)',
+          boxShadow: unlocked ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+          cursor: 'default',
+          opacity: unlocked ? 1 : 0.65,
+          transform: isHovered ? 'translateY(-1px)' : 'none',
+          transition: 'transform 100ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}
+      >
+        <div style={{ width: '100%', height: '100%', borderRadius: 4, background: unlocked ? 'transparent' : 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: unlocked ? 'var(--warning-i100)' : 'var(--fg-3)', overflow: 'hidden', transition: 'background 150ms ease, color 150ms ease' }}>
+          {(ach.iconUrl && unlocked) ? <img src={ach.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={`fa-solid ${unlocked ? icon : 'fa-question'}`} style={{ fontSize: 16 }}></i>}
+        </div>
         {ach.isNew && (
-          <div style={{ position: 'absolute', top: -3, right: -3, width: 10, height: 10, borderRadius: '50%', background: 'var(--negative-i100)', border: '2px solid var(--bg-1)', zIndex: 2 }}></div>
+          <div style={{ position: 'absolute', top: -3, right: -3, width: 8, height: 8, borderRadius: '50%', background: 'var(--negative-i100)', border: '1px solid var(--bg-1)', zIndex: 2 }}></div>
         )}
       </div>
-    </div>);
+      
+      {isHovered && unlocked && window.ReactDOM && window.ReactDOM.createPortal(
+        <div style={{
+          position: 'absolute',
+          top: tooltipPos.top,
+          left: tooltipPos.left,
+          width: 250,
+          background: 'var(--bg-1)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-m)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          padding: '12px',
+          boxSizing: 'border-box',
+          display: 'flex',
+          gap: '12px',
+          zIndex: 99999,
+          animation: 'fadeIn 0.2s ease-out',
+          pointerEvents: 'none'
+        }}>
+          <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+            {ach.iconUrl ? <img src={ach.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={`fa-solid ${icon}`} style={{ fontSize: 24, color: unlocked ? 'var(--warning-i100)' : 'var(--fg-2)' }}></i>}
+          </div>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {unlocked ? (
+              <>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-1)', lineHeight: 1.2 }}>{ach.name?.[lang] || ach[lang] || ach.name?.es || ach.es}</div>
+                  <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.3, marginTop: 4 }}>{ach.description?.[lang] || ach[`desc_${lang}`] || ach.desc_es}</div>
+                </div>
+                <div style={{ color: 'var(--positive-i100)', fontSize: 11, fontWeight: 600, marginTop: 2 }}>
+                  {lang === 'es' ? `+${ach.rewardPercent !== undefined ? ach.rewardPercent : 1}% prod. global permanente` : `+${ach.rewardPercent !== undefined ? ach.rewardPercent : 1}% permanent global prod.`}
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', height: '100%', color: 'var(--fg-3)', fontSize: 12, lineHeight: 1.4, fontWeight: 500 }}>
+                {window.getAchReqText ? window.getAchReqText(ach, lang) : (lang === 'es' ? 'Sigue jugando para descubrirlo' : 'Keep playing to discover')}
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  );
 }
 
 function Toast({ toast, lang }) {
@@ -427,35 +1027,49 @@ function Toast({ toast, lang }) {
   const t = window.STRINGS[lang];
   const isAch = !!toast.cat;
   const isUpgrade = !!toast.id && toast.id.startsWith('buy_up_');
-  const isSpecial = !!toast.id && toast.id.startsWith('__');
+  const isSpecial = !!toast.id && (toast.id.startsWith('__') || toast.id.startsWith('bonus_') || toast.id.startsWith('eff_'));
   const isFeedback = toast.id === 'feedback_success';
   
-  let icon = "fa-solid fa-trophy";
-  let title = t.toast_achieved;
-  let accent = "var(--warning-i100)";
-  let accentText = "var(--warning-i070)";
+  let icon = toast.icon;
+  let title = lang === 'en' && toast.titleEn ? toast.titleEn : toast.title;
+  let accent = toast.accent;
+  let accentText = toast.accentText;
 
-  if (isUpgrade) {
-    icon = "fa-solid fa-cart-shopping";
-    title = lang === 'es' ? 'Mejora comprada' : 'Upgrade bought';
-    accent = "var(--primary-i100)";
-    accentText = "var(--primary-i070)";
+  if (isAch) {
+    icon = icon || (window.achIcon ? `fa-solid ${window.achIcon(toast)}` : "fa-solid fa-trophy");
+    title = title || t.toast_achieved;
+    accent = accent || "var(--warning-i100)";
+    accentText = accentText || "var(--warning-i070)";
+  } else if (isUpgrade) {
+    icon = icon || "fa-solid fa-cart-shopping";
+    title = title || (lang === 'es' ? 'Mejora comprada' : 'Upgrade bought');
+    accent = accent || "var(--primary-i100)";
+    accentText = accentText || "var(--primary-i070)";
   } else if (isSpecial) {
-    icon = "fa-solid fa-bolt";
-    title = lang === 'es' ? 'Bonus activo' : 'Bonus active';
-    accent = "var(--alternative-i100)";
-    accentText = "var(--alternative-i070)";
+    icon = icon || "fa-solid fa-bolt";
+    title = title || (lang === 'es' ? 'Bonus activo' : 'Bonus active');
+    accent = accent || "var(--alternative-i100)";
+    accentText = accentText || "var(--alternative-i070)";
   } else if (isFeedback) {
-    icon = "fa-solid fa-comment-dots";
-    title = lang === 'es' ? 'Mensaje enviado' : 'Message sent';
-    accent = "var(--positive-i100)";
-    accentText = "var(--positive-i070)";
+    icon = icon || "fa-solid fa-comment-dots";
+    title = title || (lang === 'es' ? 'Mensaje enviado' : 'Message sent');
+    accent = accent || "var(--positive-i100)";
+    accentText = accentText || "var(--positive-i070)";
+  } else {
+    icon = icon || "fa-solid fa-info-circle";
+    title = title || "Info";
+    accent = accent || "var(--primary-i100)";
+    accentText = accentText || "var(--primary-i070)";
   }
 
   return (
     <div className="game-toast-container" style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'var(--complementary-i080)', color: '#fff', padding: 'var(--spacing-3) var(--spacing-4)', borderRadius: 'var(--radius-m)', boxShadow: 'var(--elevation-20)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', zIndex: 1000, animation: 'toastIn 250ms ease', maxWidth: 420 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-s)', background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
-        <i className={icon} style={{ fontSize: 16 }}></i>
+      <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-s)', background: (toast.iconUrl || toast.img) ? 'transparent' : accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0, overflow: 'hidden' }}>
+        {(toast.iconUrl || toast.img) ? (
+          <img src={toast.iconUrl || toast.img} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        ) : (
+          <i className={icon} style={{ fontSize: 16 }}></i>
+        )}
       </div>
       <div>
         <div className="t-mini-caps" style={{ color: accentText }}>{title}</div>
@@ -466,49 +1080,70 @@ function Toast({ toast, lang }) {
           </div>
         )}
         {isAch && (
-          <div style={{ fontSize: 11, color: '#FFC220', fontWeight: 600, marginTop: 2 }}>
-            {lang === 'es' ? '+1% prod. global permanente' : '+1% permanent global prod.'}
+          <div style={{ fontSize: 11, color: 'var(--positive-i100)', fontWeight: 600, marginTop: 2 }}>
+            {lang === 'es' ? `+${toast.rewardPercent !== undefined ? toast.rewardPercent : 1}% prod. global permanente` : `+${toast.rewardPercent !== undefined ? toast.rewardPercent : 1}% permanent global prod.`}
           </div>
         )}
       </div>
     </div>);
 }
 
-function StoreUpgradeIcon({ up, canAfford, onBuy, lang, fmt, onHover, onLeave }) {
-  const [hov, setHov] = useStateC(false);
+function StoreUpgradeIcon({ up, canAfford, purchased, onBuy, lang, fmt, onHover, onLeave }) {
+  const [isPressed, setIsPressed] = React.useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
+  const rowRef = React.useRef(null);
   
+  const handleEnter = () => {
+    setIsHovered(true);
+    if (onHover && rowRef.current) {
+      const rect = rowRef.current.getBoundingClientRect();
+      onHover(up, { 
+        x: rect.left + rect.width / 2, 
+        y: rect.top,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      });
+    }
+  };
+
+  const handleLeave = () => {
+    setIsHovered(false);
+    setIsPressed(false);
+    if (onLeave) onLeave();
+  };
+
   return (
     <div 
-      style={{ position: 'relative' }}
-      onMouseEnter={(e) => {
-        setHov(true);
-        if (onHover) {
-          const rect = e.currentTarget.getBoundingClientRect();
-          onHover(up, { x: rect.left + rect.width / 2, y: rect.top });
-        }
-      }}
-      onMouseLeave={() => {
-        setHov(false);
-        if (onLeave) onLeave();
+      ref={rowRef}
+      onMouseEnter={handleEnter} 
+      onMouseLeave={handleLeave} 
+      onClick={() => !purchased && canAfford && onBuy(up)}
+      onMouseDown={() => !purchased && canAfford && setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
+      style={{
+        width: 64, height: 64, padding: 5, boxSizing: 'border-box',
+        borderRadius: 'var(--radius-s)',
+        position: 'relative',
+        background: purchased ? 'var(--positive-i010)' : (canAfford ? 'var(--bg-1)' : 'var(--bg-2)'),
+        border: purchased ? '1px solid var(--positive-i100)' : (canAfford ? '1px solid var(--primary-i100)' : '1px solid var(--border-subtle)'),
+        boxShadow: (canAfford && !purchased) ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+        cursor: purchased ? 'default' : (canAfford ? 'pointer' : 'not-allowed'),
+        opacity: (!purchased && !canAfford) ? 0.65 : 1,
+        transform: isPressed ? 'translateY(1px)' : (isHovered ? 'translateY(-1px)' : 'none'),
+        transition: 'transform 100ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
       }}
     >
-      <button
-        onClick={() => onBuy(up)}
-        disabled={!canAfford}
-        style={{
-          all: 'unset', boxSizing: 'border-box',
-          width: 44, height: 44, borderRadius: 8, border: '2px solid',
-          borderColor: canAfford ? up.color : 'var(--neutral-i020)',
-          background: canAfford ? 'var(--bg-1)' : 'var(--bg-2)',
-          color: canAfford ? up.color : 'var(--fg-3)',
-          cursor: canAfford ? 'pointer' : 'not-allowed',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 20, transition: 'all 200ms ease', opacity: canAfford ? 1 : 0.6,
-          transform: hov && canAfford ? 'scale(1.1)' : 'scale(1)',
-          boxShadow: 'none'
-        }}>
-        <i className={`fa-solid ${up.icon}`}></i>
-      </button>
+      <div style={{ width: '100%', height: '100%', borderRadius: 4, background: purchased ? 'transparent' : (canAfford ? 'var(--alternative-i010)' : 'var(--bg-3)'), display: 'flex', alignItems: 'center', justifyContent: 'center', color: purchased ? 'var(--positive-i100)' : (canAfford ? 'var(--alternative-i100)' : 'var(--fg-3)'), overflow: 'hidden', transition: 'background 150ms ease, color 150ms ease' }}>
+        {up.iconUrl ? <img src={up.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={`fa-solid ${up.icon || 'fa-store'}`} style={{ fontSize: 24 }}></i>}
+      </div>
+      {purchased && (
+        <div style={{ position: 'absolute', top: -8, right: -8, width: 16, height: 16, borderRadius: '50%', background: 'var(--positive-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 2 }}>
+          <i className="fa-solid fa-check" style={{ fontSize: 8 }}></i>
+        </div>
+      )}
     </div>
   );
 }
@@ -533,7 +1168,7 @@ function VersionLogModal({ onClose, lang }) {
               <span style={{ fontSize: 11, fontWeight: 700, color: '#1a8fff', background: 'rgba(26,143,255,0.1)', padding: '2px 8px', borderRadius: 6, fontFamily: 'var(--font-sans)' }}>{v.v}</span>
               {v.date && <span style={{ fontSize: 10, color: '#8aaacc', fontFamily: 'var(--font-sans)' }}>{v.date}</span>}
             </div>
-            <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, fontFamily: 'var(--font-sans)', whiteSpace: 'pre-wrap' }}>{v.desc}</div>
+            <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.5, fontFamily: 'var(--font-sans)', whiteSpace: 'pre-wrap' }} dangerouslySetInnerHTML={{ __html: v.desc }} />
           </div>
         ))}
       </div>
@@ -558,7 +1193,7 @@ function AboutModal({ onClose, lang }) {
   return (
     <window.Modal onClose={onClose} maxWidth={480}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 300, maxWidth: 600, minHeight: 0 }}>
-        <img src="uploads/logo-vertical.png" alt="ToothClicker" style={{ width: 180, objectFit: 'contain', marginBottom: 8, flexShrink: 0 }} />
+        <img src={window.GAME_CONTENT?.terminology?.images?.logoVertical || "uploads/logo-vertical.png"} alt="ToothClicker" style={{ width: 180, objectFit: 'contain', marginBottom: 8, flexShrink: 0 }} />
         <div style={{ fontSize: 15, fontWeight: 600, color: '#333', fontFamily: 'var(--font-sans)', marginBottom: 16, flexShrink: 0, padding: "20px 0px" }}>
           {lang === 'es' ? 'Creado por Jaime Arias' : 'Created by Jaime Arias'}
         </div>
@@ -774,5 +1409,561 @@ function GameTour({ step, lang, onNext, onPrev, onClose, dontShowAgain, onToggle
     </div>
   );
 }
+function Dropdown({ value, onChange, options, style, disabled = false, searchable = false, placeholder = "Buscar..." }) {
+  const [isOpen, setIsOpen] = useStateC(false);
+  const [rect, setRect] = useStateC(null);
+  const [searchTerm, setSearchTerm] = useStateC('');
+  const dropdownRef = React.useRef(null);
+  const inputRef = React.useRef(null);
 
-Object.assign(window, { ToothbrushRing, AboutModal, VersionLogModal, GameTour, StatTile, StatsGroup, TabBar, GeneratorRow, ClickUpgradeRow, AchievementCard, Toast, StoreUpgradeIcon, ToothIcon, primaryBtnStyle, secondaryBtnStyle });
+  const updatePosition = React.useCallback(() => {
+    if (dropdownRef.current) {
+      setRect(dropdownRef.current.getBoundingClientRect());
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      const handleScroll = () => {
+        updatePosition();
+      };
+      // Usar capture = true para interceptar todos los scrolls (incluso de contenedores internos)
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('resize', updatePosition);
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [isOpen, updatePosition]);
+
+  const handleToggle = () => {
+    if (disabled) return;
+    if (!isOpen) {
+      updatePosition();
+      setSearchTerm('');
+    }
+    setIsOpen(!isOpen);
+  };
+
+  React.useEffect(() => {
+    if (isOpen && searchable && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen, searchable]);
+
+  const selectedOption = options.find(o => String(o.value) === String(value));
+  const displayLabel = selectedOption ? selectedOption.label : 'Selecciona...';
+
+  let portalStyle = {};
+  if (rect) {
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const dropUp = spaceBelow < 250 && spaceAbove > spaceBelow;
+
+    portalStyle = {
+      position: 'fixed',
+      left: rect.left,
+      width: rect.width,
+      zIndex: 99999,
+    };
+
+    if (dropUp) {
+      portalStyle.bottom = window.innerHeight - rect.top + 4;
+    } else {
+      portalStyle.top = rect.bottom + 4;
+    }
+  }
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', width: '100%', ...style }}>
+      <button 
+        type="button"
+        disabled={disabled}
+        onClick={handleToggle}
+        style={{
+          all: 'unset', boxSizing: 'border-box', width: '100%', padding: '12px 16px',
+          background: disabled ? 'var(--bg-2)' : 'var(--bg-1)', 
+          borderRadius: 14, fontSize: 14, border: isOpen ? '2px solid var(--primary-i100)' : '2px solid var(--border-default)',
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', fontFamily: 'var(--font-sans)',
+          color: 'var(--fg-1)', boxShadow: isOpen ? '0 0 0 4px rgba(0,118,219,0.15), 0 4px 12px rgba(0,0,0,0.1)' : 'inset 0 2px 4px rgba(0,0,0,0.02)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: disabled ? 'not-allowed' : 'pointer'
+        }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayLabel}</span>
+        <i className={`fa-solid fa-chevron-${isOpen ? 'up' : 'down'}`} style={{ color: 'var(--primary-i100)', fontSize: 12, marginLeft: 8 }}></i>
+      </button>
+
+      {isOpen && ReactDOM.createPortal(
+        <>
+          <div 
+            style={{ position: 'fixed', inset: 0, zIndex: 99998 }} 
+            onMouseDown={(e) => { e.stopPropagation(); setIsOpen(false); }}
+          />
+          <div style={{
+            ...portalStyle,
+            background: 'var(--bg-1)', border: '1px solid var(--border-default)', borderRadius: 12,
+            boxShadow: 'var(--elevation-20)',
+            maxHeight: 250, display: 'flex', flexDirection: 'column'
+          }}>
+            {searchable && (
+              <div style={{ padding: 8, borderBottom: '1px solid var(--border-default)' }}>
+                <div style={{ position: 'relative' }}>
+                  <i className="fa-solid fa-search" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--fg-3)', fontSize: 12 }}></i>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    placeholder={placeholder}
+                    onKeyDown={e => e.stopPropagation()}
+                    style={{
+                      width: '100%', boxSizing: 'border-box', padding: '6px 10px 6px 28px',
+                      borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--bg-2)',
+                      color: 'var(--fg-1)', fontSize: 13, outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+            <div style={{ overflowY: 'auto', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {options.filter(opt => !searchable || !searchTerm || (opt.label || '').toString().toLowerCase().includes(searchTerm.toLowerCase())).map((opt, i) => (
+              <button
+                key={i}
+                type="button"
+                onMouseDown={(e) => { e.stopPropagation(); onChange(opt.value); setIsOpen(false); }}
+                style={{
+                  all: 'unset', boxSizing: 'border-box', padding: '10px 12px',
+                  borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                  background: String(value) === String(opt.value) ? 'var(--primary-i010)' : 'transparent',
+                  color: String(value) === String(opt.value) ? 'var(--primary-i100)' : 'var(--fg-1)',
+                  fontWeight: String(value) === String(opt.value) ? 600 : 500,
+                  transition: 'background 0.2s',
+                  display: 'flex', alignItems: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  if (String(value) !== String(opt.value)) {
+                    e.currentTarget.style.background = 'var(--bg-2)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (String(value) !== String(opt.value)) {
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+            {options.filter(opt => !searchable || !searchTerm || (opt.label || '').toString().toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+              <div style={{ padding: '10px 12px', fontSize: 13, color: 'var(--fg-3)', textAlign: 'center' }}>
+                No hay opciones
+              </div>
+            )}
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
+    </div>
+  );
+}
+
+const OdometerChar = React.memo(function OdometerChar({ char }) {
+  const isDigit = /^[0-9]$/.test(char);
+  if (!isDigit) {
+    return <span style={{ display: 'inline-block', height: '1em', lineHeight: '1em', verticalAlign: 'bottom' }}>{char}</span>;
+  }
+  return (
+    <span style={{ display: 'inline-block', height: '1em', overflow: 'hidden', verticalAlign: 'bottom' }}>
+      <span style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)', 
+        transform: `translateY(-${parseInt(char, 10)}em)`,
+        willChange: 'transform'
+      }}>
+        {['0','1','2','3','4','5','6','7','8','9'].map(d => (
+          <span key={d} style={{ height: '1em', lineHeight: '1em', textAlign: 'center' }}>{d}</span>
+        ))}
+      </span>
+    </span>
+  );
+});
+
+function Odometer({ value, formatFn, className, style, ...props }) {
+  const [displayValue, setDisplayValue] = React.useState(0);
+  
+  React.useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      setDisplayValue(value);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+
+  const str = formatFn ? formatFn(displayValue) : (window.formatNum ? window.formatNum(displayValue) : String(displayValue));
+  return (
+    <span className={className} style={{ display: 'inline-flex', verticalAlign: 'bottom', fontVariantNumeric: 'tabular-nums', ...style }} {...props}>
+      {str.split('').map((char, i) => {
+         const posFromEnd = str.length - i;
+         return <OdometerChar key={posFromEnd} char={char} />;
+      })}
+    </span>
+  );
+}
+
+window.Tooth3DViewer = function({ glbData, textureUrl, onClick, onPointerDownOut, onPointerUpOut, style, className, animateFloat = true, onModelLoaded, modelScale = 2.4, disableRotation = false }) {
+  const mountRef = React.useRef(null);
+  const onClickRef = React.useRef(onClick);
+  const animateFloatRef = React.useRef(animateFloat);
+  const [error, setError] = React.useState(null);
+
+  React.useEffect(() => {
+    onClickRef.current = onClick;
+  }, [onClick]);
+
+  React.useEffect(() => {
+    animateFloatRef.current = animateFloat;
+  }, [animateFloat]);
+
+  React.useEffect(() => {
+    if (!window.THREE) {
+      setError("Three.js not loaded");
+      return;
+    }
+    if (!window.THREE.GLTFLoader) {
+      setError("GLTFLoader not loaded");
+      return;
+    }
+
+    const { THREE } = window;
+    const width = mountRef.current.clientWidth || 260;
+    const height = mountRef.current.clientHeight || 260;
+
+    let scene = new THREE.Scene();
+    
+    // Transparent background, preserve drawing buffer for snapshot extraction
+    let renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    mountRef.current.innerHTML = '';
+    mountRef.current.appendChild(renderer.domElement);
+
+    let camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.z = 5;
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(5, 10, 7);
+    scene.add(dirLight);
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    backLight.position.set(-5, -5, -5);
+    scene.add(backLight);
+
+    let mesh = null;
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    let hasMoved = false;
+    let animationFrameId;
+    let rotationVelocity = 0;
+    let time = 0;
+
+    const animate = () => {
+      animationFrameId = requestAnimationFrame(animate);
+      if (mesh) {
+        if (animateFloatRef.current) {
+          time += 0.03;
+          // Floating up and down
+          mesh.position.y = Math.sin(time) * 0.12;
+        } else {
+          mesh.position.y += (0 - mesh.position.y) * 0.1;
+        }
+
+        if (!isDragging) {
+          if (Math.abs(rotationVelocity) > 0.001 && !disableRotation) {
+            mesh.rotation.y += rotationVelocity;
+            rotationVelocity *= 0.95; // Friction
+          } else {
+            rotationVelocity = 0;
+          }
+        }
+        if (renderer && scene && camera) {
+          renderer.render(scene, camera);
+        }
+      }
+    };
+    animate();
+
+    const loader = new THREE.GLTFLoader();
+    
+    // Add Draco support for optimized GLBs
+    let dracoLoader = null;
+    if (window.THREE.DRACOLoader) {
+      dracoLoader = new window.THREE.DRACOLoader();
+      dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');
+      loader.setDRACOLoader(dracoLoader);
+    }
+
+    let isMounted = true;
+
+    const disposeMaterial = (mat) => {
+      if (!mat) return;
+      for (const key of Object.keys(mat)) {
+        const value = mat[key];
+        if (value && typeof value === 'object' && value.dispose) {
+          try {
+            value.dispose();
+          } catch (e) {}
+        }
+      }
+      if (mat.dispose) {
+        try {
+          mat.dispose();
+        } catch (e) {}
+      }
+    };
+
+    loader.load(glbData, (gltf) => {
+      if (!isMounted) {
+        // Dispose GLTF right away if component unmounted while loading
+        gltf.scene.traverse((object) => {
+          if (object.isMesh) {
+            if (object.geometry) {
+              try { object.geometry.dispose(); } catch (e) {}
+            }
+            if (object.material) {
+              if (Array.isArray(object.material)) {
+                object.material.forEach(disposeMaterial);
+              } else {
+                disposeMaterial(object.material);
+              }
+            }
+          }
+        });
+        return;
+      }
+
+      const object = gltf.scene;
+      
+      // Center and scale
+      const box = new THREE.Box3().setFromObject(object);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      
+      const scale = modelScale / maxDim; // Adjust scale based on prop
+      object.scale.set(scale, scale, scale);
+      object.position.sub(center.multiplyScalar(scale));
+      object.rotation.y = -Math.PI / 2; // Rotate 90 degrees to face front
+
+      // Do not apply external texture. Let the GLB use its own baked materials.
+      
+      // Add a soft circular shadow underneath the model to look floating
+      const shadowCanvas = document.createElement('canvas');
+      shadowCanvas.width = 128;
+      shadowCanvas.height = 128;
+      const ctx = shadowCanvas.getContext('2d');
+      const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      gradient.addColorStop(0, 'rgba(0,0,0,0.25)');
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 128, 128);
+      
+      const shadowTexture = new THREE.CanvasTexture(shadowCanvas);
+      const shadowMaterial = new THREE.MeshBasicMaterial({
+        map: shadowTexture,
+        transparent: true,
+        depthWrite: false
+      });
+      const shadowMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), shadowMaterial);
+      shadowMesh.rotation.x = -Math.PI / 2; // Flat on the floor
+      shadowMesh.position.y = -1.4; // Slightly below the scaled model
+      if (scene) scene.add(shadowMesh);
+
+      // Wrap in a group for rotation
+      mesh = new THREE.Group();
+      mesh.add(object);
+      if (scene) scene.add(mesh);
+
+      // Take snapshot if requested
+      if (onModelLoaded) {
+        // Force a render so the canvas has the model drawn
+        if (renderer && scene && camera) {
+          const oldAspect = camera.aspect;
+          const oldFov = camera.fov;
+          const oldWidth = mountRef.current.clientWidth || 260;
+          const oldHeight = mountRef.current.clientHeight || 260;
+          
+          // Temporarily render as square to get a perfect icon snapshot without clipping
+          renderer.setSize(256, 256);
+          camera.aspect = 1;
+          camera.fov = 38; // Zoom out slightly to avoid cutting off
+          camera.updateProjectionMatrix();
+          
+          renderer.render(scene, camera);
+          const dataUrl = renderer.domElement.toDataURL('image/png');
+          onModelLoaded(dataUrl);
+          
+          // Restore
+          renderer.setSize(oldWidth, oldHeight);
+          camera.aspect = oldAspect;
+          camera.fov = oldFov;
+          camera.updateProjectionMatrix();
+          renderer.render(scene, camera);
+        }
+      }
+    }, undefined, (err) => {
+      console.error(err);
+      setError("Invalid GLB data");
+    });
+
+    const onPointerDown = (e) => {
+      e.preventDefault(); // Stop native dragging
+      if (mountRef.current) mountRef.current.style.cursor = 'grabbing';
+      isDragging = true;
+      hasMoved = false;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      previousMousePosition = { x: clientX, y: clientY };
+      if (onPointerDownOut) onPointerDownOut(e);
+    };
+
+    const onPointerMove = (e) => {
+      if (isDragging && mesh) {
+        e.preventDefault(); // Prevent scrolling while rotating
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const deltaMove = clientX - previousMousePosition.x;
+        
+        if (!disableRotation) {
+          hasMoved = true;
+          mesh.rotation.y += deltaMove * 0.01;
+          rotationVelocity = deltaMove * 0.01;
+        } else {
+          if (Math.abs(deltaMove) > 5) hasMoved = true;
+        }
+        
+        previousMousePosition = { x: clientX, y: previousMousePosition.y };
+      }
+    };
+
+    const onPointerUp = (e) => {
+      if (isDragging && !hasMoved) {
+        // Raycaster for click
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        const rect = renderer.domElement.getBoundingClientRect();
+        const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+        const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+        
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+        
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObject(mesh, true);
+        
+        if (intersects.length > 0) {
+          // Reset rotation briefly for visual effect
+          mesh.scale.setScalar(0.96);
+          setTimeout(() => {
+            if (mesh) {
+              mesh.scale.setScalar(1.0);
+            }
+          }, 100);
+          
+          const mockEvent = {
+            clientX,
+            clientY,
+            currentTarget: mountRef.current
+          };
+          if (onClickRef.current) onClickRef.current(mockEvent);
+        }
+      }
+      isDragging = false;
+      hasMoved = false;
+      if (mountRef.current) mountRef.current.style.cursor = 'pointer';
+      if (onPointerUpOut) onPointerUpOut(e);
+    };
+
+    const canvas = renderer.domElement;
+    canvas.addEventListener('mousedown', onPointerDown);
+    canvas.addEventListener('mousemove', onPointerMove);
+    window.addEventListener('mouseup', onPointerUp);
+    
+    canvas.addEventListener('touchstart', onPointerDown, {passive: false});
+    canvas.addEventListener('touchmove', onPointerMove, {passive: false});
+    window.addEventListener('touchend', onPointerUp);
+
+    const resizeObserver = new ResizeObserver(entries => {
+      for (let entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0 && renderer && camera) {
+          renderer.setSize(width, height);
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+        }
+      }
+    });
+    if (mountRef.current) {
+      resizeObserver.observe(mountRef.current);
+    }
+
+    return () => {
+      isMounted = false;
+      canvas.removeEventListener('mousedown', onPointerDown);
+      canvas.removeEventListener('mousemove', onPointerMove);
+      window.removeEventListener('mouseup', onPointerUp);
+      canvas.removeEventListener('touchstart', onPointerDown);
+      canvas.removeEventListener('touchmove', onPointerMove);
+      window.removeEventListener('touchend', onPointerUp);
+      resizeObserver.disconnect();
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      
+      // Memory cleanup: Traverse and dispose everything
+      if (scene) {
+        scene.traverse((object) => {
+          if (object.geometry) {
+            try { object.geometry.dispose(); } catch (e) {}
+          }
+          if (object.material) {
+            if (Array.isArray(object.material)) {
+              object.material.forEach(disposeMaterial);
+            } else {
+              disposeMaterial(object.material);
+            }
+          }
+        });
+      }
+
+      if (dracoLoader) {
+        try { dracoLoader.dispose(); } catch (e) {}
+      }
+
+      if (mountRef.current) mountRef.current.innerHTML = '';
+      if (renderer) {
+        try { renderer.dispose(); } catch (e) {}
+      }
+      
+      // Nullify all references for GC
+      scene = null;
+      renderer = null;
+      camera = null;
+      mesh = null;
+      dracoLoader = null;
+    };
+  }, [glbData]);
+
+  if (error) {
+    return <div style={{...style, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ff000022'}} className={className}>Error 3D: {error}</div>;
+  }
+
+  return (
+    <div ref={mountRef} style={{ width: '100%', height: '100%', cursor: 'pointer', ...style }} className={className} />
+  );
+};
+
+Object.assign(window, { Odometer, ToothbrushRing, AboutModal, VersionLogModal, GameTour, StatTile, StatsGroup, TabBar, GeneratorRow, ClickUpgradeRow, AcademyUpgradeRow, AchievementCard, Toast, StoreUpgradeIcon, ToothIcon, primaryBtnStyle, secondaryBtnStyle, Dropdown, Tooth3DViewer });

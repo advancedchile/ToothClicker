@@ -1,0 +1,308 @@
+diff --git a/components.jsx b/components.jsx
+index 82a9f0d..6b36e51 100644
+--- a/components.jsx
++++ b/components.jsx
+@@ -147,7 +147,7 @@ function StatsGroup({ title, icon, accent, rows }) {
+ 
+ }
+ 
+-function TabBar({ tabs, active, onChange, id }) {
++function TabBar({ tabs, active, onChange, id, setTooltip }) {
+   return (
+     <div id={id} style={{ 
+       display: 'flex', 
+@@ -166,54 +166,62 @@ function TabBar({ tabs, active, onChange, id }) {
+             key={t.id} 
+             id={`tab-${t.id}`} 
+             onClick={() => { window.playClickSound && window.playClickSound(); onChange(t.id); }} 
++            onMouseEnter={(e) => {
++              if (setTooltip) {
++                const rect = e.currentTarget.getBoundingClientRect();
++                setTooltip({ type: 'text', text: t.label, pos: { x: rect.left + rect.width / 2, y: rect.bottom }, direction: 'down' });
++              }
++            }}
++            onMouseLeave={() => {
++              if (setTooltip) setTooltip(null);
++            }}
+             style={{
+               all: 'unset',
+               position: 'relative',
+               boxSizing: 'border-box',
+               flex: 1,
+-              background: isActive ? '#1a8fff' : 'transparent', 
+-              padding: '8px 12px', 
+-              color: isActive ? '#fff' : '#4a6a8a',
++              background: isActive ? 'var(--bg-1)' : 'transparent', 
++              padding: '10px 0', 
+               borderRadius: 10,
+-              fontWeight: 600, 
+-              fontSize: 12, 
+               cursor: 'pointer',
+               display: 'flex', 
+               alignItems: 'center', 
+               justifyContent: 'center',
+-              gap: 8, 
+-              fontFamily: 'var(--font-sans)',
+-              transition: 'all 140ms ease', 
+-              whiteSpace: 'nowrap', 
+-              flexShrink: 0,
+-              boxShadow: isActive ? '0 4px 12px rgba(26,143,255,0.25)' : 'none'
++              transition: 'all 200ms ease', 
++              boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'
+             }}
+           >
+-            <i className={t.icon} style={{ fontSize: 11 }}></i>
+-            {t.label}
++            {t.img ? 
++              <img src={t.img} style={{ width: 32, height: 32, objectFit: 'contain', filter: isActive ? 'none' : 'grayscale(1) opacity(0.5)', transform: isActive ? 'scale(1.2)' : 'scale(0.95)', transition: 'all 200ms ease' }} /> 
++              : <i className={t.icon} style={{ fontSize: 24, color: isActive ? 'var(--primary-i100)' : 'var(--fg-4)', transform: isActive ? 'scale(1.2)' : 'scale(0.95)', transition: 'all 200ms ease' }}></i>
++            }
+             {t.badge != null &&
+               <span style={{ 
++                position: 'absolute',
++                top: 4,
++                right: 'calc(50% - 24px)',
+                 fontSize: 9, 
+                 fontWeight: 700, 
+-                background: isActive ? 'rgba(255,255,255,0.2)' : 'rgba(100,140,220,0.1)', 
+-                color: isActive ? '#fff' : '#4a6a8a', 
++                background: 'var(--primary-i100)', 
++                color: '#fff', 
+                 padding: '2px 6px', 
+                 borderRadius: 999, 
+                 minWidth: 16, 
+-                textAlign: 'center' 
++                textAlign: 'center',
++                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+               }}>{t.badge}</span>
+             }
+             {t.dot && (
+               <span style={{ 
+                 position: 'absolute', 
+                 top: 6, 
+-                right: 6, 
+-                width: 7, 
+-                height: 7, 
++                right: 'calc(50% - 20px)', 
++                width: 10, 
++                height: 10, 
+                 borderRadius: '50%', 
+                 background: '#e11d24', 
+-                border: '1.5px solid #fff',
+-                boxShadow: '0 0 0 2px rgba(225,29,36,0.1)'
++                border: '2px solid var(--bg-1)',
++                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+               }}></span>
+             )}
+           </button>
+@@ -226,8 +234,8 @@ function TabBar({ tabs, active, onChange, id }) {
+ 
+ function GeneratorRow({ gen, owned, cost, canAfford, unlocked, revealed, onBuy, lang, totalTeeth, production, nextProduction, buyQty, actualQty }) {
+   const t = window.STRINGS[lang];
+-  const name = gen[lang] || gen.es;
+-  const desc = gen[`desc_${lang}`] || gen.desc_es;
++  const name = gen.name?.[lang] || gen[lang] || gen.es;
++  const desc = gen.description?.[lang] || gen[`desc_${lang}`] || gen.desc_es;
+   if (!revealed) return null;
+   if (!unlocked) {
+     return (
+@@ -237,12 +245,12 @@ function GeneratorRow({ gen, owned, cost, canAfford, unlocked, revealed, onBuy,
+         </div>
+         <div style={{ minWidth: 0 }}>
+           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-3)', lineHeight: 1.2 }}>???</div>
+-          <div style={{ fontSize: 11, color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.unlockAt} {window.formatNum(gen.unlockAt)} {t.teeth}</div>
++          <div style={{ fontSize: 11, color: 'var(--fg-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.unlockAt} {window.formatNum(gen.unlockAt || 0)} {t.teeth}</div>
+         </div>
+         <div></div>
+         <div style={{ textAlign: 'right', minWidth: 72, flexShrink: 0 }}>
+           <div style={{ fontSize: 10, color: 'var(--fg-4)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t.cost}</div>
+-          <div style={{ fontSize: 11, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>−{window.formatNum(Math.max(0, gen.unlockAt - totalTeeth))}</div>
++          <div style={{ fontSize: 11, color: 'var(--fg-4)', fontVariantNumeric: 'tabular-nums' }}>−{window.formatNum(Math.max(0, (gen.unlockAt || 0) - totalTeeth))}</div>
+         </div>
+       </div>);
+   }
+@@ -255,8 +263,8 @@ function GeneratorRow({ gen, owned, cost, canAfford, unlocked, revealed, onBuy,
+       opacity: canAfford ? 1 : 0.75, transition: 'all 150ms ease', boxSizing: 'border-box'
+     }}>
+       
+-      <div style={{ width: 32, height: 32, borderRadius: 6, background: canAfford ? 'var(--primary-i010)' : 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: canAfford ? 'var(--primary-i100)' : 'var(--fg-3)', flexShrink: 0, transition: 'all 150ms ease' }}>
+-        <i className={gen.icon} style={{ fontSize: 14 }}></i>
++      <div style={{ width: 32, height: 32, borderRadius: 6, background: canAfford ? 'var(--primary-i010)' : 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: canAfford ? 'var(--primary-i100)' : 'var(--fg-3)', flexShrink: 0, transition: 'all 150ms ease', overflow: 'hidden' }}>
++        {gen.iconUrl ? <img src={gen.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={gen.icon} style={{ fontSize: 14 }}></i>}
+       </div>
+       <div style={{ minWidth: 0 }}>
+         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-1)', lineHeight: 1.2 }}>{name}</div>
+@@ -287,8 +295,8 @@ function GeneratorRow({ gen, owned, cost, canAfford, unlocked, revealed, onBuy,
+ 
+ function ClickUpgradeRow({ up, purchased, canAfford, unlocked, onBuy, lang, totalTeeth }) {
+   const t = window.STRINGS[lang];
+-  const name = up[lang] || up.es;
+-  const desc = up[`desc_${lang}`] || up.desc_es;
++  const name = up.name?.[lang] || up[lang] || up.es;
++  const desc = up.description?.[lang] || up[`desc_${lang}`] || up.desc_es;
+ 
+   const sharedGrid = { display: 'grid', gridTemplateColumns: '32px 1fr auto', gap: '8px', alignItems: 'center', padding: '5px 8px', boxSizing: 'border-box', borderRadius: 'var(--radius-s)' };
+ 
+@@ -330,8 +338,8 @@ function ClickUpgradeRow({ up, purchased, canAfford, unlocked, onBuy, lang, tota
+       cursor: canAfford ? 'pointer' : 'not-allowed',
+       opacity: canAfford ? 1 : 0.75, transition: 'all 150ms ease',
+     }}>
+-      <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--alternative-i010)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--alternative-i100)', flexShrink: 0 }}>
+-        <i className="fa-solid fa-arrow-up-right-dots" style={{ fontSize: 13 }}></i>
++      <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--alternative-i010)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--alternative-i100)', flexShrink: 0, overflow: 'hidden' }}>
++        {up.iconUrl ? <img src={up.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={up.icon || "fa-solid fa-arrow-up-right-dots"} style={{ fontSize: 13 }}></i>}
+       </div>
+       <div style={{ minWidth: 0 }}>
+         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-1)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+@@ -384,6 +392,8 @@ function achIcon(ach) {
+   return 'fa-trophy';
+ }
+ 
++window.achIcon = achIcon;
++
+ function AchievementCard({ ach, unlocked, lang, onHover, onLeave }) {
+   const [hov, setHov] = useStateC(false);
+   const icon = achIcon(ach);
+@@ -507,7 +517,7 @@ function StoreUpgradeIcon({ up, canAfford, onBuy, lang, fmt, onHover, onLeave })
+           transform: hov && canAfford ? 'scale(1.1)' : 'scale(1)',
+           boxShadow: 'none'
+         }}>
+-        <i className={`fa-solid ${up.icon}`}></i>
++        {up.iconUrl ? <img src={up.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={`fa-solid ${up.icon || 'fa-store'}`}></i>}
+       </button>
+     </div>
+   );
+@@ -774,5 +784,130 @@ function GameTour({ step, lang, onNext, onPrev, onClose, dontShowAgain, onToggle
+     </div>
+   );
+ }
++function Dropdown({ value, onChange, options, style, disabled = false }) {
++  const [isOpen, setIsOpen] = useStateC(false);
++  const [rect, setRect] = useStateC(null);
++  const dropdownRef = React.useRef(null);
++
++  const updatePosition = React.useCallback(() => {
++    if (dropdownRef.current) {
++      setRect(dropdownRef.current.getBoundingClientRect());
++    }
++  }, []);
++
++  React.useEffect(() => {
++    if (isOpen) {
++      updatePosition();
++      const handleScroll = () => {
++        updatePosition();
++      };
++      // Usar capture = true para interceptar todos los scrolls (incluso de contenedores internos)
++      window.addEventListener('scroll', handleScroll, true);
++      window.addEventListener('resize', updatePosition);
++      return () => {
++        window.removeEventListener('scroll', handleScroll, true);
++        window.removeEventListener('resize', updatePosition);
++      };
++    }
++  }, [isOpen, updatePosition]);
++
++  const handleToggle = () => {
++    if (disabled) return;
++    if (!isOpen) updatePosition();
++    setIsOpen(!isOpen);
++  };
++
++  const selectedOption = options.find(o => String(o.value) === String(value));
++  const displayLabel = selectedOption ? selectedOption.label : 'Selecciona...';
++
++  let portalStyle = {};
++  if (rect) {
++    const spaceBelow = window.innerHeight - rect.bottom;
++    const spaceAbove = rect.top;
++    const dropUp = spaceBelow < 250 && spaceAbove > spaceBelow;
++
++    portalStyle = {
++      position: 'fixed',
++      left: rect.left,
++      width: rect.width,
++      zIndex: 99999,
++    };
++
++    if (dropUp) {
++      portalStyle.bottom = window.innerHeight - rect.top + 4;
++    } else {
++      portalStyle.top = rect.bottom + 4;
++    }
++  }
++
++  return (
++    <div ref={dropdownRef} style={{ position: 'relative', width: '100%', ...style }}>
++      <button 
++        type="button"
++        disabled={disabled}
++        onClick={handleToggle}
++        style={{
++          all: 'unset', boxSizing: 'border-box', width: '100%', padding: '12px 16px',
++          background: disabled ? 'var(--bg-2)' : 'var(--bg-1)', 
++          borderRadius: 14, fontSize: 14, border: isOpen ? '2px solid var(--primary-i100)' : '2px solid var(--border-default)',
++          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', fontFamily: 'var(--font-sans)',
++          color: 'var(--fg-1)', boxShadow: isOpen ? '0 0 0 4px rgba(0,118,219,0.15), 0 4px 12px rgba(0,0,0,0.1)' : 'inset 0 2px 4px rgba(0,0,0,0.02)',
++          display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: disabled ? 'not-allowed' : 'pointer'
++        }}
++      >
++        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayLabel}</span>
++        <i className={`fa-solid fa-chevron-${isOpen ? 'up' : 'down'}`} style={{ color: 'var(--primary-i100)', fontSize: 12, marginLeft: 8 }}></i>
++      </button>
++
++      {isOpen && ReactDOM.createPortal(
++        <>
++          <div 
++            style={{ position: 'fixed', inset: 0, zIndex: 99998 }} 
++            onMouseDown={(e) => { e.stopPropagation(); setIsOpen(false); }}
++          />
++          <div style={{
++            ...portalStyle,
++            background: 'var(--bg-1)', border: '1px solid var(--border-default)', borderRadius: 12,
++            boxShadow: 'var(--elevation-20)',
++            maxHeight: 250, overflowY: 'auto', padding: 6, display: 'flex', flexDirection: 'column', gap: 2
++          }}>
++            {options.map((opt, i) => (
++              <button
++                key={i}
++                type="button"
++                onMouseDown={(e) => { e.stopPropagation(); onChange(opt.value); setIsOpen(false); }}
++                style={{
++                  all: 'unset', boxSizing: 'border-box', padding: '10px 12px',
++                  borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)',
++                  background: String(value) === String(opt.value) ? 'var(--primary-i010)' : 'transparent',
++                  color: String(value) === String(opt.value) ? 'var(--primary-i100)' : 'var(--fg-1)',
++                  fontWeight: String(value) === String(opt.value) ? 600 : 500,
++                  transition: 'background 0.2s',
++                  display: 'flex', alignItems: 'center'
++                }}
++                onMouseEnter={(e) => {
++                  if (String(value) !== String(opt.value)) {
++                    e.currentTarget.style.background = 'var(--bg-2)';
++                  }
++                }}
++                onMouseLeave={(e) => {
++                  if (String(value) !== String(opt.value)) {
++                    e.currentTarget.style.background = 'transparent';
++                  }
++                }}
++              >
++                {opt.label}
++              </button>
++            ))}
++            {options.length === 0 && (
++              <div style={{ padding: '10px 12px', fontSize: 13, color: 'var(--fg-3)', textAlign: 'center' }}>Sin opciones</div>
++            )}
++          </div>
++        </>,
++        document.body
++      )}
++    </div>
++  );
++}
+ 
+-Object.assign(window, { ToothbrushRing, AboutModal, VersionLogModal, GameTour, StatTile, StatsGroup, TabBar, GeneratorRow, ClickUpgradeRow, AchievementCard, Toast, StoreUpgradeIcon, ToothIcon, primaryBtnStyle, secondaryBtnStyle });
+\ No newline at end of file
++Object.assign(window, { ToothbrushRing, AboutModal, VersionLogModal, GameTour, StatTile, StatsGroup, TabBar, GeneratorRow, ClickUpgradeRow, AchievementCard, Toast, StoreUpgradeIcon, ToothIcon, primaryBtnStyle, secondaryBtnStyle, Dropdown });
+\ No newline at end of file
