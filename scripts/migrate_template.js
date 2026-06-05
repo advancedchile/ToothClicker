@@ -49,8 +49,8 @@ function traverseAndExtract(obj, currentPath) {
         
         fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
         
-        console.log(`Saved: /assets/${category}/${filename}`);
-        obj[key] = `/assets/${category}/${filename}`;
+        console.log(`Saved: assets/${category}/${filename}`);
+        obj[key] = `assets/${category}/${filename}`;
       }
     } else if (typeof obj[key] === 'object' && obj[key] !== null) {
       traverseAndExtract(obj[key], `${currentPath}.${key}`);

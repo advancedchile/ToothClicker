@@ -11,7 +11,7 @@
       },
       "desc_en": "",
       "desc_es": "Un cepillo de dientes sencillo que cumple su funcion básica",
-      "iconUrl": "/assets/generators/iconUrl_1780604955512_4irlc.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955512_4irlc.png",
       "baseCost": 50,
       "baseProd": 0.1,
       "unlockAt": 0,
@@ -33,7 +33,7 @@
       },
       "desc_en": "",
       "desc_es": "Un hilo muy delgado que te saca restos de comida de los dientes.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955513_kal7u.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955513_kal7u.png",
       "baseCost": 120,
       "baseProd": 0.2,
       "unlockAt": 0,
@@ -55,7 +55,7 @@
       },
       "desc_en": "",
       "desc_es": "Para un aliento fresco de verdad",
-      "iconUrl": "/assets/generators/iconUrl_1780604955514_6mc4p.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955514_6mc4p.png",
       "baseCost": 200,
       "baseProd": 0.4,
       "unlockAt": 0,
@@ -77,7 +77,7 @@
       },
       "desc_en": "",
       "desc_es": "Una pasta regular pero que te quita el mal aliento",
-      "iconUrl": "/assets/generators/iconUrl_1780604955514_lkjd4.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955514_lkjd4.png",
       "baseCost": 250,
       "baseProd": 0.6,
       "unlockAt": 0,
@@ -99,7 +99,7 @@
       },
       "desc_en": "",
       "desc_es": "Un ayudante bueno para los mandados",
-      "iconUrl": "/assets/generators/iconUrl_1780604955515_skdip.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955515_skdip.png",
       "baseCost": 350,
       "baseProd": 1,
       "unlockAt": 0,
@@ -121,7 +121,7 @@
       },
       "desc_en": "",
       "desc_es": "Tu brazo derecho que te ayuda en las labores dentales",
-      "iconUrl": "/assets/generators/iconUrl_1780604955515_76ta6.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955515_76ta6.png",
       "baseCost": 750,
       "baseProd": 1.3,
       "unlockAt": 500,
@@ -143,7 +143,7 @@
       },
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/generators/iconUrl_1780604955516_7atd4.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955516_7atd4.png",
       "baseCost": 1500,
       "baseProd": 2,
       "unlockAt": 1000,
@@ -165,7 +165,7 @@
       },
       "desc_en": "",
       "desc_es": "Nueva especialidad que te ayuda a crecer",
-      "iconUrl": "/assets/generators/iconUrl_1780604955516_0b1oq.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955516_0b1oq.png",
       "baseCost": 2500,
       "baseProd": 3,
       "unlockAt": 2000,
@@ -187,7 +187,7 @@
       },
       "desc_en": "",
       "desc_es": "Una revisión rápida que hace el odontólogo",
-      "iconUrl": "/assets/generators/iconUrl_1780604955517_8tqfn.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955517_8tqfn.png",
       "baseCost": 3500,
       "baseProd": 4,
       "unlockAt": 2500,
@@ -209,7 +209,7 @@
       },
       "desc_en": "",
       "desc_es": "Tratamiento simple para las encías",
-      "iconUrl": "/assets/generators/iconUrl_1780604955517_yay5i.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955517_yay5i.png",
       "baseCost": 5000,
       "baseProd": 5.5,
       "unlockAt": 4000,
@@ -231,7 +231,7 @@
       },
       "desc_en": "",
       "desc_es": "Un tratamiento un poco más avanzado para las encías",
-      "iconUrl": "/assets/generators/iconUrl_1780604955517_k2byb.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955517_k2byb.png",
       "baseCost": 7500,
       "baseProd": 7,
       "unlockAt": 6000,
@@ -253,7 +253,7 @@
       },
       "desc_en": "",
       "desc_es": "Tiene solo un escritorio pequeño",
-      "iconUrl": "/assets/generators/iconUrl_1780604955518_5ijpw.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955518_5ijpw.png",
       "baseCost": 10000,
       "baseProd": 9,
       "unlockAt": 9000,
@@ -275,7 +275,7 @@
       },
       "desc_en": "",
       "desc_es": "Al fin un espacio con techo y precario",
-      "iconUrl": "/assets/generators/iconUrl_1780604955518_ypmrw.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955518_ypmrw.png",
       "baseCost": 13500,
       "baseProd": 12,
       "unlockAt": 11000,
@@ -297,7 +297,7 @@
       },
       "desc_en": "",
       "desc_es": "Una clinica dental para atender más personas",
-      "iconUrl": "/assets/generators/iconUrl_1780604955518_rb8j8.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955518_rb8j8.png",
       "baseCost": 17000,
       "baseProd": 15,
       "unlockAt": 15000,
@@ -319,7 +319,7 @@
       },
       "desc_en": "",
       "desc_es": "Más epsacio, más clientes",
-      "iconUrl": "/assets/generators/iconUrl_1780604955519_25pbf.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955519_25pbf.png",
       "baseCost": 24000,
       "baseProd": 19,
       "unlockAt": 20000,
@@ -341,7 +341,7 @@
       },
       "desc_en": "",
       "desc_es": "Un gran edifico para atender pacientes masivamente",
-      "iconUrl": "/assets/generators/iconUrl_1780604955519_b47ma.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955519_b47ma.png",
       "baseCost": 32000,
       "baseProd": 24,
       "unlockAt": 28000,
@@ -363,7 +363,7 @@
       },
       "desc_en": "",
       "desc_es": "Más sucursales, ,más pacientes, dientes más sanos.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955524_ubxwf.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955524_ubxwf.png",
       "baseCost": 41000,
       "baseProd": 30,
       "unlockAt": 36000,
@@ -385,7 +385,7 @@
       },
       "desc_en": "",
       "desc_es": "Un lugar para estudiar y seguir creciendo como profesional",
-      "iconUrl": "/assets/generators/iconUrl_1780604955524_dbjti.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955524_dbjti.png",
       "baseCost": 55000,
       "baseProd": 38,
       "unlockAt": 48000,
@@ -407,7 +407,7 @@
       },
       "desc_en": "",
       "desc_es": "Infraestructura de calidad para tu clínica",
-      "iconUrl": "/assets/generators/iconUrl_1780604955524_loewk.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955524_loewk.png",
       "baseCost": 72000,
       "baseProd": 50,
       "unlockAt": 65000,
@@ -429,7 +429,7 @@
       },
       "desc_en": "",
       "desc_es": "Mejor tecnología, pero más cara",
-      "iconUrl": "/assets/generators/iconUrl_1780604955525_ture0.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955525_ture0.png",
       "baseCost": 98000,
       "baseProd": 65,
       "unlockAt": 85000,
@@ -451,7 +451,7 @@
       },
       "desc_en": "",
       "desc_es": "Tecnología avanzada robótica que automátiza las atenciones",
-      "iconUrl": "/assets/generators/iconUrl_1780604955525_p4u8f.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955525_p4u8f.png",
       "baseCost": 130000,
       "baseProd": 87,
       "unlockAt": 120000,
@@ -473,7 +473,7 @@
       },
       "desc_en": "",
       "desc_es": "Una maquina que te hace los implantes muy detallados.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955525_v3ylm.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955525_v3ylm.png",
       "baseCost": 165000,
       "baseProd": 100,
       "unlockAt": 150000,
@@ -495,7 +495,7 @@
       },
       "desc_en": "",
       "desc_es": "La iA se toma tu clínica y hace el trabajo de todos",
-      "iconUrl": "/assets/generators/iconUrl_1780604955527_7lrqn.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955527_7lrqn.png",
       "baseCost": 240000,
       "baseProd": 135,
       "unlockAt": 220000,
@@ -517,7 +517,7 @@
       },
       "desc_en": "",
       "desc_es": "La tecnología microscópica hace el trabajo mucho mejor",
-      "iconUrl": "/assets/generators/iconUrl_1780604955527_3639r.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955527_3639r.png",
       "baseCost": 315000,
       "baseProd": 160,
       "unlockAt": 295000,
@@ -539,7 +539,7 @@
       },
       "desc_en": "",
       "desc_es": "La tecnología alcanzó niveles mágicos",
-      "iconUrl": "/assets/generators/iconUrl_1780604955528_nb8h8.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955528_nb8h8.png",
       "baseCost": 450000,
       "baseProd": 200,
       "unlockAt": 420000,
@@ -561,7 +561,7 @@
       },
       "desc_en": "",
       "desc_es": "Un ser que doma las piezas dentales y las sana",
-      "iconUrl": "/assets/generators/iconUrl_1780604955529_6g2mc.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955529_6g2mc.png",
       "baseCost": 625000,
       "baseProd": 315,
       "unlockAt": 585000,
@@ -583,7 +583,7 @@
       },
       "desc_en": "",
       "desc_es": "Métodos poco convencionales se toman las clínicas dentales",
-      "iconUrl": "/assets/generators/iconUrl_1780604955529_t348n.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955529_t348n.png",
       "baseCost": 780000,
       "baseProd": 420,
       "unlockAt": 700000,
@@ -605,7 +605,7 @@
       },
       "desc_en": "",
       "desc_es": "Odontólogo que aprendió las artes mágicas.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955529_6pjp1.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955529_6pjp1.png",
       "baseCost": 1000000,
       "baseProd": 550,
       "unlockAt": 900000,
@@ -627,7 +627,7 @@
       },
       "desc_en": "",
       "desc_es": "Un ser mitológico invocado con tecnología bicoquímica",
-      "iconUrl": "/assets/generators/iconUrl_1780604955530_807o2.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955530_807o2.png",
       "baseCost": 1250000,
       "baseProd": 700,
       "unlockAt": 1100000,
@@ -649,7 +649,7 @@
       },
       "desc_en": "",
       "desc_es": "¿Pero que hace una ballena aquí?",
-      "iconUrl": "/assets/generators/iconUrl_1780604955530_6qzbe.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955530_6qzbe.png",
       "baseCost": 1550000,
       "baseProd": 880,
       "unlockAt": 1300000,
@@ -671,7 +671,7 @@
       },
       "desc_en": "",
       "desc_es": "La fauna marina ha mutado para ayudar en la causa dental.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955530_9crzc.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955530_9crzc.png",
       "baseCost": 1950000,
       "baseProd": 1000,
       "unlockAt": 1650000,
@@ -693,7 +693,7 @@
       },
       "desc_en": "",
       "desc_es": "La mítica ave de fuego que  que sobrevuela tu clínica.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955531_zx899.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955531_zx899.png",
       "baseCost": 2700000,
       "baseProd": 1200,
       "unlockAt": 2300000,
@@ -715,7 +715,7 @@
       },
       "desc_en": "",
       "desc_es": "La sonrisa más frsca y sana que se verá por estos lugares.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955531_t9yph.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955531_t9yph.png",
       "baseCost": 3850000,
       "baseProd": 1500,
       "unlockAt": 3200000,
@@ -737,7 +737,7 @@
       },
       "desc_en": "",
       "desc_es": "Un caballero medieval invocado por los dentistas magos.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955532_7rxde.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955532_7rxde.png",
       "baseCost": 5500000,
       "baseProd": 1750,
       "unlockAt": 5000000,
@@ -759,7 +759,7 @@
       },
       "desc_en": "",
       "desc_es": "Dicen que si le rezas a este santo, a tu clínica le irá muy bien.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955532_zd3o5.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955532_zd3o5.png",
       "baseCost": 7650000,
       "baseProd": 1950,
       "unlockAt": 7000000,
@@ -781,7 +781,7 @@
       },
       "desc_en": "",
       "desc_es": "Este guardián divino, hará que no le pase nada a las finanzas de tu clínica.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955533_251sd.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955533_251sd.png",
       "baseCost": 11500000,
       "baseProd": 2250,
       "unlockAt": 10000000,
@@ -803,7 +803,7 @@
       },
       "desc_en": "",
       "desc_es": "Un ente poderoso que sonríe sin motivo.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955533_3lqef.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955533_3lqef.png",
       "baseCost": 16500000,
       "baseProd": 2500,
       "unlockAt": 15000000,
@@ -825,7 +825,7 @@
       },
       "desc_en": "",
       "desc_es": "Una deidad a la que muchos fieles y profesionales de la odontología le rezan.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955533_wf2h4.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955533_wf2h4.png",
       "baseCost": 25000000,
       "baseProd": 2850,
       "unlockAt": 20000000,
@@ -847,7 +847,7 @@
       },
       "desc_en": "",
       "desc_es": "Tienes tanto poder que eres lider del ministerio dental de la nación.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955534_uuu9k.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955534_uuu9k.png",
       "baseCost": 37000000,
       "baseProd": 3300,
       "unlockAt": 30000000,
@@ -869,7 +869,7 @@
       },
       "desc_en": "",
       "desc_es": "Tu liderazgo trasciende fronteras y eres referente fuera del continente.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955534_q1fi6.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955534_q1fi6.png",
       "baseCost": 50000000,
       "baseProd": 4000,
       "unlockAt": 40000000,
@@ -891,7 +891,7 @@
       },
       "desc_en": "",
       "desc_es": "Lider mundial en tecnología dental y médica.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955534_g0xl4.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955534_g0xl4.png",
       "baseCost": 75000000,
       "baseProd": 5200,
       "unlockAt": 60000000,
@@ -913,7 +913,7 @@
       },
       "desc_en": "",
       "desc_es": "Expansión lunar como punto de salida hacia otros mundos",
-      "iconUrl": "/assets/generators/iconUrl_1780604955535_b54h8.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955535_b54h8.png",
       "baseCost": 120000000,
       "baseProd": 6500,
       "unlockAt": 100000000,
@@ -935,7 +935,7 @@
       },
       "desc_en": "",
       "desc_es": "Tu base lunar dió frutos y ahora ya estas instalado en Marte",
-      "iconUrl": "/assets/generators/iconUrl_1780604955535_l2p9j.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955535_l2p9j.png",
       "baseCost": 190000000,
       "baseProd": 8400,
       "unlockAt": 150000000,
@@ -957,7 +957,7 @@
       },
       "desc_en": "",
       "desc_es": "La especialidad estrella de tu clínica ya opera en toda la galaxia.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955535_6lj06.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955535_6lj06.png",
       "baseCost": 350000000,
       "baseProd": 10500,
       "unlockAt": 300000000,
@@ -979,7 +979,7 @@
       },
       "desc_en": "",
       "desc_es": "Un lugar ulytra seguro para guardar tus valiosos bienes.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955536_lrqjf.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955536_lrqjf.png",
       "baseCost": 700000000,
       "baseProd": 15000,
       "unlockAt": 600000000,
@@ -1001,7 +1001,7 @@
       },
       "desc_en": "",
       "desc_es": "La estrella objetivo está lista para capturar toda su energía y usarla en los tratamientos dentales de toda la galaxia.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955536_hypwh.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955536_hypwh.png",
       "baseCost": 1500000000,
       "baseProd": 25000,
       "unlockAt": 1100000000,
@@ -1023,7 +1023,7 @@
       },
       "desc_en": "",
       "desc_es": "Un encuentro estelar rarísimo de piezas dentales enormes.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955536_h3c4d.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955536_h3c4d.png",
       "baseCost": 3500000000,
       "baseProd": 41000,
       "unlockAt": 3000000000,
@@ -1045,7 +1045,7 @@
       },
       "desc_en": "",
       "desc_es": "Un bucle que hace que la higiene dental de toda la galaxia sea \"contactless\".",
-      "iconUrl": "/assets/generators/iconUrl_1780604955536_9d6hi.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955536_9d6hi.png",
       "baseCost": 8500000000,
       "baseProd": 60000,
       "unlockAt": 7500000000,
@@ -1067,7 +1067,7 @@
       },
       "desc_en": "",
       "desc_es": "Cuando creiamos que el universo no era multi...",
-      "iconUrl": "/assets/generators/iconUrl_1780604955536_2b0hk.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955536_2b0hk.png",
       "baseCost": 19000000000,
       "baseProd": 80000,
       "unlockAt": 15000000000,
@@ -1089,7 +1089,7 @@
       },
       "desc_en": "",
       "desc_es": "Se ha descubierto un portal donde ya nada tiende sentido, ni siquiera los estudios od0kñtoñ+-.¡ pue?\"#@ç +] `--..  ..,m .",
-      "iconUrl": "/assets/generators/iconUrl_1780604955537_ixxkk.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955537_ixxkk.png",
       "baseCost": 52000000000,
       "baseProd": 110000,
       "unlockAt": 40000000000,
@@ -1111,7 +1111,7 @@
       },
       "desc_en": "",
       "desc_es": "Lo que se creía como una tendencia de belleza, el vacío entre los dientes es una condición descubierta más allá de nuestra galaxia.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955537_76ti1.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955537_76ti1.png",
       "baseCost": 175000000000,
       "baseProd": 165000,
       "unlockAt": 120000000000,
@@ -1133,7 +1133,7 @@
       },
       "desc_en": "",
       "desc_es": "Las investigaciones y el desarrollo de tecnología llegó tan lejos, que se ha descubierto lo que parece ser un ser superior a todo lo conocido.",
-      "iconUrl": "/assets/generators/iconUrl_1780604955537_80msm.png",
+      "iconUrl": "assets/generators/iconUrl_1780604955537_80msm.png",
       "baseCost": 1000000000000,
       "baseProd": 300000,
       "unlockAt": 500000000000,
@@ -1160,7 +1160,7 @@
       "value": 1,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955537_nzg6n.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955537_nzg6n.png",
       "multiplier": 1,
       "description": {
         "en": "",
@@ -1181,7 +1181,7 @@
       "value": 2,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955538_28pdw.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955538_28pdw.png",
       "multiplier": 2,
       "description": {
         "en": "",
@@ -1202,7 +1202,7 @@
       "value": 3,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955539_9xyb0.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955539_9xyb0.png",
       "multiplier": 3,
       "description": {
         "en": "",
@@ -1223,7 +1223,7 @@
       "value": 5,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955539_y0fdi.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955539_y0fdi.png",
       "multiplier": 5,
       "description": {
         "en": "",
@@ -1244,7 +1244,7 @@
       "value": 6,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955539_qaea6.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955539_qaea6.png",
       "multiplier": 6,
       "description": {
         "en": "",
@@ -1265,7 +1265,7 @@
       "value": 8,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955539_n9z3v.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955539_n9z3v.png",
       "multiplier": 8,
       "description": {
         "en": "",
@@ -1286,7 +1286,7 @@
       "value": 10,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955540_vzizf.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955540_vzizf.png",
       "multiplier": 10,
       "description": {
         "en": "",
@@ -1307,7 +1307,7 @@
       "value": 13,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955540_0uo12.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955540_0uo12.png",
       "multiplier": 13,
       "description": {
         "en": "",
@@ -1328,7 +1328,7 @@
       "value": 16,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955540_1f2n1.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955540_1f2n1.png",
       "multiplier": 16,
       "description": {
         "en": "",
@@ -1349,7 +1349,7 @@
       "value": 20,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955541_tw1d1.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955541_tw1d1.png",
       "multiplier": 20,
       "description": {
         "en": "",
@@ -1370,7 +1370,7 @@
       "value": 25,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955541_agdo2.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955541_agdo2.png",
       "multiplier": 25,
       "description": {
         "en": "",
@@ -1391,7 +1391,7 @@
       "value": 31,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955541_pev34.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955541_pev34.png",
       "multiplier": 31,
       "description": {
         "en": "",
@@ -1412,7 +1412,7 @@
       "value": 38,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955542_1kjyf.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955542_1kjyf.png",
       "multiplier": 38,
       "description": {
         "en": "",
@@ -1433,7 +1433,7 @@
       "value": 46,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955542_nwqa4.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955542_nwqa4.png",
       "multiplier": 46,
       "description": {
         "en": "",
@@ -1454,7 +1454,7 @@
       "value": 56,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955542_1uk00.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955542_1uk00.png",
       "multiplier": 56,
       "description": {
         "en": "",
@@ -1475,7 +1475,7 @@
       "value": 67,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955542_wqr7v.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955542_wqr7v.png",
       "multiplier": 67,
       "description": {
         "en": "",
@@ -1496,7 +1496,7 @@
       "value": 79,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955542_9b2d3.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955542_9b2d3.png",
       "multiplier": 79,
       "description": {
         "en": "",
@@ -1517,7 +1517,7 @@
       "value": 90,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955543_oq0ud.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955543_oq0ud.png",
       "multiplier": 90,
       "description": {
         "en": "",
@@ -1538,7 +1538,7 @@
       "value": 115,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955543_fpw2a.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955543_fpw2a.png",
       "multiplier": 115,
       "description": {
         "en": "",
@@ -1559,7 +1559,7 @@
       "value": 130,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955543_0rtkf.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955543_0rtkf.png",
       "multiplier": 130,
       "description": {
         "en": "",
@@ -1580,7 +1580,7 @@
       "value": 147,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955543_7clr1.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955543_7clr1.png",
       "multiplier": 147,
       "description": {
         "en": "",
@@ -1601,7 +1601,7 @@
       "value": 165,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955543_cgr81.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955543_cgr81.png",
       "multiplier": 165,
       "description": {
         "en": "",
@@ -1622,7 +1622,7 @@
       "value": 185,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955543_zcc2b.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955543_zcc2b.png",
       "multiplier": 185,
       "description": {
         "en": "",
@@ -1643,7 +1643,7 @@
       "value": 210,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955544_ombek.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955544_ombek.png",
       "multiplier": 210,
       "description": {
         "en": "",
@@ -1664,7 +1664,7 @@
       "value": 235,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955544_0431m.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955544_0431m.png",
       "multiplier": 235,
       "description": {
         "en": "",
@@ -1685,7 +1685,7 @@
       "value": 265,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955544_tr3iy.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955544_tr3iy.png",
       "multiplier": 265,
       "description": {
         "en": "",
@@ -1706,7 +1706,7 @@
       "value": 300,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955544_kbihx.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955544_kbihx.png",
       "multiplier": 300,
       "description": {
         "en": "",
@@ -1727,7 +1727,7 @@
       "value": 340,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955545_kgtz7.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955545_kgtz7.png",
       "multiplier": 340,
       "description": {
         "en": "",
@@ -1748,7 +1748,7 @@
       "value": 390,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955545_wz5ww.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955545_wz5ww.png",
       "multiplier": 390,
       "description": {
         "en": "",
@@ -1769,7 +1769,7 @@
       "value": 450,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955545_5bgtq.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955545_5bgtq.png",
       "multiplier": 450,
       "description": {
         "en": "",
@@ -1790,7 +1790,7 @@
       "value": 500,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955546_s593p.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955546_s593p.png",
       "multiplier": 500,
       "description": {
         "en": "",
@@ -1811,7 +1811,7 @@
       "value": 570,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955546_a1zen.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955546_a1zen.png",
       "multiplier": 570,
       "description": {
         "en": "",
@@ -1832,7 +1832,7 @@
       "value": 640,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955546_tem8h.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955546_tem8h.png",
       "multiplier": 640,
       "description": {
         "en": "",
@@ -1853,7 +1853,7 @@
       "value": 720,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955546_0nobi.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955546_0nobi.png",
       "multiplier": 720,
       "description": {
         "en": "",
@@ -1874,7 +1874,7 @@
       "value": 800,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955547_8lax3.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955547_8lax3.png",
       "multiplier": 800,
       "description": {
         "en": "",
@@ -1895,7 +1895,7 @@
       "value": 900,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955547_pnnnu.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955547_pnnnu.png",
       "multiplier": 900,
       "description": {
         "en": "",
@@ -1916,7 +1916,7 @@
       "value": 1010,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955547_owukl.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955547_owukl.png",
       "multiplier": 1010,
       "description": {
         "en": "",
@@ -1937,7 +1937,7 @@
       "value": 1150,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955547_cm429.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955547_cm429.png",
       "multiplier": 1150,
       "description": {
         "en": "",
@@ -1958,7 +1958,7 @@
       "value": 1300,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955548_7ex8j.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955548_7ex8j.png",
       "multiplier": 1300,
       "description": {
         "en": "",
@@ -1979,7 +1979,7 @@
       "value": 1450,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955548_cnde2.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955548_cnde2.png",
       "multiplier": 1450,
       "description": {
         "en": "",
@@ -2000,7 +2000,7 @@
       "value": 1620,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955549_oo0o6.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955549_oo0o6.png",
       "multiplier": 1620,
       "description": {
         "en": "",
@@ -2021,7 +2021,7 @@
       "value": 1850,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955549_i4z8d.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955549_i4z8d.png",
       "multiplier": 1850,
       "description": {
         "en": "",
@@ -2042,7 +2042,7 @@
       "value": 2000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955549_7zld7.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955549_7zld7.png",
       "multiplier": 2000,
       "description": {
         "en": "",
@@ -2063,7 +2063,7 @@
       "value": 2250,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955550_gh88a.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955550_gh88a.png",
       "multiplier": 2250,
       "description": {
         "en": "",
@@ -2084,7 +2084,7 @@
       "value": 2500,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955550_0xvwe.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955550_0xvwe.png",
       "multiplier": 2500,
       "description": {
         "en": "",
@@ -2105,7 +2105,7 @@
       "value": 2750,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955550_rfea1.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955550_rfea1.png",
       "multiplier": 2750,
       "description": {
         "en": "",
@@ -2126,7 +2126,7 @@
       "value": 3000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955550_348r1.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955550_348r1.png",
       "multiplier": 3000,
       "description": {
         "en": "",
@@ -2147,7 +2147,7 @@
       "value": 3500,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955551_a5etg.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955551_a5etg.png",
       "multiplier": 3500,
       "description": {
         "en": "",
@@ -2168,7 +2168,7 @@
       "value": 4000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955551_cqa7a.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955551_cqa7a.png",
       "multiplier": 4000,
       "description": {
         "en": "",
@@ -2189,7 +2189,7 @@
       "value": 4500,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955551_jt9dp.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955551_jt9dp.png",
       "multiplier": 4500,
       "description": {
         "en": "",
@@ -2210,7 +2210,7 @@
       "value": 5000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955551_5jijf.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955551_5jijf.png",
       "multiplier": 5000,
       "description": {
         "en": "",
@@ -2231,7 +2231,7 @@
       "value": 5800,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955552_j1dlg.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955552_j1dlg.png",
       "multiplier": 5800,
       "description": {
         "en": "",
@@ -2252,7 +2252,7 @@
       "value": 7000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955552_3qrmq.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955552_3qrmq.png",
       "multiplier": 7000,
       "description": {
         "en": "",
@@ -2273,7 +2273,7 @@
       "value": 8500,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955552_or4dt.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955552_or4dt.png",
       "multiplier": 8500,
       "description": {
         "en": "",
@@ -2294,7 +2294,7 @@
       "value": 10000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955553_eojb4.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955553_eojb4.png",
       "multiplier": 10000,
       "description": {
         "en": "",
@@ -2315,7 +2315,7 @@
       "value": 12000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955553_2gq9u.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955553_2gq9u.png",
       "multiplier": 12000,
       "description": {
         "en": "",
@@ -2336,7 +2336,7 @@
       "value": 15000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955553_k8yjb.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955553_k8yjb.png",
       "multiplier": 15000,
       "description": {
         "en": "",
@@ -2357,7 +2357,7 @@
       "value": 20000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955553_ot69m.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955553_ot69m.png",
       "multiplier": 20000,
       "description": {
         "en": "",
@@ -2378,7 +2378,7 @@
       "value": 30000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955553_jelh3.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955553_jelh3.png",
       "multiplier": 30000,
       "description": {
         "en": "",
@@ -2399,7 +2399,7 @@
       "value": 45000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955554_a2v94.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955554_a2v94.png",
       "multiplier": 45000,
       "description": {
         "en": "",
@@ -2420,7 +2420,7 @@
       "value": 65000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955554_5z072.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955554_5z072.png",
       "multiplier": 65000,
       "description": {
         "en": "",
@@ -2441,7 +2441,7 @@
       "value": 90000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955554_vd8xz.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955554_vd8xz.png",
       "multiplier": 90000,
       "description": {
         "en": "",
@@ -2462,7 +2462,7 @@
       "value": 150000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955555_nfaiq.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955555_nfaiq.png",
       "multiplier": 150000,
       "description": {
         "en": "",
@@ -2483,7 +2483,7 @@
       "value": 300000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955555_0a02w.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955555_0a02w.png",
       "multiplier": 300000,
       "description": {
         "en": "",
@@ -2504,7 +2504,7 @@
       "value": 500000,
       "desc_en": "",
       "desc_es": "",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955555_4b2c7.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955555_4b2c7.png",
       "multiplier": 500000,
       "description": {
         "en": "",
@@ -2526,7 +2526,7 @@
       "secret": false,
       "desc_en": "Req: Make 100 clicks",
       "desc_es": "Req: Clicks totales (100)",
-      "iconUrl": "/assets/misc/iconUrl_1780604955555_a60rw.png",
+      "iconUrl": "assets/misc/iconUrl_1780604955555_a60rw.png",
       "reqType": "total_clicks",
       "reqValue": 100,
       "description": {
@@ -2551,7 +2551,7 @@
       "secret": false,
       "desc_es": "Req: Clicks totales (250)",
       "desc_en": "Req: Make 250 clicks",
-      "iconUrl": "/assets/misc/iconUrl_1780604955556_5ly3o.png",
+      "iconUrl": "assets/misc/iconUrl_1780604955556_5ly3o.png",
       "icon": "fa-solid fa-image",
       "reqType": "total_clicks",
       "reqValue": 250,
@@ -2573,7 +2573,7 @@
       "secret": false,
       "desc_es": "Req: Clicks totales (500)",
       "desc_en": "Req: Make 500 clicks",
-      "iconUrl": "/assets/misc/iconUrl_1780604955556_77q4x.png",
+      "iconUrl": "assets/misc/iconUrl_1780604955556_77q4x.png",
       "icon": "fa-solid fa-image",
       "reqType": "total_clicks",
       "reqValue": 500,
@@ -2595,7 +2595,7 @@
       "secret": false,
       "desc_es": "Req: Clicks totales (1K)",
       "desc_en": "Req: Make 1K clicks",
-      "iconUrl": "/assets/misc/iconUrl_1780604955556_3qy1n.png",
+      "iconUrl": "assets/misc/iconUrl_1780604955556_3qy1n.png",
       "icon": "fa-solid fa-image",
       "reqType": "total_clicks",
       "reqValue": 1000,
@@ -2615,7 +2615,7 @@
       "en": "",
       "desc_es": "Req: Clicks totales (5K)",
       "desc_en": "Req: Make 5K clicks",
-      "iconUrl": "/assets/misc/iconUrl_1780604955556_kv8jg.png",
+      "iconUrl": "assets/misc/iconUrl_1780604955556_kv8jg.png",
       "icon": "fa-solid fa-image",
       "reqType": "total_clicks",
       "reqValue": 5000,
@@ -2635,7 +2635,7 @@
       "en": "",
       "desc_es": "Req: Clicks totales (15K)",
       "desc_en": "Req: Make 15K clicks",
-      "iconUrl": "/assets/misc/iconUrl_1780604955557_oovgp.png",
+      "iconUrl": "assets/misc/iconUrl_1780604955557_oovgp.png",
       "icon": "fa-solid fa-image",
       "reqType": "total_clicks",
       "reqValue": 15000,
@@ -2655,7 +2655,7 @@
       "en": "",
       "desc_es": "Req: Clicks totales (50K)",
       "desc_en": "Req: Make 50K clicks",
-      "iconUrl": "/assets/misc/iconUrl_1780604955557_a3kqy.png",
+      "iconUrl": "assets/misc/iconUrl_1780604955557_a3kqy.png",
       "icon": "fa-solid fa-image",
       "reqType": "total_clicks",
       "reqValue": 50000,
@@ -2675,7 +2675,7 @@
       "en": "",
       "desc_es": "Req: Clicks totales (100K)",
       "desc_en": "Req: Make 100K clicks",
-      "iconUrl": "/assets/misc/iconUrl_1780604955558_1wenz.png",
+      "iconUrl": "assets/misc/iconUrl_1780604955558_1wenz.png",
       "icon": "fa-solid fa-image",
       "reqType": "total_clicks",
       "reqValue": 100000,
@@ -2695,7 +2695,7 @@
       "en": "",
       "desc_es": "Req: Clicks totales (250K)",
       "desc_en": "Req: Make 250K clicks",
-      "iconUrl": "/assets/misc/iconUrl_1780604955558_mu9gp.png",
+      "iconUrl": "assets/misc/iconUrl_1780604955558_mu9gp.png",
       "icon": "fa-solid fa-image",
       "reqType": "total_clicks",
       "reqValue": 250000,
@@ -2715,7 +2715,7 @@
       "en": "",
       "desc_es": "Req: Clicks totales (500K)",
       "desc_en": "Req: Make 500K clicks",
-      "iconUrl": "/assets/misc/iconUrl_1780604955558_6pkqf.png",
+      "iconUrl": "assets/misc/iconUrl_1780604955558_6pkqf.png",
       "icon": "fa-solid fa-image",
       "reqType": "total_clicks",
       "reqValue": 500000,
@@ -2735,7 +2735,7 @@
       "en": "",
       "desc_es": "Req: Clicks totales (1M)",
       "desc_en": "Req: Make 1M clicks",
-      "iconUrl": "/assets/misc/iconUrl_1780604955559_49yo6.png",
+      "iconUrl": "assets/misc/iconUrl_1780604955559_49yo6.png",
       "icon": "fa-solid fa-image",
       "reqType": "total_clicks",
       "reqValue": 1000000,
@@ -2746,24 +2746,24 @@
     {
       "en": "Test 1",
       "es": "Diente cariado",
-      "img": "/assets/teeth/img_1780604955559_e7tua.png",
-      "glbData": "/assets/teeth/glbData_1780604955561_ddye5.glb",
+      "img": "assets/teeth/img_1780604955559_e7tua.png",
+      "glbData": "assets/teeth/glbData_1780604955561_ddye5.glb",
       "prestige": 0,
       "reqLevel": 0
     },
     {
       "en": "",
       "es": "Diente malo",
-      "img": "/assets/teeth/img_1780604955563_tylpm.png",
-      "glbData": "/assets/teeth/glbData_1780604955565_cqgaw.glb",
+      "img": "assets/teeth/img_1780604955563_tylpm.png",
+      "glbData": "assets/teeth/glbData_1780604955565_cqgaw.glb",
       "prestige": 1,
       "reqLevel": 0
     },
     {
       "en": "",
       "es": "Diente sucio",
-      "img": "/assets/teeth/img_1780604955566_vkmpb.png",
-      "glbData": "/assets/teeth/glbData_1780604955569_u56xj.glb",
+      "img": "assets/teeth/img_1780604955566_vkmpb.png",
+      "glbData": "assets/teeth/glbData_1780604955569_u56xj.glb",
       "prestige": 2,
       "reqLevel": 0
     },
@@ -2772,7 +2772,7 @@
       "reqLevel": 2,
       "es": "Diente Cristiano Ronaldo",
       "en": "",
-      "img": "/assets/teeth/img_1780604955570_f3wqp.png",
+      "img": "assets/teeth/img_1780604955570_f3wqp.png",
       "glbData": "public/assets/teeth/diente-cristiano-ronaldo.glb",
       "reqGenId": "gen_1779988989874",
       "reqGenQty": 50
@@ -2790,80 +2790,80 @@
     {
       "en": "",
       "es": "Diente Triste",
-      "img": "/assets/teeth/img_1780604955570_572ck.png",
-      "glbData": "/assets/teeth/glbData_1780604955572_jjnpb.glb",
+      "img": "assets/teeth/img_1780604955570_572ck.png",
+      "glbData": "assets/teeth/glbData_1780604955572_jjnpb.glb",
       "prestige": 3,
       "reqLevel": 1
     },
     {
       "en": "",
       "es": "Diente triste 2",
-      "img": "/assets/teeth/img_1780604955573_pohhk.png",
-      "glbData": "/assets/teeth/glbData_1780604955574_sulcb.glb",
+      "img": "assets/teeth/img_1780604955573_pohhk.png",
+      "glbData": "assets/teeth/glbData_1780604955574_sulcb.glb",
       "prestige": 4,
       "reqLevel": 2
     },
     {
       "en": "",
       "es": "Diente tímido",
-      "img": "/assets/teeth/img_1780604955575_g9ghs.png",
-      "glbData": "/assets/teeth/glbData_1780604955575_g8cjx.glb",
+      "img": "assets/teeth/img_1780604955575_g9ghs.png",
+      "glbData": "assets/teeth/glbData_1780604955575_g8cjx.glb",
       "prestige": 6,
       "reqLevel": 4
     },
     {
       "en": "",
       "es": "Diente normal",
-      "img": "/assets/teeth/img_1780604955576_jed5b.png",
-      "glbData": "/assets/teeth/glbData_1780604955576_pr56w.glb",
+      "img": "assets/teeth/img_1780604955576_jed5b.png",
+      "glbData": "assets/teeth/glbData_1780604955576_pr56w.glb",
       "prestige": 8,
       "reqLevel": 6
     },
     {
       "en": "",
       "es": "Diente sano",
-      "img": "/assets/teeth/img_1780604955578_te3rg.png",
-      "glbData": "/assets/teeth/glbData_1780604955578_laii0.glb",
+      "img": "assets/teeth/img_1780604955578_te3rg.png",
+      "glbData": "assets/teeth/glbData_1780604955578_laii0.glb",
       "prestige": 12,
       "reqLevel": 8
     },
     {
       "en": "",
       "es": "Diente feliz",
-      "img": "/assets/teeth/img_1780604955581_udh02.png",
-      "glbData": "/assets/teeth/glbData_1780604955581_nm9of.glb",
+      "img": "assets/teeth/img_1780604955581_udh02.png",
+      "glbData": "assets/teeth/glbData_1780604955581_nm9of.glb",
       "prestige": 15,
       "reqLevel": 12
     },
     {
       "en": "",
       "es": "Diente sano y feliz",
-      "img": "/assets/teeth/img_1780604955582_hv7de.png",
-      "glbData": "/assets/teeth/glbData_1780604955582_xb5na.glb",
+      "img": "assets/teeth/img_1780604955582_hv7de.png",
+      "glbData": "assets/teeth/glbData_1780604955582_xb5na.glb",
       "prestige": 18,
       "reqLevel": 15
     },
     {
       "en": "",
       "es": "Diente blanco y brillante",
-      "img": "/assets/teeth/img_1780604955583_uso00.png",
-      "glbData": "/assets/teeth/glbData_1780604955583_2gsbe.glb",
+      "img": "assets/teeth/img_1780604955583_uso00.png",
+      "glbData": "assets/teeth/glbData_1780604955583_2gsbe.glb",
       "prestige": 20,
       "reqLevel": 16
     },
     {
       "en": "",
       "es": "Diente galán",
-      "img": "/assets/teeth/img_1780604955584_gdpq5.png",
-      "glbData": "/assets/teeth/glbData_1780604955584_i3gqf.glb",
+      "img": "assets/teeth/img_1780604955584_gdpq5.png",
+      "glbData": "assets/teeth/glbData_1780604955584_i3gqf.glb",
       "prestige": 24,
       "reqLevel": 20
     },
     {
       "en": "",
       "es": "Diente Chicago Bulls",
-      "img": "/assets/teeth/img_1780604955585_h31cj.png",
-      "glbData": "/assets/teeth/glbData_1780604955586_pmfpm.glb",
+      "img": "assets/teeth/img_1780604955585_h31cj.png",
+      "glbData": "assets/teeth/glbData_1780604955586_pmfpm.glb",
       "prestige": 30,
       "reqLevel": 25
     }
@@ -2882,7 +2882,7 @@
       "type": "generator",
       "desc_en": "- Multiplies Toothbrush production x2",
       "desc_es": "- Multiplica la producción de Cepillo de dientes x2",
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955587_0d5ts.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955587_0d5ts.png",
       "targetId": "gen_1779988989874",
       "milestone": 10,
       "multiplier": 2,
@@ -2914,7 +2914,7 @@
       "multiplier": 2,
       "milestone": 25,
       "requirement": 1950,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955587_ssiz0.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955587_ssiz0.png",
       "icon": "fa-solid fa-image"
     },
     {
@@ -2938,7 +2938,7 @@
       "multiplier": 2,
       "milestone": 50,
       "requirement": 3250,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955588_hbofs.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955588_hbofs.png",
       "icon": "fa-solid fa-image"
     },
     {
@@ -2962,7 +2962,7 @@
       "multiplier": 2,
       "milestone": 75,
       "requirement": 4875,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955588_khqr7.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955588_khqr7.png",
       "icon": "fa-solid fa-image"
     },
     {
@@ -2986,7 +2986,7 @@
       "multiplier": 2,
       "milestone": 150,
       "requirement": 130000,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955588_lhdnr.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955588_lhdnr.png",
       "icon": "fa-solid fa-image"
     },
     {
@@ -3010,7 +3010,7 @@
       "multiplier": 2,
       "milestone": 200,
       "requirement": 325000,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955588_p0zv5.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955588_p0zv5.png",
       "icon": "fa-solid fa-image"
     },
     {
@@ -3034,7 +3034,7 @@
       "multiplier": 2,
       "milestone": 10,
       "requirement": 6500,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955589_gl879.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955589_gl879.png",
       "icon": "fa-solid fa-image"
     },
     {
@@ -3058,7 +3058,7 @@
       "multiplier": 2,
       "milestone": 250,
       "requirement": 650000,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955589_1r00g.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955589_1r00g.png",
       "icon": "fa-solid fa-image"
     },
     {
@@ -3082,7 +3082,7 @@
       "multiplier": 2,
       "milestone": 300,
       "requirement": 3250000,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955589_0ft47.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955589_0ft47.png",
       "icon": "fa-solid fa-image"
     },
     {
@@ -3106,7 +3106,7 @@
       "multiplier": 2,
       "milestone": 25,
       "requirement": 32500,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955590_6c3d8.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955590_6c3d8.png",
       "icon": "fa-solid fa-image"
     },
     {
@@ -3130,7 +3130,7 @@
       "multiplier": 2,
       "milestone": 10,
       "requirement": 48750,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955590_2w20c.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955590_2w20c.png",
       "icon": "fa-solid fa-image"
     },
     {
@@ -3154,7 +3154,7 @@
       "multiplier": 2,
       "milestone": 25,
       "requirement": 97500,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955590_f3zn8.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955590_f3zn8.png",
       "icon": "fa-solid fa-image"
     }
   ],
@@ -3206,7 +3206,7 @@
         "es": "Manten presionado",
         "en": ""
       },
-      "image": "/assets/bonuses/image_1780604955591_zsncc.png",
+      "image": "assets/bonuses/image_1780604955591_zsncc.png",
       "intervalMin": 5,
       "intervalMax": 10,
       "speed": "slow",
@@ -3214,7 +3214,7 @@
       "holdTime": 3,
       "multiplier": 2,
       "duration": 30,
-      "glbData": "/assets/bonuses/glbData_1780604955592_fxj2i.glb",
+      "glbData": "assets/bonuses/glbData_1780604955592_fxj2i.glb",
       "cps": 10,
       "instantRewardType": "coins"
     },
@@ -3224,7 +3224,7 @@
         "es": "Prod. global X 2",
         "en": ""
       },
-      "image": "/assets/bonuses/image_1780604955593_usm6k.png",
+      "image": "assets/bonuses/image_1780604955593_usm6k.png",
       "intervalMin": 5,
       "intervalMax": 10,
       "speed": "normal",
@@ -3233,7 +3233,7 @@
       "cps": 10,
       "multiplier": 2,
       "duration": 30,
-      "glbData": "/assets/bonuses/glbData_1780604955594_wwvwm.glb",
+      "glbData": "assets/bonuses/glbData_1780604955594_wwvwm.glb",
       "instantRewardType": "coins"
     },
     {
@@ -3242,7 +3242,7 @@
         "es": "Prod. de clicks X 2",
         "en": ""
       },
-      "image": "/assets/bonuses/image_1780604955594_r2ddn.png",
+      "image": "assets/bonuses/image_1780604955594_r2ddn.png",
       "intervalMin": 5,
       "intervalMax": 10,
       "speed": "normal",
@@ -3251,7 +3251,7 @@
       "cps": 10,
       "multiplier": 2,
       "duration": 30,
-      "glbData": "/assets/bonuses/glbData_1780604955595_vixmb.glb",
+      "glbData": "assets/bonuses/glbData_1780604955595_vixmb.glb",
       "instantRewardType": "coins"
     },
     {
@@ -3270,7 +3270,7 @@
       "multiplier": 10000000,
       "instantRewardType": "coins",
       "duration": 15,
-      "glbData": "/assets/bonuses/glbData_1780604955597_26mil.glb"
+      "glbData": "assets/bonuses/glbData_1780604955597_26mil.glb"
     },
     {
       "id": "bonus_qe468xs",
@@ -3288,7 +3288,7 @@
       "multiplier": 3,
       "instantRewardType": "coins",
       "duration": 15,
-      "glbData": "/assets/bonuses/glbData_1780604955594_wwvwm.glb"
+      "glbData": "assets/bonuses/glbData_1780604955594_wwvwm.glb"
     },
     {
       "id": "bonus_xil5wjp",
@@ -3306,7 +3306,7 @@
       "multiplier": 100000000000,
       "instantRewardType": "coins",
       "duration": 15,
-      "glbData": "/assets/bonuses/glbData_1780604955597_26mil.glb"
+      "glbData": "assets/bonuses/glbData_1780604955597_26mil.glb"
     }
   ],
   "music": [
@@ -3363,7 +3363,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955598_vy8pf.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955598_vy8pf.png",
       "xpMultType": "both"
     },
     {
@@ -3401,7 +3401,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955599_gdsy1.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955599_gdsy1.png",
       "xpMultType": "passive"
     },
     {
@@ -3439,7 +3439,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955599_v0eix.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955599_v0eix.png",
       "xpMultType": "passive"
     },
     {
@@ -3477,7 +3477,7 @@
       "globalMult": 0,
       "xpMult": 200,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955599_5g54m.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955599_5g54m.png",
       "xpMultType": "passive"
     },
     {
@@ -3515,7 +3515,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955600_awg1z.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955600_awg1z.png",
       "xpMultType": "passive"
     },
     {
@@ -3553,7 +3553,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955600_15yyf.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955600_15yyf.png",
       "xpMultType": "passive"
     },
     {
@@ -3591,7 +3591,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955600_6fai6.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955600_6fai6.png",
       "xpMultType": "passive"
     },
     {
@@ -3629,7 +3629,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955601_zmk64.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955601_zmk64.png",
       "xpMultType": "both"
     },
     {
@@ -3667,7 +3667,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955601_lpk3v.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955601_lpk3v.png",
       "xpMultType": "passive"
     },
     {
@@ -3705,7 +3705,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955601_yp56f.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955601_yp56f.png",
       "xpMultType": "passive"
     },
     {
@@ -3743,7 +3743,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955601_awmty.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955601_awmty.png",
       "xpMultType": "passive"
     },
     {
@@ -3781,7 +3781,7 @@
       "globalMult": 0,
       "xpMult": 200,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955602_ln4iw.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955602_ln4iw.png",
       "xpMultType": "both"
     },
     {
@@ -3819,7 +3819,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955603_xwqkm.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955603_xwqkm.png",
       "xpMultType": "passive"
     },
     {
@@ -3857,7 +3857,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955603_qx2no.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955603_qx2no.png",
       "xpMultType": "passive"
     },
     {
@@ -3895,7 +3895,7 @@
       "globalMult": 0,
       "xpMult": 200,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955603_6yysj.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955603_6yysj.png",
       "xpMultType": "passive"
     },
     {
@@ -3933,7 +3933,7 @@
       "globalMult": 0,
       "xpMult": 200,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955604_maipv.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955604_maipv.png"
     },
     {
       "id": "xp_up_own_hygienist_25",
@@ -3970,7 +3970,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955604_ghuc7.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955604_ghuc7.png"
     },
     {
       "id": "xp_up_click_3",
@@ -4007,7 +4007,7 @@
       "globalMult": 0,
       "xpMult": 100,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955604_hycht.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955604_hycht.png"
     },
     {
       "id": "xp_up_own_brush_100",
@@ -4044,7 +4044,7 @@
       "globalMult": 0,
       "xpMult": 0,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955605_9303s.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955605_9303s.png"
     },
     {
       "id": "xp_up_speed_1",
@@ -4081,7 +4081,7 @@
       "globalMult": 100,
       "xpMult": 0,
       "genProdMult": 0,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955605_rt1ou.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955605_rt1ou.png"
     },
     {
       "id": "xp_up_up_2",
@@ -4118,7 +4118,7 @@
       "globalMult": 0,
       "xpMult": 0,
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955605_v45if.png",
+      "iconUrl": "assets/upgrades/iconUrl_1780604955605_v45if.png",
       "xpMultType": "passive"
     },
     {
@@ -4157,7 +4157,7 @@
       "xpMult": 100,
       "xpMultType": "passive",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955606_ge6s6.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955606_ge6s6.png"
     },
     {
       "id": "xp_up_own_dentist_25",
@@ -4195,7 +4195,7 @@
       "xpMult": 150,
       "xpMultType": "passive",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955606_a5r10.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955606_a5r10.png"
     },
     {
       "id": "xp_up_own_floss_100",
@@ -4233,7 +4233,7 @@
       "xpMult": 100,
       "xpMultType": "both",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955606_ov1x1.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955606_ov1x1.png"
     },
     {
       "id": "xp_up_prest_1",
@@ -4271,7 +4271,7 @@
       "xpMult": 100,
       "xpMultType": "passive",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955607_lz31t.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955607_lz31t.png"
     },
     {
       "id": "xp_up_click_5",
@@ -4309,7 +4309,7 @@
       "xpMult": 100,
       "xpMultType": "passive",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955607_7sgfd.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955607_7sgfd.png"
     },
     {
       "id": "xp_up_speed_2",
@@ -4347,7 +4347,7 @@
       "xpMult": 100,
       "xpMultType": "both",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955607_nf6ox.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955607_nf6ox.png"
     },
     {
       "id": "xp_up_own_orthodontist_25",
@@ -4385,7 +4385,7 @@
       "xpMult": 100,
       "xpMultType": "both",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955607_yjool.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955607_yjool.png"
     },
     {
       "id": "xp_up_earn_2",
@@ -4423,7 +4423,7 @@
       "xpMult": 100,
       "xpMultType": "click",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955608_zsuka.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955608_zsuka.png"
     },
     {
       "id": "xp_up_ach_0",
@@ -4461,7 +4461,7 @@
       "xpMult": 100,
       "xpMultType": "passive",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955608_fnyzn.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955608_fnyzn.png"
     },
     {
       "id": "xp_up_click_6",
@@ -4499,7 +4499,7 @@
       "xpMult": 150,
       "xpMultType": "both",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955608_9wt5x.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955608_9wt5x.png"
     },
     {
       "id": "xp_up_time_0",
@@ -4537,7 +4537,7 @@
       "xpMult": 150,
       "xpMultType": "both",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955608_wkqf6.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955608_wkqf6.png"
     },
     {
       "id": "xp_up_speed_3",
@@ -4575,7 +4575,7 @@
       "xpMult": 150,
       "xpMultType": "passive",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955608_8a9wb.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955608_8a9wb.png"
     },
     {
       "id": "xp_up_own_mouthwash_100",
@@ -4613,7 +4613,7 @@
       "xpMult": 100,
       "xpMultType": "passive",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955609_ddul1.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955609_ddul1.png"
     },
     {
       "id": "xp_up_click_7",
@@ -4651,7 +4651,7 @@
       "xpMult": 100,
       "xpMultType": "both",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955609_dmlc4.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955609_dmlc4.png"
     },
     {
       "id": "xp_up_prest_2",
@@ -4689,7 +4689,7 @@
       "xpMult": 150,
       "xpMultType": "both",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955609_yu2mo.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955609_yu2mo.png"
     },
     {
       "id": "xp_up_gold_1",
@@ -4727,7 +4727,7 @@
       "xpMult": 100,
       "xpMultType": "passive",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955610_6ku8x.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955610_6ku8x.png"
     },
     {
       "id": "xp_up_speed_4",
@@ -4765,7 +4765,7 @@
       "xpMult": 100,
       "xpMultType": "both",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955610_7p03w.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955610_7p03w.png"
     },
     {
       "id": "xp_up_own_endodontist_25",
@@ -4803,7 +4803,7 @@
       "xpMult": 200,
       "xpMultType": "both",
       "genProdMult": 200,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955610_ol2va.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955610_ol2va.png"
     },
     {
       "id": "xp_up_up_3",
@@ -4841,7 +4841,7 @@
       "xpMult": 0,
       "xpMultType": "both",
       "genProdMult": 0,
-      "iconUrl": "/assets/upgrades/iconUrl_1780604955611_2oc2b.png"
+      "iconUrl": "assets/upgrades/iconUrl_1780604955611_2oc2b.png"
     },
     {
       "id": "xp_up_click_8",
