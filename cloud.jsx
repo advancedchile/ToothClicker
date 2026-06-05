@@ -4,6 +4,23 @@ const SB_KEY = 'sb_publishable_Uz80b3C37riyF9WXBcSFLw_p1TlFDj9';
 
 const _supabase = typeof supabase !== 'undefined' ? supabase.createClient(SB_URL, SB_KEY) : null;
 
+// Clean /assets/ to assets/ recursively for configurations
+function sanitizePaths(obj) {
+  if (typeof obj === 'string') {
+    if (obj.startsWith('/assets/')) return obj.substring(1);
+    return obj;
+  } else if (Array.isArray(obj)) {
+    for (let i = 0; i < obj.length; i++) {
+      obj[i] = sanitizePaths(obj[i]);
+    }
+  } else if (obj !== null && typeof obj === 'object') {
+    for (const k in obj) {
+      obj[k] = sanitizePaths(obj[k]);
+    }
+  }
+  return obj;
+}
+
 // ── Leaderboard ─────────────────────────────────────────────────────────────
 async function cloudFetchLeaderboard() {
   try {

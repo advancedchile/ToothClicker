@@ -233,7 +233,14 @@ window.AdminSeasons = function({ lang }) {
               </div>
             </div>
             <button className="app-btn" onClick={() => setShowWipeModal(true)} disabled={saving} style={{ padding: '10px 20px', background: '#ef4444', color: '#fff', fontWeight: 'bold' }}>
-              <i className="fa-solid fa-power-off"></i> {lang === 'es' ? 'Forzar Reinicio Ahora' : 'Force Reset Now'}
+              <i className="fa-solid fa-power-off"></i>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span>{lang === 'es' ? 'Forzar Reinicio Ahora' : 'Force Reset Now'}</span>
+                <window.AdminHelpIcon 
+                  title="Forzar Reinicio Ahora" 
+                  text="Ejecuta manualmente el reinicio de la temporada en este exacto momento, sin esperar a que el tiempo acabe. El progreso actual de todos los jugadores se borrará y se publicará la plantilla asociada para que el juego inicie una temporada nueva de inmediato." 
+                />
+              </div>
             </button>
           </div>
         )}

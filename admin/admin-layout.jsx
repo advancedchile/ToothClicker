@@ -350,7 +350,17 @@ window.AdminLayout = function({ lang, onLangChange, onEnterGame, onBack }) {
             }}
           >
             {isSaving ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-floppy-disk"></i>}
-            {!sidebarCollapsed && (saveSuccess ? 'Guardado Exitoso' : (editingTemplate ? (editingTemplate.isExternal ? 'Guardar plantilla' : 'Guardar Plantilla') : 'Guardar Cambios BD'))}
+            {!sidebarCollapsed && (
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span>{saveSuccess ? 'Guardado Exitoso' : (editingTemplate ? (editingTemplate.isExternal ? 'Guardar plantilla' : 'Guardar Plantilla') : 'Guardar Cambios BD')}</span>
+                {!saveSuccess && (
+                  <window.AdminHelpIcon 
+                    title={editingTemplate ? 'Guardar Plantilla' : 'Guardar Cambios BD'} 
+                    text={editingTemplate ? 'Guarda los cambios de la plantilla que estás editando actualmente en la base de datos (Supabase). Estos cambios NO afectarán al juego en vivo de los jugadores hasta que vayas a la sección de Plantillas y decidas "Publicar" esta plantilla para iniciar una nueva temporada.' : 'Guarda de forma permanente cualquier cambio que hayas realizado en esta sesión en la base de datos en vivo (Supabase). Los jugadores verán estos cambios la próxima vez que recarguen el juego o cuando el juego se sincronice automáticamente.'} 
+                  />
+                )}
+              </div>
+            )}
           </button>
         </div>
 

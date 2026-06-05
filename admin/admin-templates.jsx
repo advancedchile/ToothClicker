@@ -245,12 +245,24 @@ window.AdminTemplates = function({ lang, editingTemplateId, onEditTemplate }) {
           {editingTemplateId && (
             <button className="app-btn" onClick={handleImportJson} style={{ background: 'var(--bg-3)', color: 'var(--fg-1)', display: 'flex', gap: 8, alignItems: 'center' }}>
               <i className="fa-solid fa-file-import"></i>
-              {lang === 'es' ? 'Importar JSON' : 'Import JSON'}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span>{lang === 'es' ? 'Importar JSON' : 'Import JSON'}</span>
+                <window.AdminHelpIcon 
+                  title="Importar JSON" 
+                  text="Carga un archivo .json desde tu computadora para sobreescribir temporalmente la plantilla que estás editando. Para que estos cambios sean permanentes, debes presionar 'Guardar Plantilla' después de importar." 
+                />
+              </div>
             </button>
           )}
           <button className="app-btn" onClick={handleCreateExternal} disabled={loading} style={{ background: 'var(--alternative-i100)', color: '#fff', display: 'flex', gap: 8, alignItems: 'center' }}>
             <i className="fa-solid fa-link"></i>
-            {lang === 'es' ? 'Registrar Externa' : 'Register External'}
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span>{lang === 'es' ? 'Registrar Externa' : 'Register External'}</span>
+              <window.AdminHelpIcon 
+                title="Registrar Externa" 
+                text="Agrega una nueva plantilla al sistema indicando su ruta física (ej: templates/plantilla-xyz.json) en lugar de guardarla en la base de datos de Supabase. Útil para cargar contenido grande si la BD está lenta." 
+              />
+            </div>
           </button>
           <button className="app-btn" onClick={handleCreate} disabled={loading} style={{ background: 'var(--primary-i100)', color: '#fff', display: 'flex', gap: 8, alignItems: 'center' }}>
             <i className="fa-solid fa-plus"></i>
@@ -352,7 +364,13 @@ window.AdminTemplates = function({ lang, editingTemplateId, onEditTemplate }) {
                       style={{ background: '#f0fdf4', color: '#16a34a', fontWeight: 'bold' }}
                     >
                       {publishingId === t.id ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <i className="fa-solid fa-rocket"></i>}
-                      {lang === 'es' ? ' Publicar' : ' Publish'}
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span>{lang === 'es' ? ' Publicar' : ' Publish'}</span>
+                        <window.AdminHelpIcon 
+                          title="Publicar Plantilla" 
+                          text="Inicia una nueva temporada usando esta plantilla. Todos los jugadores comenzarán desde cero (nivel 1) usando el contenido, mejoras y configuraciones definidas en esta plantilla. El progreso de la temporada actual se guardará en el historial." 
+                        />
+                      </div>
                     </button>
                   </div>
                 </div>
