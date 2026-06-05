@@ -555,6 +555,8 @@ window.cloudSaveTemplate = async function(id, name, content) {
     if (existingIndex >= 0) {
       templates[existingIndex].name = name;
       templates[existingIndex].updatedAt = Date.now();
+      templates[existingIndex].isExternal = false;
+      delete templates[existingIndex].path;
     } else {
       templates.push({ id, name, createdAt: Date.now(), updatedAt: Date.now() });
     }

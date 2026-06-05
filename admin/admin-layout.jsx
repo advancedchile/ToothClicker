@@ -247,31 +247,21 @@ window.AdminLayout = function({ lang, onLangChange, onEnterGame, onBack }) {
       }
 
       if (!savedLocally) {
+        // Guardar en la nube (Supabase) in all cases if local server is down
+        res = await window.cloudSaveTemplate(editingTemplate.id, editingTemplate.name, window.GAME_CONTENT);
+        if (!res.ok) {
+          alert("Error al guardar la plantilla en Supabase: " + res.error);
+          setIsSaving(false);
+          return;
+        }
+        
+        // If it was external, it's now living in Supabase
         if (editingTemplate.isExternal) {
-          // Fallback: Descargar como JSON
-          const jsonStr = JSON.stringify(window.GAME_CONTENT, null, 2);
-          const blob = new Blob([jsonStr], { type: "application/json" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          const fileName = editingTemplate.path ? editingTemplate.path.split('/').pop() : `plantilla-${editingTemplate.id}.json`;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          
-          alert((lang === 'es' 
-            ? `El servidor local no está activo. Se ha descargado el archivo "${fileName}". Debes moverlo a tu proyecto y reemplazar el original.` 
-            : `The local server is not running. The file "${fileName}" has been downloaded. You must move it to your project and replace the original.`));
-        } else {
-          // Guardar en la nube (Supabase) como último recurso
-          res = await window.cloudSaveTemplate(editingTemplate.id, editingTemplate.name, window.GAME_CONTENT);
-          if (!res.ok) {
-            alert("Error al guardar la plantilla en Supabase: " + res.error);
-            setIsSaving(false);
-            return;
-          }
+          editingTemplate.isExternal = false;
+          delete editingTemplate.path;
+          alert(lang === 'es' 
+            ? 'La plantilla externa se ha guardado en Supabase exitosamente (ya no es un archivo local).'
+            : 'External template saved to Supabase successfully (no longer a local file).');
         }
       }
       
