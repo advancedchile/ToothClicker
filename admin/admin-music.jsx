@@ -201,7 +201,7 @@ window.AdminMusic = function({ lang, setToast }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 'bold', color: 'var(--fg-3)' }}>Ruta del archivo (.mp3) o URL</label>
-              <input type="text" className="app-input" value={formData.src} onChange={e => setFormData({...formData, src: e.target.value})} style={{ width: '100%', marginBottom: 8 }} placeholder="/assets/music/song.mp3" />
+              <input type="text" className="app-input" value={formData.src} onChange={e => setFormData({...formData, src: e.target.value})} style={{ width: '100%', marginBottom: 8 }} placeholder="assets/music/song.mp3" />
               {formData.src && (
                 <audio controls src={formData.src} style={{ width: '100%', height: 32, marginTop: 4 }}></audio>
               )}

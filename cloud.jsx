@@ -478,7 +478,11 @@ window.cloudFetchGameContent = async function() {
 window.cloudSaveGameContent = async function(content) {
   try {
     if (!_supabase) return { ok: false, error: 'No Supabase' };
-    const { error } = await _supabase.from('settings').upsert({ key: 'game_content', value: content });
+    
+    // Sanitize paths before saving to avoid leading slashes breaking GH Pages
+    const sanitizedContent = sanitizePaths(JSON.parse(JSON.stringify(content)));
+    
+    const { error } = await _supabase.from('settings').upsert({ key: 'game_content', value: sanitizedContent });
     if (error) return { ok: false, error: error.message };
     return { ok: true };
   } catch (e) {
@@ -535,8 +539,11 @@ window.cloudSaveTemplate = async function(id, name, content) {
   try {
     if (!_supabase) return { ok: false, error: 'No Supabase' };
     
-    // 1. Save the content
-    const { error: err1 } = await _supabase.from('settings').upsert({ key: 'template_' + id, value: content });
+    // Sanitize paths before saving
+    const sanitizedContent = sanitizePaths(JSON.parse(JSON.stringify(content)));
+
+    // Save content
+    const { error: err1 } = await _supabase.from('settings').upsert({ key: 'template_' + id, value: sanitizedContent });
     if (err1) throw err1;
 
     // 2. Update metadata in the list

@@ -2,6 +2,25 @@
 <html lang="es">
 
 <head>
+  <script>
+    (function() {
+      var path = window.location.pathname;
+      if (path === '/') return;
+      var lastSlashIndex = path.lastIndexOf('/');
+      var basePath = path;
+      if (lastSlashIndex !== path.length - 1) {
+          var lastSegment = path.substring(lastSlashIndex + 1);
+          if (lastSegment.includes('.')) {
+              basePath = path.substring(0, lastSlashIndex + 1);
+          } else {
+              basePath = path + '/';
+          }
+      }
+      var baseElem = document.createElement('base');
+      baseElem.href = window.location.origin + basePath;
+      document.head.appendChild(baseElem);
+    })();
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Tooth Clicker - El Simulador Dental Adictivo</title>
