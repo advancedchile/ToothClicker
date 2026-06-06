@@ -89,6 +89,15 @@ window.AdminLayout = function({ lang, onLangChange, onEnterGame, onBack }) {
       } catch (e) {
         console.error("Error restoring template", e);
       }
+    } else {
+      // If we weren't editing a template, we might have been editing LIVE
+      AdminDraftDB.get('admin_unsaved_live').then((unsaved) => {
+        if (unsaved) {
+          window.initializeGameContent(JSON.parse(unsaved), true);
+          window.ORIGINAL_TEMPLATE_STR = "";
+          if (window.applyGlobalStyles) window.applyGlobalStyles();
+        }
+      }).catch(e => console.error("Error restoring live draft", e));
     }
 
     return () => {
@@ -96,16 +105,18 @@ window.AdminLayout = function({ lang, onLangChange, onEnterGame, onBack }) {
     };
   }, []);
 
-  // Auto-save loop for templates
+  // Auto-save loop for templates and live environment
   React.useEffect(() => {
     let interval;
-    if (editingTemplate) {
-      interval = setInterval(() => {
-        if (window.GAME_CONTENT) {
+    interval = setInterval(() => {
+      if (window.GAME_CONTENT) {
+        if (editingTemplate) {
           AdminDraftDB.set('admin_unsaved_template_' + editingTemplate.id, JSON.stringify(window.GAME_CONTENT)).catch(e => console.error("Auto-save error", e));
+        } else {
+          AdminDraftDB.set('admin_unsaved_live', JSON.stringify(window.GAME_CONTENT)).catch(e => console.error("Auto-save live error", e));
         }
-      }, 3000); // Auto save every 3 seconds to IndexedDB
-    }
+      }
+    }, 3000); // Auto save every 3 seconds to IndexedDB
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -275,6 +286,9 @@ window.AdminLayout = function({ lang, onLangChange, onEnterGame, onBack }) {
       return;
     } else {
       res = await window.cloudSaveGameContent(window.GAME_CONTENT);
+      if (res && res.ok) {
+        AdminDraftDB.remove('admin_unsaved_live');
+      }
     }
 
     setIsSaving(false);
