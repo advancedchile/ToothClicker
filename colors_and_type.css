@@ -871,9 +871,7 @@ input[type="color"]::-moz-color-swatch {
 }
 
 .stacked-toast:hover {
-  transform: translateX(-50%) translateY(calc(var(--base-ty) - 6px)) scale(var(--base-scale));
-  opacity: 1;
-  z-index: 2000 !important;
+  transform: translateX(-50%) translateY(calc(var(--base-ty) - 10px)) scale(var(--base-scale));
 }
 
 @keyframes bannerTransform {
