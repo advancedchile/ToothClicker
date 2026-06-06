@@ -311,6 +311,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [floats, setFloats] = useState([]);
 
   const [toast, setToast] = useState(null);
+  const [achievementToasts, setAchievementToasts] = useState([]);
   const [clickPulse, setClickPulse] = useState(0);
   const [saveFlash, setSaveFlash] = useState(false);
   const [showPrestigeConfirm, setShowPrestigeConfirm] = useState(false);
@@ -873,16 +874,18 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         }
         return next;
       });
-      const a = newUnlocks[0];
-      const hasUpgrade = (window.XP_UPGRADES || []).some(up => up.achievementId === a.id);
-      
-      setToast({
-        ...a,
-        desc_es: hasUpgrade ? `${a.desc_es} ¡Nueva mejora de academia desbloqueada!` : a.desc_es,
-        desc_en: hasUpgrade ? `${a.desc_en} New academy upgrade unlocked!` : a.desc_en
+      const newToasts = newUnlocks.map((a, i) => {
+        const hasUpgrade = (window.XP_UPGRADES || []).some(up => up.achievementId === a.id);
+        return {
+          ...a,
+          uniqueId: 'ach_' + a.id + '_' + Date.now() + '_' + i,
+          desc_es: hasUpgrade ? `${a.desc_es} ¡Nueva mejora de academia desbloqueada!` : a.desc_es,
+          desc_en: hasUpgrade ? `${a.desc_en} New academy upgrade unlocked!` : a.desc_en
+        };
       });
       
-      setTimeout(() => setToast(null), 3500);
+      setAchievementToasts(prev => [...prev, ...newToasts]);
+      
       if (soundRef.current) {window.playTone(660, 0.12, 'triangle', 0.06);setTimeout(() => window.playTone(880, 0.12, 'triangle', 0.06), 100);}
     }
   }, [state.totalClicks, state.totalEarned, state.lifetimeEarned, state.generators, state.prestige, state.goldenClicks, state.clickUpgrades, state.timePlayed, state.feedbackSent]);
@@ -3066,6 +3069,43 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       ))}
 
       <window.Toast toast={toast} lang={lang} />
+      
+      <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 1000, pointerEvents: 'none' }}>
+        {achievementToasts.map((t, idx) => {
+          const reverseIdx = achievementToasts.length - 1 - idx;
+          const translateY = reverseIdx * -16;
+          const scale = 1 - (reverseIdx * 0.05);
+          return (
+            <div 
+              key={t.uniqueId} 
+              onClick={(e) => {
+                e.stopPropagation();
+                setAchievementToasts(prev => {
+                  const next = [...prev];
+                  const activeIdx = next.findIndex(x => x.uniqueId === t.uniqueId);
+                  if (activeIdx > -1) {
+                    const [active] = next.splice(activeIdx, 1);
+                    next.push(active);
+                  }
+                  return next;
+                });
+              }}
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: `translateX(-50%) translateY(${translateY}px) scale(${scale})`,
+                zIndex: 1000 - reverseIdx,
+                transition: 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                pointerEvents: 'auto',
+                cursor: 'pointer'
+              }}
+            >
+              <window.Toast toast={t} lang={lang} styleOverride={{ position: 'relative', bottom: 'auto', left: 'auto', transform: 'none' }} onClose={() => setAchievementToasts(prev => prev.filter(x => x.uniqueId !== t.uniqueId))} />
+            </div>
+          )
+        })}
+      </div>
 
       {showWelcomeBack && offlineInfo &&
       <Modal onClose={() => setShowWelcomeBack(false)}>

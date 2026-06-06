@@ -1022,7 +1022,7 @@ function AchievementCard({ ach, unlocked, lang, onHover, onLeave }) {
   );
 }
 
-function Toast({ toast, lang }) {
+function Toast({ toast, lang, styleOverride, onClose }) {
   if (!toast) return null;
   const t = window.STRINGS[lang];
   const isAch = !!toast.cat || toast.reqType !== undefined || toast.rewardPercent !== undefined;
@@ -1062,12 +1062,21 @@ function Toast({ toast, lang }) {
     accentText = accentText || "var(--primary-i070)";
   }
 
-  const animationStyle = isAch ? 'toastIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275), toastOut 300ms ease 3.2s forwards' : 'toastIn 250ms ease, toastOut 250ms ease 3.2s forwards';
+  const animationStyle = isAch ? 'toastIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'toastIn 250ms ease, toastOut 250ms ease 3.2s forwards';
   const borderStyle = isAch ? '2px solid transparent' : 'none';
-  const customAnimation = isAch ? 'rainbow-border-anim 2s linear infinite, toastIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275), toastOut 300ms ease 3.2s forwards' : animationStyle;
+  const customAnimation = isAch ? 'rainbow-border-anim 2s linear infinite, toastIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' : animationStyle;
+
+  const containerStyle = {
+    position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+    background: 'var(--complementary-i080)', color: '#fff', padding: 'var(--spacing-3) var(--spacing-4)',
+    borderRadius: 'var(--radius-m)', boxShadow: isAch ? 'none' : 'var(--elevation-20)',
+    display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', zIndex: 1000,
+    animation: customAnimation, maxWidth: 420, border: borderStyle,
+    ...styleOverride
+  };
 
   return (
-    <div className="game-toast-container" style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'var(--complementary-i080)', color: '#fff', padding: 'var(--spacing-3) var(--spacing-4)', borderRadius: 'var(--radius-m)', boxShadow: isAch ? 'none' : 'var(--elevation-20)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', zIndex: 1000, animation: customAnimation, maxWidth: 420, border: borderStyle }}>
+    <div className="game-toast-container" style={containerStyle}>
       <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-s)', background: (toast.iconUrl || toast.img) ? 'transparent' : accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0, overflow: 'hidden' }}>
         {(toast.iconUrl || toast.img) ? (
           <img src={toast.iconUrl || toast.img} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -1089,6 +1098,16 @@ function Toast({ toast, lang }) {
           </div>
         )}
       </div>
+      {onClose && (
+        <button 
+          onClick={(e) => { e.stopPropagation(); onClose(); }} 
+          style={{ all: 'unset', background: 'rgba(255,255,255,0.1)', width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: 8, flexShrink: 0, transition: 'background 0.2s' }}
+          onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+          onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+        >
+          <i className="fa-solid fa-xmark"></i>
+        </button>
+      )}
     </div>);
 }
 
