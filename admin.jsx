@@ -1081,6 +1081,11 @@ window.AdminCorePanel = function({ activeTab, setActiveTab, lang, onLangChange, 
     }
     
     setDeleteTarget(null);
+
+    // If deleting the current active user or admin itself, reload to clear memory
+    if (name === localStorage.getItem(DEVICE_USER_KEY) || name === ADMIN_NAME) {
+      setTimeout(() => window.location.reload(), 200);
+    }
   };
 
   const handleAddPublic = (e) => {
