@@ -339,6 +339,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const audioRef = useRef(null);
   const musicAttempted = useRef(false);
   const [musicModalOpen, setMusicModalOpen] = useState(false);
+  
+  const processedAchievementsRef = useRef(new Set());
   const [tracks, setTracks] = useState([]);
   const [currentTrack, setCurrentTrack] = useState(() => {
     const id = saved?.musicSettings?.currentTrackId;
@@ -865,7 +867,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   // Achievement checker
   useEffect(() => {
     const newUnlocks = [];
-    for (const a of window.ACHIEVEMENTS) {if (!state.achievements[a.id] && typeof a.check === 'function' && a.check(state)) newUnlocks.push(a);}
+    for (const a of window.ACHIEVEMENTS) {
+      if (!state.achievements[a.id] && !processedAchievementsRef.current.has(a.id) && typeof a.check === 'function' && a.check(state)) {
+        newUnlocks.push(a);
+        processedAchievementsRef.current.add(a.id);
+      }
+    }
     if (newUnlocks.length > 0) {
       setState((s) => {
         const next = { ...s, achievements: { ...s.achievements }, newAchievementIds: { ...(s.newAchievementIds || {}) } };
@@ -3103,7 +3110,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 zIndex: 1000 - reverseIdx,
                 transition: 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                 pointerEvents: 'auto',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                width: 'max-content'
               }}
             >
               <window.Toast toast={t} lang={lang} styleOverride={{ position: 'relative', bottom: 'auto', left: 'auto', transform: 'none' }} onClose={() => setAchievementToasts(prev => prev.filter(x => x.uniqueId !== t.uniqueId))} />
