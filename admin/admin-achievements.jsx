@@ -134,9 +134,9 @@ window.AdminAchievements = function({ lang, isTemplate, setToast }) {
       secret: false,
       iconUrl: '',
       icon: '',
-      reqType: 'total_teeth',
-      reqValue: 100,
-      reqTargetId: '',
+      reqType: 'level',
+      reqValue: 1,
+      reqTargetId: generators[0]?.id || '',
       rewardPercent: 1
     });
   };

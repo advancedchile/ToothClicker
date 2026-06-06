@@ -3091,6 +3091,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           return (
             <div 
               key={t.uniqueId} 
+              className="stacked-toast"
               onClick={(e) => {
                 e.stopPropagation();
                 setAchievementToasts(prev => {
@@ -3107,10 +3108,10 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 position: 'absolute',
                 bottom: 0,
                 left: '50%',
-                transform: `translateX(-50%) translateY(${translateY}px) scale(${scale})`,
+                '--base-ty': `${translateY}px`,
+                '--base-scale': scale,
+                '--base-op': opacity,
                 zIndex: 1000 - reverseIdx,
-                transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                opacity: opacity,
                 pointerEvents: 'auto',
                 cursor: 'pointer',
                 width: 'max-content',

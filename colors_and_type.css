@@ -859,6 +859,23 @@ input[type="color"]::-moz-color-swatch {
   100% { transform: translateX(-50%) translateY(20px); opacity: 0; }
 }
 
+@keyframes toastStackIn {
+  from { opacity: 0; bottom: -20px; }
+  to { opacity: 1; bottom: 0; }
+}
+
+.stacked-toast {
+  transform: translateX(-50%) translateY(var(--base-ty)) scale(var(--base-scale));
+  opacity: var(--base-op);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.stacked-toast:hover {
+  transform: translateX(-50%) translateY(calc(var(--base-ty) - 6px)) scale(var(--base-scale));
+  opacity: 1;
+  z-index: 2000 !important;
+}
+
 @keyframes bannerTransform {
   0% { transform: translate(-50%, 40vh) scale(1.1); opacity: 0; }
   100% { transform: translateX(-50%) scale(1); opacity: 1; }
