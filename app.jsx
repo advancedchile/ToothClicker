@@ -357,6 +357,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [tabsMenuOpen, setTabsMenuOpen] = useState(false);
   const [tabViewOpen, setTabViewOpen] = useState(false);
   const [musicDuration, setMusicDuration] = useState(0);
+  const [showSeasonBanner, setShowSeasonBanner] = useState(true);
   const sessionStartMinutes = useRef(null);
 
   const handlePlayModeChange = (m) => {
@@ -2158,9 +2159,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
   return (
     <>
-      {activeSeasonConfig && seasonTimeLeft !== null && (
-        <div style={{ background: 'var(--primary-i100)', color: '#fff', textAlign: 'center', padding: '8px', fontWeight: 'bold', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', position: 'relative', zIndex: 10000 }}>
-          {lang === 'es' ? 'La temporada' : 'Season'} "{activeSeasonConfig.name}" {lang === 'es' ? 'termina en' : 'ends in'}: {formatSeasonTime(seasonTimeLeft)}
+      {activeSeasonConfig && seasonTimeLeft !== null && showSeasonBanner && (
+        <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', background: 'var(--primary-i100)', color: '#fff', textAlign: 'center', padding: '8px 40px 8px 20px', borderRadius: '20px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', zIndex: 100000, display: 'flex', alignItems: 'center', fontSize: 14 }}>
+          <div>{lang === 'es' ? 'La temporada' : 'Season'} "{activeSeasonConfig.name}" {lang === 'es' ? 'termina en' : 'ends in'}: {formatSeasonTime(seasonTimeLeft)}</div>
+          <button onClick={() => setShowSeasonBanner(false)} style={{ position: 'absolute', right: 8, background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'} onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}>
+            <i className="fa-solid fa-xmark"></i>
+          </button>
         </div>
       )}
       {isMobile ? renderMobileView() : (
