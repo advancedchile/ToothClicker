@@ -2856,8 +2856,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             setIsMusicPlaying(false);
             e.target.currentTime = 0;
           } else if (isShuffle) {
-            let nextIdx = Math.floor(Math.random() * tracks.length);
-            const nextTrack = tracks[nextIdx];
+            const unlockedTracks = tracks.filter(t => (state.level >= (t.reqLevel || 0)) && ((state.prestigeCount || 0) >= (t.reqPrestige || 0)));
+            if (unlockedTracks.length === 0) return;
+            const nextTrack = unlockedTracks[Math.floor(Math.random() * unlockedTracks.length)];
             setCurrentTrack(nextTrack);
             if (audioRef.current) {
               audioRef.current.src = getAbsoluteSrc(nextTrack.src);
@@ -2869,8 +2870,10 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             e.target.currentTime = 0;
             e.target.play().catch(err => { console.error('Loop play blocked:', err); setIsMusicPlaying(false); });
           } else {
-            const idx = tracks.findIndex(t => t.id === currentTrack.id);
-            const nextTrack = tracks[(idx + 1) % tracks.length];
+            const unlockedTracks = tracks.filter(t => (state.level >= (t.reqLevel || 0)) && ((state.prestigeCount || 0) >= (t.reqPrestige || 0)));
+            if (unlockedTracks.length === 0) return;
+            const idx = unlockedTracks.findIndex(t => t.id === currentTrack?.id);
+            const nextTrack = unlockedTracks[((idx !== -1 ? idx : 0) + 1) % unlockedTracks.length];
             setCurrentTrack(nextTrack);
             if (audioRef.current) {
               audioRef.current.src = getAbsoluteSrc(nextTrack.src);
