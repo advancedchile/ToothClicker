@@ -232,12 +232,12 @@ window.AdminAchievements = function({ lang, isTemplate, setToast }) {
     const newItems = [...items];
     if (editingIndex === 'new') {
       newItems.push(newItem);
+      setEditingIndex(newItems.length - 1);
     } else {
       newItems[editingIndex] = newItem;
     }
     
     saveToGlobal(newItems);
-    setEditingIndex(null);
   };
 
 
