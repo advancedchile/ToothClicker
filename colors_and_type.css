@@ -843,3 +843,18 @@ input[type="color"]::-moz-color-swatch {
 .admin-list-row.editing {
   background: var(--primary-i005) !important;
 }
+
+@keyframes rainbow-border-anim {
+  0% { border-color: #ff0000; box-shadow: 0 0 15px #ff0000; }
+  17% { border-color: #ff7f00; box-shadow: 0 0 15px #ff7f00; }
+  33% { border-color: #ffff00; box-shadow: 0 0 15px #ffff00; }
+  50% { border-color: #00ff00; box-shadow: 0 0 15px #00ff00; }
+  67% { border-color: #0000ff; box-shadow: 0 0 15px #0000ff; }
+  84% { border-color: #4b0082; box-shadow: 0 0 15px #4b0082; }
+  100% { border-color: #ff0000; box-shadow: 0 0 15px #ff0000; }
+}
+
+@keyframes toastOut {
+  0% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(20px); opacity: 0; }
+}

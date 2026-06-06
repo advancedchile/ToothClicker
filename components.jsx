@@ -1025,7 +1025,7 @@ function AchievementCard({ ach, unlocked, lang, onHover, onLeave }) {
 function Toast({ toast, lang }) {
   if (!toast) return null;
   const t = window.STRINGS[lang];
-  const isAch = !!toast.cat;
+  const isAch = !!toast.cat || toast.reqType !== undefined || toast.rewardPercent !== undefined;
   const isUpgrade = !!toast.id && toast.id.startsWith('buy_up_');
   const isSpecial = !!toast.id && (toast.id.startsWith('__') || toast.id.startsWith('bonus_') || toast.id.startsWith('eff_'));
   const isFeedback = toast.id === 'feedback_success';
@@ -1037,7 +1037,7 @@ function Toast({ toast, lang }) {
 
   if (isAch) {
     icon = icon || (window.achIcon ? `fa-solid ${window.achIcon(toast)}` : "fa-solid fa-trophy");
-    title = title || t.toast_achieved;
+    title = title || (lang === 'es' ? '¡NUEVO LOGRO OBTENIDO!' : 'NEW ACHIEVEMENT UNLOCKED!');
     accent = accent || "var(--warning-i100)";
     accentText = accentText || "var(--warning-i070)";
   } else if (isUpgrade) {
@@ -1062,8 +1062,12 @@ function Toast({ toast, lang }) {
     accentText = accentText || "var(--primary-i070)";
   }
 
+  const animationStyle = isAch ? 'toastIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275), toastOut 300ms ease 3.2s forwards' : 'toastIn 250ms ease, toastOut 250ms ease 3.2s forwards';
+  const borderStyle = isAch ? '2px solid transparent' : 'none';
+  const customAnimation = isAch ? 'rainbow-border-anim 2s linear infinite, toastIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275), toastOut 300ms ease 3.2s forwards' : animationStyle;
+
   return (
-    <div className="game-toast-container" style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'var(--complementary-i080)', color: '#fff', padding: 'var(--spacing-3) var(--spacing-4)', borderRadius: 'var(--radius-m)', boxShadow: 'var(--elevation-20)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', zIndex: 1000, animation: 'toastIn 250ms ease', maxWidth: 420 }}>
+    <div className="game-toast-container" style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'var(--complementary-i080)', color: '#fff', padding: 'var(--spacing-3) var(--spacing-4)', borderRadius: 'var(--radius-m)', boxShadow: isAch ? 'none' : 'var(--elevation-20)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', zIndex: 1000, animation: customAnimation, maxWidth: 420, border: borderStyle }}>
       <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-s)', background: (toast.iconUrl || toast.img) ? 'transparent' : accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0, overflow: 'hidden' }}>
         {(toast.iconUrl || toast.img) ? (
           <img src={toast.iconUrl || toast.img} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -1072,7 +1076,7 @@ function Toast({ toast, lang }) {
         )}
       </div>
       <div>
-        <div className="t-mini-caps" style={{ color: accentText }}>{title}</div>
+        <div className="t-mini-caps" style={{ color: isAch ? '#fff' : accentText, fontWeight: isAch ? 800 : 600, fontSize: isAch ? 13 : undefined, textShadow: isAch ? '0 0 8px rgba(255,215,0,0.8), 0 0 15px rgba(255,140,0,0.6)' : 'none', letterSpacing: isAch ? '1px' : undefined }}>{title}</div>
         <div className="t-heading-xs" style={{ color: '#fff' }}>{toast[lang] || toast.es}</div>
         {toast.desc_es && (
           <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>
