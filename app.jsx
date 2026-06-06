@@ -3113,10 +3113,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 opacity: opacity,
                 pointerEvents: 'auto',
                 cursor: 'pointer',
-                width: 'max-content'
+                width: 'max-content',
+                animation: 'toastStackIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)'
               }}
             >
-              <window.Toast toast={t} lang={lang} styleOverride={{ position: 'relative', bottom: 'auto', left: 'auto', transform: 'none' }} onClose={() => setAchievementToasts(prev => prev.filter(x => x.uniqueId !== t.uniqueId))} />
+              <window.Toast toast={t} lang={lang} styleOverride={{ position: 'relative', bottom: 'auto', left: 'auto', transform: 'none', animation: 'rainbow-border-anim 2s linear infinite' }} onClose={() => setAchievementToasts(prev => prev.filter(x => x.uniqueId !== t.uniqueId))} />
             </div>
           )
         })}
