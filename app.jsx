@@ -333,6 +333,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [activeBonusEffects, setActiveBonusEffects] = useState([]);
   const activeEffectsRef = useRef([]);
   const spawnedBonusesRef = useRef([]);
+  const bonusTimerRef = useRef(null);
 
   // Music Player State
   const audioRef = useRef(null);
@@ -1079,46 +1080,50 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     });
   }, []);
 
-  // Dynamic Random Bonuses Spawner
+  // Dynamic Random Bonuses Spawner (Global Scheduler)
   useEffect(() => {
     const list = window.GAME_CONTENT?.randomBonuses || [];
     if (list.length === 0) return;
-    
-    const timers = [];
-    list.forEach(bonus => {
-      const scheduleNext = () => {
-        const minMs = (bonus.intervalMin || 5) * 60000;
-        const maxMs = (bonus.intervalMax || 10) * 60000;
-        const delay = minMs + Math.random() * (maxMs - minMs);
+
+    if (spawnedBonuses.length === 0 && activeBonusEffects.length === 0) {
+      if (bonusTimerRef.current) return;
+
+      const bonus = list[Math.floor(Math.random() * list.length)];
+      const minMs = (bonus.intervalMin || 5) * 60000;
+      const maxMs = (bonus.intervalMax || 10) * 60000;
+      const delay = minMs + Math.random() * (maxMs - minMs);
+
+      bonusTimerRef.current = setTimeout(() => {
+        bonusTimerRef.current = null;
+        const now = Date.now();
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const x = 80 + Math.random() * (w - 160);
+        const y = 120 + Math.random() * (h - 240);
+        const id = Math.random().toString(36).substring(2, 9);
         
-        const tid = setTimeout(() => {
-          const now = Date.now();
-          // Block if there's already a bonus on screen or an active effect
-          if (spawnedBonusesRef.current.length > 0) { scheduleNext(); return; }
-          if (activeEffectsRef.current.some(e => e.until > now)) { scheduleNext(); return; }
-          
-          const w = window.innerWidth;
-          const h = window.innerHeight;
-          const x = 80 + Math.random() * (w - 160);
-          const y = 120 + Math.random() * (h - 240);
-          const id = Math.random().toString(36).substring(2, 9);
-          
-          const newSpawn = { ...bonus, x, y, id, spawnedAt: now };
-          setSpawnedBonuses([newSpawn]);
-          
-          // Remove after 7s
-          setTimeout(() => {
-            setSpawnedBonuses(curr => curr.filter(b => b.id !== id));
-            scheduleNext();
-          }, 7000);
-        }, delay);
-        timers.push(tid);
-      };
-      scheduleNext();
-    });
-    
-    return () => timers.forEach(t => clearTimeout(t));
-  }, []);
+        const newSpawn = { ...bonus, x, y, id, spawnedAt: now };
+        setSpawnedBonuses([newSpawn]);
+        
+        // Remove after 7s if not clicked
+        setTimeout(() => {
+          setSpawnedBonuses(curr => {
+            const stillThere = curr.some(b => b.id === id);
+            if (stillThere) {
+               return curr.filter(b => b.id !== id);
+            }
+            return curr;
+          });
+        }, 7000);
+      }, delay);
+    } else {
+      // If there's an active bonus or spawn, cancel any pending spawn timers
+      if (bonusTimerRef.current) {
+         clearTimeout(bonusTimerRef.current);
+         bonusTimerRef.current = null;
+      }
+    }
+  }, [spawnedBonuses, activeBonusEffects]);
 
   useEffect(() => { activeEffectsRef.current = activeBonusEffects; }, [activeBonusEffects]);
   useEffect(() => { spawnedBonusesRef.current = spawnedBonuses; }, [spawnedBonuses]);
@@ -3339,7 +3344,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         </div>
       }
 
-      {newMusicUnlock && (
+      {newMusicUnlock && !showLevelUpModal && (
         <div onClick={() => setNewMusicUnlock(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, animation: 'fadeIn 200ms ease' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-2)', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, width: 340, maxWidth: '90%', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', border: '1px solid var(--border-subtle)', animation: 'scaleUp 300ms cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--primary-i010)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-i100)', fontSize: 32, marginBottom: 8 }}>
