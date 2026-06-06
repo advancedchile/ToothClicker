@@ -53,8 +53,15 @@ window.AdminEditorSidebar = function({ children, onClose, title }) {
       >
         <div style={{ width: 4, height: 40, background: 'var(--border)', borderRadius: 2 }} />
       </div>
-      <div style={{ flex: 1, padding: 20, minWidth: 0 }}>
+      <div className="admin-sidebar-content" style={{ flex: 1, padding: 20, minWidth: 0, maxHeight: `calc(100vh - ${stickyTop + 24}px)`, overflowY: 'auto' }}>
         <style>{`
+          .admin-sidebar-content::-webkit-scrollbar {
+            display: none;
+          }
+          .admin-sidebar-content {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
           .admin-sidebar-close {
             background: transparent;
             border: 1px solid transparent;
