@@ -2949,8 +2949,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             }
           }}
           onPlayRandom={() => {
-            if (tracks.length === 0) return;
-            const random = tracks[Math.floor(Math.random() * tracks.length)];
+            const unlockedTracks = tracks.filter(t => (state.level >= (t.reqLevel || 0)) && ((state.prestigeCount || 0) >= (t.reqPrestige || 0)));
+            if (unlockedTracks.length === 0) return;
+            const random = unlockedTracks[Math.floor(Math.random() * unlockedTracks.length)];
             setCurrentTrack(random);
             setIsMusicPlaying(true);
             if (audioRef.current) {
