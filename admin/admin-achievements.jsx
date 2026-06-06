@@ -11,6 +11,7 @@ window.AdminAchievements = function({ lang, isTemplate, setToast }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [editLang, setEditLang] = useState('es');
+  const [saveStatus, setSaveStatus] = useState(false);
   const generators = window.GAME_CONTENT.generators || [];
   
   const reqTypes = [
@@ -230,14 +231,18 @@ window.AdminAchievements = function({ lang, isTemplate, setToast }) {
     };
 
     const newItems = [...items];
+    let newEditingIndex = editingIndex;
     if (editingIndex === 'new') {
       newItems.push(newItem);
-      setEditingIndex(newItems.length - 1);
+      newEditingIndex = newItems.length - 1;
+      setEditingIndex(newEditingIndex);
     } else {
       newItems[editingIndex] = newItem;
     }
     
     saveToGlobal(newItems);
+    setSaveStatus(true);
+    setTimeout(() => setSaveStatus(false), 2000);
   };
 
 
@@ -310,9 +315,9 @@ window.AdminAchievements = function({ lang, isTemplate, setToast }) {
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="app-btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={(e) => { e.stopPropagation(); handleEdit(i); }}>Editar</button>
-                  <button className="app-btn" style={{ padding: '6px 10px', fontSize: 12, color: 'var(--warning-i100)' }} onClick={(e) => { e.stopPropagation(); handleDelete(i); }}>
+                <div className="row-actions" style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn-edit-text" onClick={(e) => { e.stopPropagation(); handleEdit(i); }}>Editar</button>
+                  <button className="btn-delete-icon" onClick={(e) => { e.stopPropagation(); handleDelete(i); }}>
                     <i className="fa-solid fa-trash"></i>
                   </button>
                 </div>
@@ -389,8 +394,8 @@ window.AdminAchievements = function({ lang, isTemplate, setToast }) {
               <window.AdminNumberInput className="app-input" value={formData.rewardPercent} onChange={e => setFormData({...formData, rewardPercent: e.target.value})} style={{ width: '100%' }} />
             </div>
 
-            <button className="app-btn" onClick={handleSaveForm} style={{ width: '100%', background: 'var(--primary-i100)', color: '#fff', marginTop: 8 }}>
-              Guardar
+            <button className="app-btn" onClick={handleSaveForm} style={{ width: '100%', background: saveStatus ? 'var(--positive-i100)' : 'var(--primary-i100)', color: '#fff', marginTop: 8, transition: 'background 0.2s' }}>
+              {saveStatus ? <><i className="fa-solid fa-check"></i> ¡Guardado!</> : 'Guardar'}
             </button>
           </div>
         </window.AdminEditorSidebar>

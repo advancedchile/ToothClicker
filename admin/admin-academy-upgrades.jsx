@@ -390,9 +390,9 @@ window.AdminAcademyUpgrades = function({ lang, isTemplate, setToast }) {
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="app-btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => handleEdit(i)}>Editar</button>
-                <button className="app-btn" style={{ padding: '6px 10px', fontSize: 12, color: 'var(--warning-i100)' }} onClick={() => handleDelete(i)}>
+              <div className="row-actions" style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-edit-text" onClick={() => handleEdit(i)}>Editar</button>
+                <button className="btn-delete-icon" onClick={() => handleDelete(i)}>
                   <i className="fa-solid fa-trash"></i>
                 </button>
               </div>

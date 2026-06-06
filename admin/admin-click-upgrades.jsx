@@ -8,6 +8,7 @@ window.AdminClickUpgrades = function({ lang, setToast }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [editLang, setEditLang] = useState('es');
+  const [saveStatus, setSaveStatus] = useState(false);
   
   const [formData, setFormData] = useState({
     id: '',
@@ -125,14 +126,18 @@ window.AdminClickUpgrades = function({ lang, setToast }) {
     };
 
     const newItems = [...items];
+    let newEditingIndex = editingIndex;
     if (editingIndex === 'new') {
       newItems.push(newItem);
+      newEditingIndex = newItems.length - 1;
+      setEditingIndex(newEditingIndex);
     } else {
       newItems[editingIndex] = newItem;
     }
     
     saveToGlobal(newItems);
-    setEditingIndex(null);
+    setSaveStatus(true);
+    setTimeout(() => setSaveStatus(false), 2000);
   };
 
   return (
@@ -199,9 +204,9 @@ window.AdminClickUpgrades = function({ lang, setToast }) {
                   <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Costo: {window.formatNum(item.cost)} | Prod. x click: +{window.formatNum(item.value || item.multiplier || 0)}</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="app-btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={(e) => { e.stopPropagation(); handleEdit(i); }}>Editar</button>
-                <button className="app-btn" style={{ padding: '6px 10px', fontSize: 12, color: 'var(--warning-i100)' }} onClick={(e) => { e.stopPropagation(); handleDelete(i); }}>
+              <div className="row-actions" style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-edit-text" onClick={(e) => { e.stopPropagation(); handleEdit(i); }}>Editar</button>
+                <button className="btn-delete-icon" onClick={(e) => { e.stopPropagation(); handleDelete(i); }}>
                   <i className="fa-solid fa-trash"></i>
                 </button>
               </div>
@@ -253,8 +258,8 @@ window.AdminClickUpgrades = function({ lang, setToast }) {
               <window.AdminNumberInput step="1" className="app-input" value={formData.multiplier} onChange={e => setFormData({...formData, multiplier: e.target.value})} style={{ width: '100%' }} />
             </div>
 
-            <button className="app-btn" onClick={handleSaveForm} style={{ width: '100%', background: 'var(--primary-i100)', color: '#fff', marginTop: 8 }}>
-              Guardar
+            <button className="app-btn" onClick={handleSaveForm} style={{ width: '100%', background: saveStatus ? 'var(--positive-i100)' : 'var(--primary-i100)', color: '#fff', marginTop: 8, transition: 'background 0.2s' }}>
+              {saveStatus ? <><i className="fa-solid fa-check"></i> ¡Guardado!</> : 'Guardar'}
             </button>
           </div>
         </window.AdminEditorSidebar>

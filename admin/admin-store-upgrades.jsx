@@ -286,9 +286,9 @@ window.AdminStoreUpgrades = function({ lang, setToast }) {
                   <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Gen: {getGenName(item.generatorId || item.targetId)} | Costo: {window.formatNum(item.cost)} | Mult: x{item.multiplier || 2} | Req: {window.formatNum(item.milestone || item.requirement || 0)}</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="app-btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={(e) => { e.stopPropagation(); handleEdit(i); }}>Editar</button>
-                <button className="app-btn" style={{ padding: '6px 10px', fontSize: 12, color: 'var(--warning-i100)' }} onClick={(e) => { e.stopPropagation(); handleDelete(i); }}>
+              <div className="row-actions" style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-edit-text" onClick={(e) => { e.stopPropagation(); handleEdit(i); }}>Editar</button>
+                <button className="btn-delete-icon" onClick={(e) => { e.stopPropagation(); handleDelete(i); }}>
                   <i className="fa-solid fa-trash"></i>
                 </button>
               </div>
