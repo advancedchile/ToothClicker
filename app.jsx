@@ -2159,8 +2159,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
   return (
     <>
-      {activeSeasonConfig && seasonTimeLeft !== null && showSeasonBanner && !initialLoading && (
-        <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', background: 'var(--primary-i100)', color: '#fff', textAlign: 'center', padding: '8px 40px 8px 20px', borderRadius: '20px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', zIndex: 100000, display: 'flex', alignItems: 'center', fontSize: 14 }}>
+      {activeSeasonConfig && seasonTimeLeft !== null && showSeasonBanner && !initialLoading && !isSeasonModalOpen && (
+        <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', background: 'var(--primary-i100)', color: '#fff', textAlign: 'center', padding: '8px 40px 8px 20px', borderRadius: '20px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', zIndex: 100000, display: 'flex', alignItems: 'center', fontSize: 14, animation: 'bannerTransform 600ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
           <div>{lang === 'es' ? 'La temporada' : 'Season'} "{activeSeasonConfig.name}" {lang === 'es' ? 'termina en' : 'ends in'}: {formatSeasonTime(seasonTimeLeft)}</div>
           <button onClick={() => setShowSeasonBanner(false)} style={{ position: 'absolute', right: 8, background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: '50%', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'} onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}>
             <i className="fa-solid fa-xmark"></i>
