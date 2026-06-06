@@ -87,7 +87,7 @@ function MusicPlayerModal({
   const hasPlayableTracks = React.useMemo(() => {
     if (!tracks || tracks.length === 0) return false;
     if (!state) return true;
-    return tracks.some(t => (state.level >= (t.reqLevel || 0)) && (state.prestigeCount >= (t.reqPrestige || 0)));
+    return tracks.some(t => (state.level >= (t.reqLevel || 0)) && ((state.prestigeCount || 0) >= (t.reqPrestige || 0)));
   }, [tracks, state]);
 
   React.useEffect(() => {
@@ -189,7 +189,7 @@ function MusicPlayerModal({
           </div>
         ) : (
           tracks.map(t => {
-            const isUnlocked = !state ? true : (state.level >= (t.reqLevel || 0)) && (state.prestigeCount >= (t.reqPrestige || 0));
+            const isUnlocked = !state ? true : (state.level >= (t.reqLevel || 0)) && ((state.prestigeCount || 0) >= (t.reqPrestige || 0));
             const isCurrent = currentTrack?.id === t.id;
             const isPlayingThis = isCurrent && isPlaying;
             const progress = isCurrent ? (currentTime / (duration || 1)) : 0;
