@@ -341,7 +341,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [currentTrack, setCurrentTrack] = useState(() => {
     const id = saved?.musicSettings?.currentTrackId;
     const found = MUSIC_TRACKS.find(t => t.id === id);
-    return found || MUSIC_TRACKS[Math.floor(Math.random() * MUSIC_TRACKS.length)];
+    const lvl = saved?.state?.level || 0;
+    const pstg = saved?.state?.prestigeCount || 0;
+    if (found && lvl >= (found.reqLevel || 0) && pstg >= (found.reqPrestige || 0)) return found;
+    const unlocked = MUSIC_TRACKS.filter(t => lvl >= (t.reqLevel || 0) && pstg >= (t.reqPrestige || 0));
+    const playable = unlocked.length > 0 ? unlocked : MUSIC_TRACKS;
+    return playable[Math.floor(Math.random() * playable.length)];
   });
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [musicVolume, setMusicVolume] = useState(() => saved?.musicSettings?.volume ?? 0.4);
@@ -407,11 +412,18 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     // If current track is not in the list, set it to the saved one or random
     setCurrentTrack(curr => {
       if (templateMusic.length === 0) return null;
-      if (!curr || !templateMusic.find(t => t.id === curr.id)) {
-        const savedId = saved?.musicSettings?.currentTrackId;
-        return templateMusic.find(t => t.id === savedId) || templateMusic[Math.floor(Math.random() * templateMusic.length)];
-      }
-      return curr;
+      const isCurrValid = curr && templateMusic.find(t => t.id === curr.id);
+      const isCurrUnlocked = isCurrValid && (state.level >= (curr.reqLevel || 0)) && ((state.prestigeCount || 0) >= (curr.reqPrestige || 0));
+      
+      if (isCurrUnlocked) return curr;
+      
+      const savedId = saved?.musicSettings?.currentTrackId;
+      const savedTrack = templateMusic.find(t => t.id === savedId);
+      if (savedTrack && (state.level >= (savedTrack.reqLevel || 0)) && ((state.prestigeCount || 0) >= (savedTrack.reqPrestige || 0))) return savedTrack;
+
+      const unlocked = templateMusic.filter(t => (state.level >= (t.reqLevel || 0)) && ((state.prestigeCount || 0) >= (t.reqPrestige || 0)));
+      const playable = unlocked.length > 0 ? unlocked : templateMusic;
+      return playable[Math.floor(Math.random() * playable.length)];
     });
   }, []);
 
