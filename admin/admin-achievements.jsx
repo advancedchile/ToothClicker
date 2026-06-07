@@ -120,7 +120,11 @@ window.AdminAchievements = function({ lang, isTemplate, setToast }) {
       reqType: item.reqType || 'total_teeth',
       reqValue: item.reqValue || 100,
       reqTargetId: item.reqTargetId || '',
-      rewardPercent: item.rewardPercent !== undefined ? item.rewardPercent : 1
+      rewardPercent: item.rewardPercent !== undefined ? item.rewardPercent : 1,
+      borderColor: item.borderColor || '#ffffff',
+      borderThickness: item.borderThickness || 2,
+      borderStyle: item.borderStyle || 'solid',
+      borderEffect: item.borderEffect || 'none'
     });
   };
 
@@ -137,7 +141,11 @@ window.AdminAchievements = function({ lang, isTemplate, setToast }) {
       reqType: 'level',
       reqValue: 1,
       reqTargetId: generators[0]?.id || '',
-      rewardPercent: 1
+      rewardPercent: 1,
+      borderColor: '#ffffff',
+      borderThickness: 2,
+      borderStyle: 'solid',
+      borderEffect: 'none'
     });
   };
 
@@ -227,7 +235,11 @@ window.AdminAchievements = function({ lang, isTemplate, setToast }) {
       reqType: formData.reqType,
       reqValue: Number(formData.reqValue),
       reqTargetId: formData.reqType === 'specific_generator_count' ? formData.reqTargetId : undefined,
-      rewardPercent: Number(formData.rewardPercent)
+      rewardPercent: Number(formData.rewardPercent),
+      borderColor: formData.borderColor,
+      borderThickness: Number(formData.borderThickness),
+      borderStyle: formData.borderStyle,
+      borderEffect: formData.borderEffect
     };
 
     const newItems = [...items];
@@ -392,6 +404,53 @@ window.AdminAchievements = function({ lang, isTemplate, setToast }) {
             <div>
               <label style={{ fontSize: 12, fontWeight: 'bold', color: 'var(--fg-3)' }}>Beneficio (Prod. global %)</label>
               <window.AdminNumberInput className="app-input" value={formData.rewardPercent} onChange={e => setFormData({...formData, rewardPercent: e.target.value})} style={{ width: '100%' }} />
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 'bold', color: 'var(--fg-3)', marginBottom: 8, display: 'block' }}>Estilo de Borde de Notificación</label>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--fg-3)' }}>Color</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input type="color" value={formData.borderColor} onChange={e => setFormData({...formData, borderColor: e.target.value})} style={{ width: 36, height: 36, padding: 0, border: 'none', borderRadius: 4, cursor: 'pointer' }} />
+                    <input type="text" className="app-input" value={formData.borderColor} onChange={e => setFormData({...formData, borderColor: e.target.value})} style={{ flex: 1 }} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--fg-3)' }}>Grosor (px)</label>
+                  <window.AdminNumberInput className="app-input" value={formData.borderThickness} onChange={e => setFormData({...formData, borderThickness: e.target.value})} style={{ width: '100%' }} />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--fg-3)' }}>Estilo</label>
+                  <window.Dropdown 
+                    value={formData.borderStyle} 
+                    onChange={val => setFormData({...formData, borderStyle: val})} 
+                    options={[
+                      { value: 'solid', label: 'Normal (Solid)' },
+                      { value: 'dotted', label: 'Punteado (Dotted)' },
+                      { value: 'dashed', label: 'Segmentado (Dashed)' },
+                      { value: 'double', label: 'Doble (Double)' },
+                      { value: 'ridge', label: 'Triple/Relieve (Ridge)' }
+                    ]}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--fg-3)' }}>Efecto Especial</label>
+                  <window.Dropdown 
+                    value={formData.borderEffect} 
+                    onChange={val => setFormData({...formData, borderEffect: val})} 
+                    options={[
+                      { value: 'none', label: 'Ninguno' },
+                      { value: 'rainbow', label: 'Rainbow' },
+                      { value: 'pulse', label: 'Pulse' }
+                    ]}
+                  />
+                </div>
+              </div>
             </div>
 
             <button className="app-btn" onClick={handleSaveForm} style={{ width: '100%', background: saveStatus ? 'var(--positive-i100)' : 'var(--primary-i100)', color: '#fff', marginTop: 8, transition: 'background 0.2s' }}>

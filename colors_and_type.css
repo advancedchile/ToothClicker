@@ -879,3 +879,9 @@ input[type="color"]::-moz-color-swatch {
   0% { transform: translate(-50%, 40vh) scale(1.1); opacity: 0; }
   100% { transform: translateX(-50%) scale(1); opacity: 1; }
 }
+
+@keyframes pulse-border-anim {
+  0% { box-shadow: 0 0 5px rgba(255,255,255,0.2); border-color: inherit; }
+  50% { box-shadow: 0 0 25px rgba(255,255,255,0.8), inset 0 0 15px rgba(255,255,255,0.5); border-color: #fff; }
+  100% { box-shadow: 0 0 5px rgba(255,255,255,0.2); border-color: inherit; }
+}

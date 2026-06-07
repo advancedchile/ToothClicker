@@ -1063,8 +1063,24 @@ function Toast({ toast, lang, styleOverride, onClose }) {
   }
 
   const animationStyle = isAch ? 'toastIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'toastIn 250ms ease, toastOut 250ms ease 3.2s forwards';
-  const borderStyle = isAch ? '2px solid transparent' : 'none';
-  const customAnimation = isAch ? 'rainbow-border-anim 2s linear infinite, toastIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' : animationStyle;
+  
+  let borderStyle = isAch ? '2px solid transparent' : 'none';
+  let customAnimation = isAch ? 'rainbow-border-anim 2s linear infinite, toastIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)' : animationStyle;
+
+  if (isAch) {
+    const thickness = toast.borderThickness !== undefined ? toast.borderThickness : 2;
+    const style = toast.borderStyle || 'solid';
+    const color = toast.borderColor || 'transparent';
+    const effect = toast.borderEffect || (toast.id ? 'rainbow' : 'none');
+
+    borderStyle = `${thickness}px ${style} ${color}`;
+    
+    let effectAnim = '';
+    if (effect === 'rainbow') effectAnim = 'rainbow-border-anim 2s linear infinite, ';
+    else if (effect === 'pulse') effectAnim = 'pulse-border-anim 1.5s ease-in-out infinite, ';
+    
+    customAnimation = `${effectAnim}toastIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)`;
+  }
 
   const containerStyle = {
     position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',

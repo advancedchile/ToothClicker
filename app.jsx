@@ -3088,40 +3088,43 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           const translateY = reverseIdx * -16;
           const scale = 1 - (reverseIdx * 0.05);
           const opacity = Math.max(0.25, 1 - (reverseIdx * 0.25));
-          return (
-            <div 
-              key={t.uniqueId} 
-              className="stacked-toast"
-              onClick={(e) => {
-                e.stopPropagation();
-                setAchievementToasts(prev => {
-                  const next = [...prev];
-                  const activeIdx = next.findIndex(x => x.uniqueId === t.uniqueId);
-                  if (activeIdx > -1) {
-                    const [active] = next.splice(activeIdx, 1);
-                    next.push(active);
-                  }
-                  return next;
-                });
-              }}
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: '50%',
-                '--base-ty': `${translateY}px`,
-                '--base-scale': scale,
-                '--base-op': opacity,
-                zIndex: 1000 - reverseIdx,
-                pointerEvents: 'auto',
-                cursor: 'pointer',
-                width: 'max-content',
-                animation: 'toastStackIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-              }}
-            >
-              <window.Toast toast={t} lang={lang} styleOverride={{ position: 'relative', bottom: 'auto', left: 'auto', transform: 'none', animation: 'rainbow-border-anim 2s linear infinite' }} onClose={() => setAchievementToasts(prev => prev.filter(x => x.uniqueId !== t.uniqueId))} />
-            </div>
-          )
-        })}
+              const effect = t.borderEffect || (t.id ? 'rainbow' : 'none');
+              const effectAnim = effect === 'rainbow' ? 'rainbow-border-anim 2s linear infinite' : effect === 'pulse' ? 'pulse-border-anim 1.5s ease-in-out infinite' : 'none';
+              
+              return (
+                <div 
+                  key={t.uniqueId} 
+                  className="stacked-toast"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAchievementToasts(prev => {
+                      const next = [...prev];
+                      const activeIdx = next.findIndex(x => x.uniqueId === t.uniqueId);
+                      if (activeIdx > -1) {
+                        const [active] = next.splice(activeIdx, 1);
+                        next.push(active);
+                      }
+                      return next;
+                    });
+                  }}
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: '50%',
+                    '--base-ty': `${translateY}px`,
+                    '--base-scale': scale,
+                    '--base-op': opacity,
+                    zIndex: 1000 - reverseIdx,
+                    pointerEvents: 'auto',
+                    cursor: 'pointer',
+                    width: 'max-content',
+                    animation: 'toastStackIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                  }}
+                >
+                  <window.Toast toast={t} lang={lang} styleOverride={{ position: 'relative', bottom: 'auto', left: 'auto', transform: 'none', animation: effectAnim }} onClose={() => setAchievementToasts(prev => prev.filter(x => x.uniqueId !== t.uniqueId))} />
+                </div>
+              );
+            })}
       </div>
 
       {showWelcomeBack && offlineInfo &&
