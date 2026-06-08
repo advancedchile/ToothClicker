@@ -746,7 +746,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
   const [challengeAnswer, setChallengeAnswer] = useStateG('');
   
   const [googleSession, setGoogleSession] = useStateG(false);
-  
+  const [showManualRegister, setShowManualRegister] = useStateG(false);  
   useEffectG(() => {
     if (window.cloudFetchPlayerByAuth) {
       window.cloudFetchPlayerByAuth().then(res => {
@@ -882,8 +882,52 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
 
         <img src={window.GAME_CONTENT?.terminology?.images?.logoVertical || "uploads/logo-vertical.png"} alt="ToothClicker" style={{ width: 220, objectFit: 'contain', marginBottom: 24, filter: 'drop-shadow(0 8px 24px rgba(80,140,220,0.22))', animation: 'pulse 1.5s infinite ease-in-out' }} />
 
-        {/* Registration/Login — only if this device hasn't registered yet */}
-        {!deviceUser && (
+        {/* Initial login buttons */}
+        {!deviceUser && !googleSession && !showManualRegister && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+            <button
+              type="button"
+              onClick={async () => {
+                 setLoading(true);
+                 await window.cloudLoginWithGoogle();
+              }}
+              className="app-btn"
+              style={{
+                all: 'unset', boxSizing: 'border-box',
+                width: '100%', padding: '12px', borderRadius: 999,
+                background: '#fff', color: '#444', fontSize: 15, fontWeight: 600,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                cursor: 'pointer', transition: 'all 0.2s',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                border: '1px solid #ddd',
+                fontFamily: 'var(--font-sans)'
+              }}
+            >
+              <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="G" style={{ width: 20, height: 20 }} />
+              {lang === 'es' ? 'Continuar con Google' : 'Continue with Google'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowManualRegister(true)}
+              className="app-btn"
+              style={{
+                all: 'unset', boxSizing: 'border-box',
+                width: '100%', padding: '12px', borderRadius: 999,
+                background: '#1a8fff', color: '#fff', fontSize: 15, fontWeight: 600,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                cursor: 'pointer', transition: 'all 0.2s',
+                boxShadow: '0 2px 8px rgba(26,143,255,0.2)',
+                fontFamily: 'var(--font-sans)'
+              }}
+            >
+              <i className="fa-solid fa-user-pen"></i>
+              {lang === 'es' ? 'Continuar registro manual' : 'Continue manual registration'}
+            </button>
+          </div>
+        )}
+
+        {/* Registration/Login Form — only if this device hasn't registered yet AND they chose a method */}
+        {!deviceUser && (showManualRegister || googleSession) && (
           <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             {/* Honeypot field (hidden offscreen) */}
             <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', opacity: 0, width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
@@ -916,28 +960,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
               />
             </div>
 
-            {!googleSession && !deviceUser && (
-              <button
-                type="button"
-                onClick={async () => {
-                   setLoading(true);
-                   await window.cloudLoginWithGoogle();
-                }}
-                className="app-btn"
-                style={{
-                  all: 'unset', boxSizing: 'border-box',
-                  width: '100%', padding: '10px 12px', borderRadius: 999,
-                  background: '#fff', color: '#444', fontSize: 14, fontWeight: 600,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  cursor: 'pointer', transition: 'all 0.2s',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                  border: '1px solid #ddd'
-                }}
-              >
-                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="G" style={{ width: 18, height: 18 }} />
-                {lang === 'es' ? 'Continuar con Google' : 'Continue with Google'}
-              </button>
-            )}
+
 
             {!googleSession && showPassword && (
               <div style={{ position: 'relative', width: '100%', animation: 'modalIn 0.3s ease' }}>
@@ -1020,6 +1043,24 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
                   {googleSession ? (lang === 'es' ? 'Finalizar Registro' : 'Finish Registration') : (cloudUser ? (lang === 'es' ? 'Continuar Partida' : 'Continue Game') : (lang === 'es' ? 'Empezar a Jugar' : 'Start Playing'))}
                 </>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowManualRegister(false);
+                if (googleSession && window._supabase) {
+                  window._supabase.auth.signOut();
+                  setGoogleSession(false);
+                }
+              }}
+              style={{
+                all: 'unset', cursor: 'pointer', color: '#1a8fff', fontSize: 13,
+                fontWeight: 600, fontFamily: 'var(--font-sans)', marginTop: 8,
+                textDecoration: 'underline'
+              }}
+            >
+              {lang === 'es' ? 'Volver atrás' : 'Go back'}
             </button>
 
             <div style={{ fontSize: 12, color: error ? '#c33' : 'rgba(80,110,150,0.7)', fontFamily: 'var(--font-sans)', textAlign: 'center' }}>

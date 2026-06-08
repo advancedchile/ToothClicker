@@ -61,11 +61,7 @@ function persistUserSave(u, s) {
   if (!u) return;
   const all = loadAllSaves();
   const oldPass = all[u] && all[u].password;
-  if (u === 'James') {
-    all[u] = s ? { ...s } : {};
-  } else {
-    all[u] = {};
-  }
+  all[u] = s ? { ...s } : {};
   if (s && s.password) all[u].password = s.password;
   else if (oldPass) all[u].password = oldPass;
   saveAllSaves(all);
