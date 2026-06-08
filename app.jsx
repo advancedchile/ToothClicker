@@ -4035,16 +4035,24 @@ function App() {
 
   const handleLogout = useCallback(async () => {
     setSessionTerminated(false);
-    setScreen('gate'); // Set screen first to unmount Game
-    setUsername(null);
-    setSessionId(null);
-    localStorage.removeItem(SESSION_ID_KEY);
-    refreshUsers();
+    
+    // Force a save before destroying the session
+    if (window.forcePushScore) {
+      try { window.forcePushScore(); } catch(e) {}
+    }
+    
     try {
       if (window._supabase) {
         await window._supabase.auth.signOut();
       }
     } catch(e) {}
+    
+    // Unmount game and clear local state only after session is fully destroyed
+    setScreen('gate');
+    setUsername(null);
+    setSessionId(null);
+    localStorage.removeItem(SESSION_ID_KEY);
+    refreshUsers();
   }, [refreshUsers]);
 
   const handleDeleteUser = useCallback(() => {
