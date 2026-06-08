@@ -3986,15 +3986,15 @@ function App() {
     if (cloudData) {
       let cloudProgress = cloudData.saveData || cloudData.save_data || cloudData; 
       
-      if (cloudData.auth_id) {
-        cloudProgress.googleLinked = true;
-      }
-      
       if (name === 'James') {
         const localData = loadUserSave(name);
         if (localData && Object.keys(localData).length > 1) {
            cloudProgress = localData;
         }
+      }
+      
+      if (cloudData.auth_id) {
+        cloudProgress.googleLinked = true;
       }
       
       setSavedState(cloudProgress);
