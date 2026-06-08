@@ -885,3 +885,13 @@ input[type="color"]::-moz-color-swatch {
   50% { box-shadow: 0 0 25px rgba(255,255,255,0.8), inset 0 0 15px rgba(255,255,255,0.5); border-color: #fff; }
   100% { box-shadow: 0 0 5px rgba(255,255,255,0.2); border-color: inherit; }
 }
+
+@keyframes led-marquee-rtl {
+  from { left: 100%; transform: translateX(0); }
+  to { left: 0; transform: translateX(-100%); }
+}
+
+@keyframes led-marquee-ltr {
+  from { left: 0; transform: translateX(-100%); }
+  to { left: 100%; transform: translateX(0); }
+}

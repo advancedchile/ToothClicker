@@ -1127,7 +1127,7 @@ function Toast({ toast, lang, styleOverride, onClose }) {
     </div>);
 }
 
-function StoreUpgradeIcon({ up, canAfford, purchased, onBuy, lang, fmt, onHover, onLeave }) {
+function StoreUpgradeIcon({ up, canAfford, purchased, onBuy, lang, fmt, onHover, onLeave, draggable, onDragStart, onDragEnter, onDragOver, onDragLeave, onDrop, onDragEnd }) {
   const [isPressed, setIsPressed] = React.useState(false);
   const [isHovered, setIsHovered] = React.useState(false);
   const rowRef = React.useRef(null);
@@ -1161,6 +1161,13 @@ function StoreUpgradeIcon({ up, canAfford, purchased, onBuy, lang, fmt, onHover,
       onClick={() => !purchased && canAfford && onBuy(up)}
       onMouseDown={() => !purchased && canAfford && setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
+      draggable={draggable ? "true" : "false"}
+      onDragStart={onDragStart}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
       style={{
         width: 64, height: 64, padding: 5, boxSizing: 'border-box',
         borderRadius: 'var(--radius-s)',
@@ -1168,15 +1175,16 @@ function StoreUpgradeIcon({ up, canAfford, purchased, onBuy, lang, fmt, onHover,
         background: purchased ? 'var(--positive-i010)' : (canAfford ? 'var(--bg-1)' : 'var(--bg-2)'),
         border: purchased ? '1px solid var(--positive-i100)' : (canAfford ? '1px solid var(--primary-i100)' : '1px solid var(--border-subtle)'),
         boxShadow: (canAfford && !purchased) ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
-        cursor: purchased ? 'default' : (canAfford ? 'pointer' : 'not-allowed'),
+        cursor: purchased ? 'grab' : (canAfford ? 'pointer' : 'not-allowed'),
         opacity: (!purchased && !canAfford) ? 0.65 : 1,
         transform: isPressed ? 'translateY(1px)' : (isHovered ? 'translateY(-1px)' : 'none'),
         transition: 'transform 100ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease',
-        display: 'flex', alignItems: 'center', justifyContent: 'center'
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        WebkitUserDrag: draggable ? 'element' : 'none'
       }}
     >
-      <div style={{ width: '100%', height: '100%', borderRadius: 4, background: purchased ? 'transparent' : (canAfford ? 'var(--alternative-i010)' : 'var(--bg-3)'), display: 'flex', alignItems: 'center', justifyContent: 'center', color: purchased ? 'var(--positive-i100)' : (canAfford ? 'var(--alternative-i100)' : 'var(--fg-3)'), overflow: 'hidden', transition: 'background 150ms ease, color 150ms ease' }}>
-        {up.iconUrl ? <img src={up.iconUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <i className={`fa-solid ${up.icon || 'fa-store'}`} style={{ fontSize: 24 }}></i>}
+      <div style={{ width: '100%', height: '100%', borderRadius: 4, background: purchased ? 'transparent' : (canAfford ? 'var(--alternative-i010)' : 'var(--bg-3)'), display: 'flex', alignItems: 'center', justifyContent: 'center', color: purchased ? 'var(--positive-i100)' : (canAfford ? 'var(--alternative-i100)' : 'var(--fg-3)'), overflow: 'hidden', transition: 'background 150ms ease, color 150ms ease', pointerEvents: 'none' }}>
+        {up.iconUrl ? <img src={up.iconUrl} draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} /> : <i className={`fa-solid ${up.icon || 'fa-store'}`} style={{ fontSize: 24, pointerEvents: 'none' }}></i>}
       </div>
       {purchased && (
         <div style={{ position: 'absolute', top: -8, right: -8, width: 16, height: 16, borderRadius: '50%', background: 'var(--positive-i100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 2 }}>
@@ -1217,9 +1225,70 @@ function VersionLogModal({ onClose, lang }) {
     </window.Modal>
   );
 }
+function LegalModal({ onClose, lang }) {
+  const content = {
+    title: lang === 'es' ? 'Aviso Legal y Privacidad' : 'Legal Notice & Privacy',
+    sections: [
+      {
+        title: lang === 'es' ? '1. Privacidad de la Información' : '1. Information Privacy',
+        body: lang === 'es' 
+          ? 'El juego no utiliza, almacena ni recopila datos sensibles, confidenciales o privados de clínicas, pacientes, colaboradores ni de ninguna entidad relacionada con Healthatom o sus filiales. Toda la interacción del usuario se procesa sin vincularse a expedientes médicos o administrativos reales.'
+          : 'The game does not use, store, or collect sensitive, confidential, or private data of clinics, patients, collaborators, or any entity related to Healthatom or its affiliates. All user interaction is processed without linking to real medical or administrative records.'
+      },
+      {
+        title: lang === 'es' ? '2. Naturaleza del Contenido' : '2. Nature of the Content',
+        body: lang === 'es'
+          ? 'Toda la información, mecánicas y elementos educativos presentes en el juego tienen un propósito estrictamente de aprendizaje y entretenimiento. Dicho contenido ha sido elaborado a partir de información de carácter general y extraída de fuentes y documentación públicas pertenecientes a Healthatom, Medlink, Dentalink y Gerty.'
+          : 'All information, mechanics, and educational elements present in the game have a strict learning and entertainment purpose. Such content has been developed from general information and extracted from public sources and documentation belonging to Healthatom, Medlink, Dentalink, and Gerty.'
+      },
+      {
+        title: lang === 'es' ? '3. Comunicaciones y Datos Personales' : '3. Communications & Personal Data',
+        body: lang === 'es'
+          ? 'Garantizamos que el juego en ningún momento enviará ningún tipo de correo electrónico (email) ni solicitará información personal, de contacto, ubicación o financiera a ningún jugador. La experiencia está diseñada íntegramente para preservar el anonimato y la seguridad digital del usuario en todo momento.'
+          : 'We guarantee that the game will at no time send any kind of email or request personal, contact, location, or financial information from any player. The experience is entirely designed to preserve the anonymity and digital security of the user at all times.'
+      },
+      {
+        title: lang === 'es' ? '4. Gratuidad del Servicio' : '4. Free Service',
+        body: lang === 'es'
+          ? '"ToothClicker" ha sido concebido, diseñado y publicado para ser disfrutado de forma cien por ciento (100%) gratuita. No existen compras ocultas, suscripciones, microtransacciones ni requerimientos de pago bajo ninguna circunstancia, garantizando un acceso equitativo para todos.'
+          : '"ToothClicker" has been conceived, designed, and published to be enjoyed one hundred percent (100%) for free. There are no hidden purchases, subscriptions, microtransactions, or payment requirements under any circumstances, ensuring equitable access for all.'
+      }
+    ]
+  };
+
+  return (
+    <window.Modal onClose={onClose} maxWidth={650}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <i className="fa-solid fa-scale-balanced" style={{ color: '#1a8fff', fontSize: 20 }}></i>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--fg-1)', fontFamily: 'var(--font-sans)' }}>{content.title}</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', flex: 1, minHeight: 0, paddingRight: 6 }}>
+        {content.sections.map((sec, i) => (
+          <div key={i} style={{ borderLeft: '2px solid #e1e8ef', paddingLeft: 16, paddingBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#1a8fff', fontFamily: 'var(--font-sans)' }}>{sec.title}</span>
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.6, fontFamily: 'var(--font-sans)', whiteSpace: 'pre-wrap', opacity: 0.9 }}>
+              {sec.body}
+            </div>
+          </div>
+        ))}
+        <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 8, fontStyle: 'italic', fontFamily: 'var(--font-sans)', opacity: 0.8 }}>
+          {lang === 'es' 
+            ? 'Al utilizar esta aplicación, reconoces haber leído y comprendido este aviso legal, aceptando que el propósito de esta plataforma es puramente lúdico y educativo.'
+            : 'By using this application, you acknowledge having read and understood this legal notice, accepting that the purpose of this platform is purely playful and educational.'}
+        </div>
+      </div>
+      <button onClick={onClose} style={{ ...primaryBtnStyle, flex: 'none', width: '100%', marginTop: 24 }}>
+        {lang === 'es' ? 'Entendido' : 'Understood'}
+      </button>
+    </window.Modal>
+  );
+}
 
 function AboutModal({ onClose, lang }) {
   const [showLog, setShowLog] = React.useState(false);
+  const [showLegal, setShowLegal] = React.useState(false);
   const versions = (window.VERSION_HISTORY || []).map((item) => ({
     v: item.v,
     date: item.date,
@@ -1228,6 +1297,7 @@ function AboutModal({ onClose, lang }) {
   }));
 
   if (showLog) return <VersionLogModal onClose={() => setShowLog(false)} lang={lang} />;
+  if (showLegal) return <LegalModal onClose={() => setShowLegal(false)} lang={lang} />;
 
   return (
     <window.Modal onClose={onClose} maxWidth={480}>
@@ -1245,14 +1315,20 @@ function AboutModal({ onClose, lang }) {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: '#1a8fff', padding: '4px 14px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>{latest.v}</span>
                 {latest.date && <span style={{ fontSize: 11, color: '#aac0d4', fontFamily: 'var(--font-sans)' }}>{latest.date}</span>}
-                <button 
-                  onClick={() => setShowLog(true)}
-                  style={{ all: 'unset', color: '#1a8fff', fontSize: 12, fontWeight: 600, marginTop: 10, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'var(--font-sans)' }}
-                >
-                  {lang === 'es' ? 'Ver log de versiones' : 'View version log'}
-                </button>
-              </div>);
-          })()}
+                  <button 
+                    onClick={() => setShowLog(true)}
+                    style={{ all: 'unset', color: '#1a8fff', fontSize: 12, fontWeight: 600, marginTop: 10, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'var(--font-sans)' }}
+                  >
+                    {lang === 'es' ? 'Ver log de versiones' : 'View version log'}
+                  </button>
+                  <button 
+                    onClick={() => setShowLegal(true)}
+                    style={{ all: 'unset', color: '#1a8fff', fontSize: 12, fontWeight: 600, marginTop: 4, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'var(--font-sans)' }}
+                  >
+                    {lang === 'es' ? 'Legal' : 'Legal'}
+                  </button>
+                </div>);
+            })()}
         </div>
         <button onClick={onClose} style={{ all: 'unset', boxSizing: 'border-box', marginTop: 24, width: '100%', textAlign: 'center', padding: '13px 0', borderRadius: 999, background: '#1a8fff', color: '#fff', fontSize: 16, fontWeight: 600, fontFamily: "'PixelifySans', var(--font-sans)", cursor: 'pointer', flexShrink: 0 }}>
           {lang === 'es' ? 'Cerrar' : 'Close'}

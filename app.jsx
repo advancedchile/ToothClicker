@@ -164,6 +164,183 @@ function FloatingBonus({ bonus, onClick }) {
   );
 }
 
+const VALID_CHARS_APP = [
+  'ale', 'carlos', 'andrea', 'cami', 'chalo', 'cote', 'cotefi', 'cris',
+  'dani', 'daniela', 'fabi', 'fenia', 'gabo', 'gianni', 'james', 'john',
+  'jose_maria', 'juan', 'juanmi', 'juli', 'leo', 'lucho', 'manu', 'mari',
+  'martin', 'mati', 'may', 'nico_flecha', 'nico_ojeda', 'palo', 'pancho',
+  'pascal', 'patito', 'payo', 'rafa', 'sofi', 'tatan', 'tomi', 'vania', 'yisus'
+];
+
+function getAvatarUrl(who, customImage, msgId) {
+  if (customImage) return customImage;
+  if (!who) return null;
+  let norm = who.toLowerCase().trim()
+    .replace(/[áäàâ]/g, 'a')
+    .replace(/[éëèê]/g, 'e')
+    .replace(/[íïìî]/g, 'i')
+    .replace(/[óöòô]/g, 'o')
+    .replace(/[úüùû]/g, 'u')
+    .replace(/ñ/g, 'nia')
+    .replace(/[^a-z0-9]/g, '_')
+    .replace(/__+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  if (norm === 'feña') norm = 'fenia';
+  if (norm === 'nico') {
+    const val = typeof msgId === 'string' ? msgId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
+    return val % 2 === 0 ? 'assets/chars/nico_flecha.png' : 'assets/chars/nico_ojeda.png';
+  }
+  if (VALID_CHARS_APP.includes(norm)) {
+    if (norm === 'ale') return 'assets/chars/Ale.png';
+    if (norm === 'carlos') return 'assets/chars/Carlos.png';
+    return `assets/chars/${norm}.png`;
+  }
+  return null;
+}
+
+function LedMarquee({ msg, onDismiss, isMobile }) {
+  const [phase, setPhase] = React.useState(0);
+  const animRef = React.useRef(null);
+  const onDismissRef = React.useRef(onDismiss);
+  
+  React.useEffect(() => {
+    onDismissRef.current = onDismiss;
+  }, [onDismiss]);
+
+  React.useEffect(() => {
+    if (!msg) return;
+    setPhase(0);
+    const t1 = setTimeout(() => {
+      setPhase(1);
+      if (animRef.current) animRef.current.beginElement();
+    }, 1000);
+    const t2 = setTimeout(() => setPhase(2), 2000);
+    
+    const durStr = msg.ledSpeed === 'fast' ? 5 : msg.ledSpeed === 'slow' ? 15 : 10;
+    const t3 = setTimeout(() => {
+      if (onDismissRef.current) onDismissRef.current();
+    }, 2000 + durStr * 1000 + 500);
+    
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [msg]);
+
+  if (!msg) {
+    return (
+      <div style={{ margin: isMobile ? '0 0 16px 0' : '0 -22px 16px -22px', height: 48, backgroundColor: '#000000', position: 'relative', overflow: 'hidden', flexShrink: 0, borderRadius: 0 }}>
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle, rgba(128,128,128,0.3) 1.5px, transparent 1.8px)', backgroundSize: '4px 4px', pointerEvents: 'none', zIndex: 1 }}></div>
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle, transparent 1.5px, #000000 1.8px)', backgroundSize: '4px 4px', pointerEvents: 'none', zIndex: 2 }}></div>
+      </div>
+    );
+  }
+
+  const bgColor = msg.ledBgColor || '#000000';
+  const dotColor = msg.ledColor || '#ff0000';
+  const blurPx = msg.ledBrightness === 'high' ? 8 : msg.ledBrightness === 'low' ? 2 : 4;
+  const speedSecs = msg.ledSpeed === 'fast' ? '5s' : msg.ledSpeed === 'slow' ? '15s' : '10s';
+  const dir = msg.ledDirection === 'ltr' ? 'led-marquee-ltr' : 'led-marquee-rtl';
+  const text = msg.text || msg.es || msg.en || '';
+  const textSize = msg.ledTextSize || 'normal';
+  const sizeMap = { small: '16px', normal: '24px', medium: '32px', large: '40px' };
+  const pxSize = sizeMap[textSize] || '24px';
+  
+  const edgeMask = 'linear-gradient(to right, transparent, black 40px, black calc(100% - 40px), transparent)';
+  const avatarUrl = getAvatarUrl(msg.who, msg.image, msg.id);
+
+  const textStyle = {
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    fontFamily: 'monospace, sans-serif',
+    fontSize: pxSize,
+    lineHeight: '48px',
+    fontWeight: 800,
+    textTransform: 'uppercase',
+    letterSpacing: '2px'
+  };
+  
+  const incomingText = "Mensaje entrante...";
+  
+  const getAnimStyle = () => {
+    const base = phase < 2 ? { fontSize: '16px' } : {};
+    if (phase === 0) return { ...base, left: '50%', transform: 'translateX(-50%)', animation: 'ledBlink 0.3s step-end infinite' };
+    if (phase === 1) return { ...base, left: '50%', transform: 'translateX(-50%)', filter: `url(#dissolve-filter-${msg.id})` };
+    return { ...base, animation: `${dir} ${speedSecs} linear forwards` };
+  };
+  
+  const content = phase < 2 ? incomingText : text;
+  const animStyle = getAnimStyle();
+
+  return (
+    <div style={{ margin: isMobile ? '0 0 16px 0' : '0 -22px 16px -22px', height: 48, backgroundColor: bgColor, position: 'relative', overflow: 'hidden', flexShrink: 0, borderRadius: 0 }}>
+      <style>
+        {`
+          @keyframes ledBlink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+          }
+        `}
+      </style>
+      
+      <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+        <filter id={`dissolve-filter-${msg.id}`}>
+          <feTurbulence type="fractalNoise" baseFrequency="0.4" numOctaves="1" result="noise" />
+          <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   1 0 0 0 0" in="noise" result="alphaNoise" />
+          <feComponentTransfer in="alphaNoise" result="thresholded">
+            <feFuncA type="linear" slope="5" intercept="1">
+              <animate ref={animRef} attributeName="intercept" values="1;-5" dur="1s" fill="freeze" begin="indefinite" />
+            </feFuncA>
+          </feComponentTransfer>
+          <feComposite operator="in" in="SourceGraphic" in2="thresholded" />
+        </filter>
+      </svg>
+
+      {/* 1. Unlit LEDs grid (dim dots) */}
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle, rgba(128,128,128,0.35) 1.5px, transparent 1.8px)', backgroundSize: '4px 4px', pointerEvents: 'none', zIndex: 1 }}></div>
+
+      {/* 2. Sharp Text (under the grid) */}
+      <div style={{ ...textStyle, ...animStyle, color: dotColor, zIndex: 2 }}>
+        {content}
+      </div>
+
+      {/* 3. The Grid Overlay (solid bg color with transparent holes) */}
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: `radial-gradient(circle, transparent 1.5px, ${bgColor} 1.8px)`, backgroundSize: '4px 4px', pointerEvents: 'none', zIndex: 3 }}></div>
+
+      {/* 4. The Bloom / Glow (spills over the grid) */}
+      <div style={{ ...textStyle, ...animStyle, color: 'transparent', textShadow: `0 0 ${blurPx}px ${dotColor}`, opacity: 0.85, pointerEvents: 'none', zIndex: 4 }}>
+        {content}
+      </div>
+
+      {/* 5. Edge shadow overlay (simulates passing under the panel edges) */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        zIndex: 5,
+        background: `linear-gradient(to right, ${bgColor} 0%, transparent 40px, transparent calc(100% - 40px), ${bgColor} 100%)`
+      }}></div>
+
+      {avatarUrl && (
+        <img 
+          src={avatarUrl} 
+          alt="" 
+          style={{
+            position: 'absolute',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            [dir === 'led-marquee-rtl' ? 'right' : 'left']: '4px',
+            width: 40,
+            height: 40,
+            objectFit: 'contain',
+            zIndex: 6,
+            pointerEvents: 'none'
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+window.LedMarquee = LedMarquee;
+
 function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLangChange, onLogout, onDeleteUser, numFormat: initialNumFormat, onNumFormatChange, onBackToAdmin, activeSeasonConfig, isSeasonModalOpen }) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
   const isAdmin = username === 'James';
@@ -1491,6 +1668,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
   const [clickFilter, setClickFilter] = React.useState('all');
   const [achFilter, setAchFilter] = React.useState('all');
+  const [draggedUpgradeId, setDraggedUpgradeId] = React.useState(null);
   const clickStatus = window.CLICK_UPGRADES.map((u) => {
     const purchased = !!state.clickUpgrades[u.id];
     const unlockAtVal = u.unlockAt !== undefined ? u.unlockAt : Math.floor(u.cost * 0.5);
@@ -2330,30 +2508,31 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 4 }}>
 
                 <button onClick={() => {
-                  if (customMessages.length > 0) {
-                    const pick = customMessages[Math.floor(Math.random() * customMessages.length)];
+                  const qMsgs = customMessages.filter(m => (m.msgType || 'normal') === 'question');
+                  if (qMsgs.length > 0) {
+                    const pick = qMsgs[Math.floor(Math.random() * qMsgs.length)];
                     setBossMsg({ 
-                      who: pick.who, 
-                      es: pick.text, 
-                      en: pick.text, 
-                      isCustom: true,
-                      danger: false,
-                      color: pick.color,
-                      position: pick.position,
-                      size: pick.size,
-                      animation: pick.animation,
-                      particles: pick.particles,
-                      ...(pick.msgType === 'question' ? {
-                        msgType: 'question',
-                        options: pick.options,
-                        correctOptionIndex: pick.correctOptionIndex,
-                        explanationText: pick.explanationText,
-                        correctReward: pick.correctReward,
-                        wrongReward: pick.wrongReward
-                      } : {})
+                      who: pick.who, es: pick.text, en: pick.text, isCustom: true, danger: false,
+                      color: pick.color, position: pick.position, size: pick.size, animation: pick.animation, particles: pick.particles,
+                      msgType: 'question', options: pick.options, correctOptionIndex: pick.correctOptionIndex,
+                      explanationText: pick.explanationText, correctReward: pick.correctReward, wrongReward: pick.wrongReward
                     });
                   }
-                }} style={{ ...debugBtnStyle, background: 'var(--primary-i010)', color: 'var(--primary-i100)', borderColor: 'var(--primary-i030)' }}>Trigger Msg ({customMessages.length})</button>
+                }} style={{ ...debugBtnStyle, background: '#f5f3ff', color: '#7c3aed', borderColor: '#ddd6fe' }}>Trigger Pregunta</button>
+                
+                <button onClick={() => {
+                  const normMsgs = customMessages.filter(m => (m.msgType || 'normal') === 'normal');
+                  if (normMsgs.length > 0) {
+                    const pick = normMsgs[Math.floor(Math.random() * normMsgs.length)];
+                    setBossMsg({ 
+                      id: Math.random().toString(36).substr(2, 9),
+                      who: pick.who, es: pick.text, en: pick.text, text: pick.text, isCustom: true, danger: false,
+                      msgType: 'normal',
+                      ledBgColor: pick.ledBgColor, ledColor: pick.ledColor,
+                      ledBrightness: pick.ledBrightness, ledSpeed: pick.ledSpeed, ledDirection: pick.ledDirection
+                    });
+                  }
+                }} style={{ ...debugBtnStyle, background: '#f0fdf4', color: '#16a34a', borderColor: '#bbf7d0' }}>Trigger Normal (James)</button>
                 <button onClick={() => {
                   const list = window.GAME_CONTENT?.randomBonuses || [];
                   if (list.length > 0) {
@@ -2484,36 +2663,138 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         </section>
 
         {/* MIDDLE COLUMN: GRID */}
-        <section style={{ 
-          flex: '1 1 0',
-          minWidth: 0,
-          backgroundColor: '#e6f0f9',
-          backgroundImage: 'radial-gradient(circle at 10px 10px, color-mix(in srgb, var(--fg-3) 25%, transparent) 1px, transparent 1px)',
-          backgroundSize: '20px 20px',
-          backgroundPosition: 'center',
-          border: 'none', 
-          borderRadius: 0,
-          height: 'calc(100vh - 120px)', 
-          maxHeight: 'calc(100vh - 120px)', 
-          boxSizing: 'border-box',
-          padding: '16px 20px',
-          overflowY: 'auto'
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 64px)', justifyContent: 'space-between', rowGap: '16px', alignContent: 'start' }}>
-            {(window.STORE_UPGRADES || []).filter(up => {
-              // Always show purchased upgrades, otherwise check availability conditions
-              if (state.storeUpgrades?.[up.id]) return true;
-              if (up.type === 'generator') {
-                return (state.generators?.[up.targetId] || 0) >= up.milestone;
+        <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <LedMarquee isMobile={isMobile} key={bossMsg ? (bossMsg.id || bossMsg.createdAt || bossMsg.text) : 'empty'} msg={bossMsg && bossMsg.isCustom && bossMsg.msgType === 'normal' ? bossMsg : null} onDismiss={() => setBossMsg(null)} />
+          <section style={{ 
+            flex: 1,
+            minWidth: 0,
+            backgroundColor: '#e6f0f9',
+            border: 'none', 
+            borderRadius: 0,
+            height: 'calc(100vh - 120px)', 
+            maxHeight: 'calc(100vh - 120px)', 
+            boxSizing: 'border-box',
+            padding: '16px 20px',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 64px)', justifyContent: 'space-between', rowGap: '16px', alignContent: 'start' }}>
+            {(() => {
+              const totalStoreUpgradesCount = (window.STORE_UPGRADES || []).length;
+              const visibleUpgrades = (window.STORE_UPGRADES || []).filter(up => {
+                if (state.storeUpgrades?.[up.id]) return true;
+                if (up.type === 'generator') {
+                  return (state.generators?.[up.targetId] || 0) >= up.milestone;
+                }
+                return state.totalEarned >= up.requirement;
+              });
+
+              const purchasedIds = Object.keys(state.storeUpgrades || {}).filter(id => state.storeUpgrades[id]);
+              const customOrder = state.storeUpgradesOrder || [];
+              const orderedPurchasedIds = customOrder.filter(id => purchasedIds.includes(id));
+              purchasedIds.forEach(id => {
+                if (!orderedPurchasedIds.includes(id)) {
+                  orderedPurchasedIds.push(id);
+                }
+              });
+
+              const gridItems = [];
+              orderedPurchasedIds.forEach(id => {
+                const up = (window.STORE_UPGRADES || []).find(u => u.id === id);
+                if (up) gridItems.push(up);
+              });
+
+              visibleUpgrades.forEach(up => {
+                if (!state.storeUpgrades?.[up.id]) {
+                  gridItems.push(up);
+                }
+              });
+
+              while (gridItems.length < totalStoreUpgradesCount) {
+                gridItems.push(null);
               }
-              return state.totalEarned >= up.requirement;
-            }).map(up => {
-              const purchased = !!state.storeUpgrades?.[up.id];
-              const canAfford = state.teeth >= up.cost;
-              return <window.StoreUpgradeIcon key={up.id} up={up} purchased={purchased} canAfford={canAfford} onBuy={buyStoreUpgrade} lang={lang} fmt={fmt} onHover={(up, pos) => setGlobalTooltip({ type: 'shop', data: up, pos })} onLeave={() => setGlobalTooltip(null)} />;
-            })}
+
+              return gridItems.map((up, index) => {
+                if (!up) {
+                  return <div key={`empty-${index}`} style={{ width: 64, height: 64, borderRadius: 'var(--radius-s)', background: 'rgba(0, 0, 0, 0.04)', boxSizing: 'border-box' }} />;
+                }
+                
+                const purchased = !!state.storeUpgrades?.[up.id];
+                const canAfford = state.teeth >= up.cost;
+                
+                return (
+                  <window.StoreUpgradeIcon 
+                    key={up.id} 
+                    up={up} 
+                    purchased={purchased} 
+                    canAfford={canAfford} 
+                    onBuy={buyStoreUpgrade} 
+                    lang={lang} 
+                    fmt={fmt} 
+                    onHover={(u, pos) => setGlobalTooltip({ type: 'shop', data: u, pos })} 
+                    onLeave={() => setGlobalTooltip(null)} 
+                    draggable={purchased ? "true" : "false"}
+                    onDragStart={(e) => {
+                      window.__draggedStoreUpgradeId = up.id;
+                      e.currentTarget.style.opacity = '0.5';
+                      try {
+                        if (e.dataTransfer) {
+                          e.dataTransfer.effectAllowed = 'move';
+                          e.dataTransfer.setData('text/plain', up.id);
+                        }
+                      } catch (err) {}
+                    }}
+                    onDragEnter={(e) => {
+                      if (purchased) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }
+                    }}
+                    onDragOver={(e) => {
+                      if (purchased) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try {
+                          if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+                        } catch (err) {}
+                      }
+                    }}
+                    onDragLeave={(e) => {
+                      if (purchased) {
+                        e.currentTarget.style.transform = '';
+                      }
+                    }}
+                    onDragEnd={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                      // intentionally not clearing __draggedStoreUpgradeId here
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.currentTarget.style.transform = '';
+                      if (!purchased) return;
+                      const droppedId = window.__draggedStoreUpgradeId || (e.dataTransfer ? e.dataTransfer.getData('text/plain') : null);
+                      if (!droppedId || droppedId === up.id) return;
+
+                      const currentOrder = [...orderedPurchasedIds];
+                      const draggedIndex = currentOrder.indexOf(droppedId);
+                      const targetIndex = currentOrder.indexOf(up.id);
+                      
+                      if (draggedIndex !== -1 && targetIndex !== -1) {
+                        currentOrder.splice(draggedIndex, 1);
+                        currentOrder.splice(targetIndex, 0, droppedId);
+                        setState(s => ({ ...s, storeUpgradesOrder: currentOrder }));
+                        pushScore({ ...stateRef.current, storeUpgradesOrder: currentOrder });
+                      }
+                      window.__draggedStoreUpgradeId = null;
+                    }}
+                  />
+                );
+              });
+            })()}
           </div>
         </section>
+      </div>
 
       {/* RIGHT: TABS */}
       <section style={{ flex: '1 1 0', minWidth: 0, height: 'calc(100vh - 120px)', maxHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', background: 'var(--bg-1)', border: '1px solid var(--border-subtle)', borderRadius: 0, overflow: 'hidden' }}>
@@ -3477,7 +3758,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           onSimulateClick={performClick} 
         />
       )}
-      {bossMsg && <BossMarquee msg={bossMsg} lang={lang} danger={bossMsg.danger} onDismiss={() => setBossMsg(null)} onAnswer={bossMsg.msgType === 'question' ? (userAnswer) => {
+      {bossMsg && (!bossMsg.isCustom || bossMsg.msgType === 'question') && <BossMarquee msg={bossMsg} lang={lang} danger={bossMsg.danger} onDismiss={() => setBossMsg(null)} onAnswer={bossMsg.msgType === 'question' ? (userAnswer) => {
         const correct = bossMsg.options ? (userAnswer === bossMsg.correctOptionIndex) : (userAnswer === bossMsg.questionAnswer);
         const reward = correct ? bossMsg.correctReward : bossMsg.wrongReward;
         let rewardDesc = '';

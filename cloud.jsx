@@ -398,6 +398,13 @@ async function cloudLoadCustomMessages() {
       msg.animation = extraData.animation || m.animation;
       msg.particles = extraData.particles || m.particles;
       msg.levelReq = extraData.levelReq || m.levelReq || 0;
+      
+      msg.ledBgColor = extraData.ledBgColor;
+      msg.ledColor = extraData.ledColor;
+      msg.ledBrightness = extraData.ledBrightness;
+      msg.ledSpeed = extraData.ledSpeed;
+      msg.ledDirection = extraData.ledDirection;
+      msg.ledTextSize = extraData.ledTextSize;
       return msg;
     });
     return { ok: true, messages, source: 'cloud' };
@@ -432,7 +439,13 @@ async function cloudSaveCustomMessages(messages) {
         size: m.size,
         animation: m.animation,
         particles: m.particles,
-        levelReq: m.levelReq
+        levelReq: m.levelReq,
+        ledBgColor: m.ledBgColor,
+        ledColor: m.ledColor,
+        ledBrightness: m.ledBrightness,
+        ledSpeed: m.ledSpeed,
+        ledDirection: m.ledDirection,
+        ledTextSize: m.ledTextSize
       };
       dbText += '||extra:' + JSON.stringify(extraData);
 

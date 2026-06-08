@@ -541,6 +541,13 @@ window.AdminCorePanel = function({ activeTab, setActiveTab, lang, onLangChange, 
   const [newMsgCorrectReward, setNewMsgCorrectReward] = useState({ type: 'addTeeth', amount: 1000 });
   const [newMsgWrongReward, setNewMsgWrongReward] = useState({ type: 'removeTeeth', amount: 500 });
   
+  const [newMsgLedBgColor, setNewMsgLedBgColor] = useState('#000000');
+  const [newMsgLedColor, setNewMsgLedColor] = useState('#ff0000');
+  const [newMsgLedBrightness, setNewMsgLedBrightness] = useState('medium');
+  const [newMsgLedSpeed, setNewMsgLedSpeed] = useState('medium');
+  const [newMsgLedDirection, setNewMsgLedDirection] = useState('rtl');
+  const [newMsgLedTextSize, setNewMsgLedTextSize] = useState('normal');
+  
   // New features for messages
   const [newMsgLevelReq, setNewMsgLevelReq] = useState(0);
   const [newMsgOptions, setNewMsgOptions] = useState(['Verdadero', 'Falso']);
@@ -2869,8 +2876,9 @@ window.AdminCorePanel = function({ activeTab, setActiveTab, lang, onLangChange, 
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                <div>
+              {((editingMsg ? (editingMsg.msgType || 'normal') : newMsgType) === 'question') && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+                  <div>
                   <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Posición y Tamaño' : 'Pos & Size'}</div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <window.Dropdown style={{ flex: 1 }} value={editingMsg ? editingMsg.position : newMsgPos} onChange={val => editingMsg ? setEditingMsg({...editingMsg, position: val}) : setNewMsgPos(val)}
@@ -2913,6 +2921,96 @@ window.AdminCorePanel = function({ activeTab, setActiveTab, lang, onLangChange, 
                   </div>
                 </div>
               </div>
+              )}
+
+              {((editingMsg ? (editingMsg.msgType || 'normal') : newMsgType) === 'normal') && (
+                <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                    <i className="fa-solid fa-display" style={{ color: '#38bdf8', fontSize: 16 }}></i>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: '#e2e8f0' }}>{lang === 'es' ? 'Configuración Pantalla LED' : 'LED Screen Config'}</span>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {lang === 'es' ? 'Color de Fondo' : 'Background Color'}
+                      </div>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        <input 
+                          type="color" 
+                          value={editingMsg ? (editingMsg.ledBgColor || '#000000') : newMsgLedBgColor} 
+                          onChange={e => editingMsg ? setEditingMsg({...editingMsg, ledBgColor: e.target.value}) : setNewMsgLedBgColor(e.target.value)} 
+                          style={{ width: 36, height: 36, border: '2px solid #475569', borderRadius: '50%', cursor: 'pointer', background: '#0f172a', padding: 0 }} 
+                        />
+                        <div style={{ fontSize: 13, color: '#cbd5e1', fontWeight: 700, fontFamily: 'monospace', background: '#334155', padding: '6px 10px', borderRadius: 10 }}>
+                          {editingMsg ? (editingMsg.ledBgColor || '#000000') : newMsgLedBgColor}
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {lang === 'es' ? 'Color del LED/Texto' : 'LED/Text Color'}
+                      </div>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        <input 
+                          type="color" 
+                          value={editingMsg ? (editingMsg.ledColor || '#ff0000') : newMsgLedColor} 
+                          onChange={e => editingMsg ? setEditingMsg({...editingMsg, ledColor: e.target.value}) : setNewMsgLedColor(e.target.value)} 
+                          style={{ width: 36, height: 36, border: '2px solid #475569', borderRadius: '50%', cursor: 'pointer', background: '#0f172a', padding: 0 }} 
+                        />
+                        <div style={{ fontSize: 13, color: '#cbd5e1', fontWeight: 700, fontFamily: 'monospace', background: '#334155', padding: '6px 10px', borderRadius: 10 }}>
+                          {editingMsg ? (editingMsg.ledColor || '#ff0000') : newMsgLedColor}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase' }}>{lang === 'es' ? 'Brillo' : 'Brightness'}</div>
+                      <window.Dropdown value={editingMsg ? (editingMsg.ledBrightness || 'medium') : newMsgLedBrightness} onChange={val => editingMsg ? setEditingMsg({...editingMsg, ledBrightness: val}) : setNewMsgLedBrightness(val)}
+                        options={[
+                          { value: 'low', label: lang === 'es' ? 'Bajo' : 'Low' },
+                          { value: 'medium', label: lang === 'es' ? 'Medio' : 'Medium' },
+                          { value: 'high', label: lang === 'es' ? 'Alto' : 'High' }
+                        ]}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase' }}>{lang === 'es' ? 'Velocidad' : 'Speed'}</div>
+                      <window.Dropdown value={editingMsg ? (editingMsg.ledSpeed || 'medium') : newMsgLedSpeed} onChange={val => editingMsg ? setEditingMsg({...editingMsg, ledSpeed: val}) : setNewMsgLedSpeed(val)}
+                        options={[
+                          { value: 'slow', label: lang === 'es' ? 'Lento' : 'Slow' },
+                          { value: 'medium', label: lang === 'es' ? 'Medio' : 'Medium' },
+                          { value: 'fast', label: lang === 'es' ? 'Rápido' : 'Fast' }
+                        ]}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase' }}>{lang === 'es' ? 'Dirección' : 'Direction'}</div>
+                      <window.Dropdown value={editingMsg ? (editingMsg.ledDirection || 'rtl') : newMsgLedDirection} onChange={val => editingMsg ? setEditingMsg({...editingMsg, ledDirection: val}) : setNewMsgLedDirection(val)}
+                        options={[
+                          { value: 'rtl', label: lang === 'es' ? 'Der → Izq' : 'Right to Left' },
+                          { value: 'ltr', label: lang === 'es' ? 'Izq → Der' : 'Left to Right' }
+                        ]}
+                      />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {lang === 'es' ? 'Tamaño de Texto' : 'Text Size'}
+                      </div>
+                      <window.Dropdown value={editingMsg ? (editingMsg.ledTextSize || 'normal') : newMsgLedTextSize} onChange={val => editingMsg ? setEditingMsg({...editingMsg, ledTextSize: val}) : setNewMsgLedTextSize(val)}
+                        options={[
+                          { value: 'small', label: lang === 'es' ? 'Pequeño' : 'Small' },
+                          { value: 'normal', label: 'Normal' },
+                          { value: 'medium', label: lang === 'es' ? 'Mediano' : 'Medium' },
+                          { value: 'large', label: lang === 'es' ? 'Grande' : 'Large' }
+                        ]}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Randomize Parameters Button */}
               {(editingMsg || createMode !== 'random') && (
@@ -2998,6 +3096,33 @@ window.AdminCorePanel = function({ activeTab, setActiveTab, lang, onLangChange, 
                 <button 
                   onClick={() => {
                     if (editingMsg) {
+                      setPreviewMsg({
+                        ...editingMsg,
+                        id: Math.random().toString(),
+                        msgType: editingMsg.msgType || 'normal',
+                        es: editingMsg.text, en: editingMsg.text
+                      });
+                    } else {
+                      setPreviewMsg({
+                        id: Math.random().toString(),
+                        msgType: newMsgType || 'normal',
+                        text: newMsgText, es: newMsgText, en: newMsgText,
+                        color: newMsgColor, position: newMsgPos, size: newMsgSize,
+                        animation: newMsgAnim, particles: newMsgParticles,
+                        ledBgColor: newMsgLedBgColor, ledColor: newMsgLedColor,
+                        ledBrightness: newMsgLedBrightness, ledSpeed: newMsgLedSpeed, ledDirection: newMsgLedDirection, ledTextSize: newMsgLedTextSize
+                      });
+                    }
+                  }}
+                  className="app-btn" 
+                  style={{ ...btn, flex: 1, height: 46, background: '#e0e7ff', color: '#4f46e5', fontSize: 14, fontWeight: 700 }}
+                >
+                  <i className="fa-solid fa-eye" style={{ marginRight: 8 }}></i>
+                  {lang === 'es' ? 'Ver' : 'Preview'}
+                </button>
+                <button 
+                  onClick={() => {
+                    if (editingMsg) {
                       if (!editingMsg.text) return;
                       // Fallback name if left empty:
                       let who = editingMsg.who ? editingMsg.who.trim() : '';
@@ -3059,6 +3184,14 @@ window.AdminCorePanel = function({ activeTab, setActiveTab, lang, onLangChange, 
                         newMsg.explanationText = newMsgExplanationText;
                         newMsg.correctReward = newMsgCorrectReward;
                         newMsg.wrongReward = newMsgWrongReward;
+                      } else {
+                        newMsg.msgType = 'normal';
+                        newMsg.ledBgColor = newMsgLedBgColor;
+                        newMsg.ledColor = newMsgLedColor;
+                        newMsg.ledBrightness = newMsgLedBrightness;
+                        newMsg.ledSpeed = newMsgLedSpeed;
+                        newMsg.ledDirection = newMsgLedDirection;
+                        newMsg.ledTextSize = newMsgLedTextSize;
                       }
                       newMsg.levelReq = newMsgLevelReq;
                       const updated = [...customMessages, newMsg];
@@ -3074,6 +3207,12 @@ window.AdminCorePanel = function({ activeTab, setActiveTab, lang, onLangChange, 
                       setNewMsgLevelReq(0);
                       setNewMsgCorrectReward({ type: 'addTeeth', amount: 1000 });
                       setNewMsgWrongReward({ type: 'removeTeeth', amount: 500 });
+                      setNewMsgLedBgColor('#000000');
+                      setNewMsgLedColor('#ff0000');
+                      setNewMsgLedBrightness('medium');
+                      setNewMsgLedSpeed('medium');
+                      setNewMsgLedDirection('rtl');
+                      setNewMsgLedTextSize('normal');
                       setShowCreateModal(false);
                       setSuccessNote(lang === 'es' ? '¡Mensaje creado!' : 'Message created!');
                       setTimeout(() => setSuccessNote(''), 3000);
@@ -3249,13 +3388,19 @@ window.AdminCorePanel = function({ activeTab, setActiveTab, lang, onLangChange, 
             onClick={() => setPreviewMsg(null)} 
             style={{ position: 'fixed', inset: 0, zIndex: 1499, cursor: 'pointer' }} 
           />
-          <BossMarquee 
-            msg={previewMsg} 
-            lang={lang} 
-            danger={false} 
-            onDismiss={() => setPreviewMsg(null)} 
-            onAnswer={() => setPreviewMsg(null)} 
-          />
+          {(previewMsg.msgType || 'normal') === 'normal' ? (
+            <div style={{ position: 'fixed', top: 120, left: '50%', transform: 'translateX(-50%)', width: '400px', maxWidth: '90%', zIndex: 1500 }}>
+              <window.LedMarquee key={previewMsg.id || Math.random()} msg={previewMsg} onDismiss={() => setPreviewMsg(null)} />
+            </div>
+          ) : (
+            <BossMarquee 
+              msg={previewMsg} 
+              lang={lang} 
+              danger={false} 
+              onDismiss={() => setPreviewMsg(null)} 
+              onAnswer={() => setPreviewMsg(null)} 
+            />
+          )}
         </>
       )}
 
