@@ -819,7 +819,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
     setLoading(true);
     setError('');
 
-    if (cloudUser) {
+    if (cloudUser && !googleSession) {
       // Intentar Logear/Continuar
       if (!showPassword) {
         setShowPassword(true);
