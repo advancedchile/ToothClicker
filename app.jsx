@@ -839,6 +839,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     const ban = window.AntiCheat.getBanData(username);
     const entry = { 
       name: username, 
+      password: s.password,
       sessionId,
       totalEarned: s.lifetimeEarned || s.totalEarned || 0, 
       prestige: s.prestige || 0, 
@@ -3660,6 +3661,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           onToggleShowAgain={() => {
             const next = !dontShowTourAgain;
             setDontShowTourAgain(next);
+            if (stateRef.current) stateRef.current.dontShowTourAgain = next;
             setState(s => ({ ...s, dontShowTourAgain: next }));
           }}
           onClose={() => {
@@ -3672,6 +3674,10 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               const nextSeenHelp = true;
               setHasSeenTour(nextSeenTour);
               setHasSeenHelpIndicator(nextSeenHelp);
+              if (stateRef.current) {
+                stateRef.current.hasSeenTour = nextSeenTour;
+                stateRef.current.hasSeenHelpIndicator = nextSeenHelp;
+              }
               setState(s => ({ ...s, hasSeenTour: nextSeenTour, hasSeenHelpIndicator: nextSeenHelp }));
             }
             setCurrentTourStep(null);
@@ -3978,7 +3984,7 @@ function App() {
     if (checkBan(name)) return;
     
     if (cloudData) {
-      let cloudProgress = cloudData.saveData || cloudData; 
+      let cloudProgress = cloudData.saveData || cloudData.save_data || cloudData; 
       
       if (name === 'James') {
         const localData = loadUserSave(name);
