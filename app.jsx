@@ -551,16 +551,13 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
   const [currentTourStep, setCurrentTourStep] = useState(null);
   const [dontShowTourAgain, setDontShowTourAgain] = useState(() => {
-    const saved = loadUserSave(username);
-    return saved?.dontShowTourAgain === true;
+    return !!saved?.dontShowTourAgain;
   });
   // We'll track if the user has EVER seen the tour to decide whether to auto-start
   const [hasSeenTour, setHasSeenTour] = useState(() => {
-    const saved = loadUserSave(username);
     return !!saved?.hasSeenTour;
   });
   const [hasSeenHelpIndicator, setHasSeenHelpIndicator] = useState(() => {
-    const saved = loadUserSave(username);
     return !!saved?.hasSeenHelpIndicator;
   });
   const buyXpUpgrade = (id) => {
