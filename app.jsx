@@ -3281,9 +3281,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             <window.MenuDivider />
             
             {/* Account Settings */}
-            <h4 style={{ fontSize: 13, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: 1, margin: '8px 0 0 0', fontWeight: 700 }}>
-              {lang === 'es' ? 'Cuenta y Seguridad' : 'Account & Security'}
-            </h4>
+            {!state.googleLinked && (
+              <h4 style={{ fontSize: 13, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: 1, margin: '8px 0 0 0', fontWeight: 700 }}>
+                {lang === 'es' ? 'Cuenta y Seguridad' : 'Account & Security'}
+              </h4>
+            )}
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
               {!state.googleLinked ? (
@@ -3313,11 +3315,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                   </button>
                 </div>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--positive-i010)', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--positive-i050)' }}>
-                  <i className="fa-solid fa-shield-check" style={{ color: 'var(--positive-i100)', fontSize: 20 }}></i>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--positive-i130)' }}>{lang === 'es' ? 'Cuenta Protegida' : 'Account Protected'}</span>
-                    <span style={{ fontSize: 11, color: 'var(--positive-i100)' }}>{lang === 'es' ? 'Vinculado a Google' : 'Linked to Google'}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--positive-i010)', padding: '16px', borderRadius: 12, border: '1px solid var(--positive-i050)' }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--positive-i130)' }}>{lang === 'es' ? 'Cuenta Protegida' : 'Account Protected'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="G" style={{ width: 14, height: 14 }} />
+                    <span style={{ fontSize: 12, color: 'var(--positive-i100)' }}>{lang === 'es' ? 'Vinculado a Google' : 'Linked to Google'}</span>
                   </div>
                 </div>
               )}
