@@ -219,12 +219,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       const cloudTotal = cloudSaved.lifetimeEarned || cloudSaved.totalEarned || 0;
       const localTotal = localSnap?.lifetimeEarned || localSnap?.totalEarned || 0;
       
-      // If cloud is strictly better in either metric, use cloud
       if (!localSnap || cloudPCount > localPCount || cloudTotal > localTotal) {
         console.log("[Sync] Using cloud save as it has better progress.");
         snap = { ...defaultState(), ...cloudSaved };
       } else {
         console.log("[Sync] Keeping local save as it has better progress.");
+        if (cloudSaved.googleLinked) snap.googleLinked = true;
       }
     }
 
@@ -3960,12 +3960,15 @@ function App() {
       return;
     }
 
+    const isGoogle = password === 'oauth';
+    const initialLocalState = { ...defaultState(), password, googleLinked: isGoogle };
+
     const updated = [...loadUsers(), cleaned];
     saveUsers(updated);
     localStorage.setItem(DEVICE_USER_KEY, cleaned);
     
     // Store password locally in the save object
-    persistUserSave(cleaned, { ...defaultState(), password, googleLinked: passwordOrOauth === 'oauth' });
+    persistUserSave(cleaned, initialLocalState);
     
     setUsers(updated);
     setDeviceUser(cleaned);
@@ -3976,7 +3979,7 @@ function App() {
     }
     
     setUsername(cleaned);
-    setSavedState(null); // New users start fresh
+    setSavedState(initialLocalState); 
     setScreen('game');
   }, [lang, checkBan]);
 
@@ -3985,6 +3988,7 @@ function App() {
     
     if (cloudData) {
       let cloudProgress = cloudData.saveData || cloudData.save_data || cloudData; 
+      const wasGoogleLinked = cloudProgress.googleLinked || cloudData.auth_id;
       
       if (name === 'James') {
         const localData = loadUserSave(name);
@@ -3993,7 +3997,7 @@ function App() {
         }
       }
       
-      if (cloudData.auth_id) {
+      if (wasGoogleLinked) {
         cloudProgress.googleLinked = true;
       }
       
