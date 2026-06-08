@@ -551,6 +551,7 @@ function buildAchievements() {
   });
 
   out.push({ id: 'feedback_first', check: (s) => s.feedbackSent, es: 'Crítico de Dientes', en: 'Tooth Critic', desc_es: 'Envía tu primer feedback', desc_en: 'Send your first feedback', cat: 'social' });
+  out.push({ id: 'google_linked', check: (s) => s.googleLinked, es: 'Cuenta Protegida', en: 'Protected Account', desc_es: 'Vincula tu cuenta con Google', desc_en: 'Link your account with Google', cat: 'social' });
 
   const secrets = [
     { id: 'sec_speedrun', es: 'Velocidad de la luz', en: 'Light speed', desc_es: '1,000,000,000 de dientes en menos de 30 min', desc_en: '1,000,000,000 teeth within the first 30 min', check: (s) => (s.lifetimeEarned || s.totalEarned) >= 1_000_000_000 && s.timePlayed <= 1800 },

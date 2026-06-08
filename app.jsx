@@ -244,8 +244,18 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const offlineInfo = bootRef.current.offlineInfo;
 
   const [state, setState] = useState(() => {
-    if (!saved) return defaultState();
-    const base = { ...defaultState(), ...saved };
+    const activeTemplateId = window.GAME_CONTENT?._templateId || null;
+    if (!saved) {
+      return { ...defaultState(), _templateId: activeTemplateId };
+    }
+    
+    // Season Wipe Logic
+    if (activeTemplateId && saved._templateId && saved._templateId !== activeTemplateId) {
+      console.log(`[Season] Mismatch detected: saved ${saved._templateId} vs active ${activeTemplateId}. Wiping local save.`);
+      return { ...defaultState(), _templateId: activeTemplateId };
+    }
+    
+    const base = { ...defaultState(), ...saved, _templateId: activeTemplateId || saved._templateId };
     
     // Legacy support: for old saves, auto-grant upgrades for already earned achievements/levels
     if (!base.legacyAcademyFixDone) {
@@ -1710,7 +1720,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               <span className="mobile-menu-item-text">{lang === 'es' ? 'Acerca de' : 'About'}</span>
             </button>
 
-            <button className="mobile-menu-item" onClick={() => { setMenuOpen(false); setShowFeedbackModal(true); }}>
+            <button className="mobile-menu-item" onClick={() => { setMenuOpen(false); window.open('https://forms.gle/wM6YLVeGz6DfHQ4V8', '_blank'); }}>
               <i className="fa-solid fa-comment-dots"></i>
               <span className="mobile-menu-item-text">{lang === 'es' ? 'Enviar feedback' : 'Send feedback'}</span>
             </button>
@@ -2280,7 +2290,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               )}
               <window.MenuItem icon="fa-sliders" label={lang === 'es' ? 'Configuración' : 'Settings'} onClick={() => { setMenuOpen(false); setShowSettingsModal(true); }} />
               <window.MenuItem icon="fa-circle-info" label={lang === 'es' ? 'Acerca de' : 'About'} onClick={() => {setMenuOpen(false);setShowAbout(true);}} />
-              <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => {setMenuOpen(false);setShowFeedbackModal(true);}} />
+              <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => {setMenuOpen(false);window.open('https://forms.gle/wM6YLVeGz6DfHQ4V8', '_blank');}} />
               <window.MenuDivider />
               <window.MenuItem icon="fa-right-from-bracket" label={t.logout} onClick={() => {
                 setMenuOpen(false);
@@ -3269,6 +3279,53 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 <span style={{ fontSize: 16 }}>🇺🇸</span> English
               </button>
             </div>
+            
+            <window.MenuDivider />
+            
+            {/* Account Settings */}
+            <h4 style={{ fontSize: 13, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: 1, margin: '8px 0 0 0', fontWeight: 700 }}>
+              {lang === 'es' ? 'Cuenta y Seguridad' : 'Account & Security'}
+            </h4>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
+              {!state.googleLinked ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--bg-3)', padding: 16, borderRadius: 12 }}>
+                  <div style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.4 }}>
+                    {lang === 'es' ? 'Protege tu progreso y obtén el logro "Cuenta Protegida" vinculando tu partida a Google.' : 'Protect your progress and earn the "Protected Account" achievement by linking to Google.'}
+                  </div>
+                  <button 
+                    onClick={() => {
+                      if (window.playClickSound) window.playClickSound();
+                      localStorage.setItem('link_intent_user', username);
+                      localStorage.setItem('link_intent_pass', state.password || '');
+                      window.cloudLoginWithGoogle && window.cloudLoginWithGoogle();
+                    }}
+                    className="app-btn"
+                    style={{
+                      all: 'unset', width: '100%', boxSizing: 'border-box',
+                      padding: '10px', borderRadius: 8, textAlign: 'center',
+                      background: '#fff', color: '#444', fontSize: 13, fontWeight: 600,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      cursor: 'pointer', border: '1px solid #ddd', boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                      transition: 'transform 0.2s'
+                    }}
+                  >
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="G" style={{ width: 16, height: 16 }} />
+                    {lang === 'es' ? 'Vincular con Google' : 'Link to Google'}
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--positive-i010)', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--positive-i050)' }}>
+                  <i className="fa-solid fa-shield-check" style={{ color: 'var(--positive-i100)', fontSize: 20 }}></i>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--positive-i130)' }}>{lang === 'es' ? 'Cuenta Protegida' : 'Account Protected'}</span>
+                    <span style={{ fontSize: 11, color: 'var(--positive-i100)' }}>{lang === 'es' ? 'Vinculado a Google' : 'Linked to Google'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <window.MenuDivider />
 
             {/* Numeric Format Settings */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
@@ -3513,7 +3570,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           )}
           <window.MenuItem icon="fa-sliders" label={lang === 'es' ? 'Configuración' : 'Settings'} onClick={() => { window.playClickSound && window.playClickSound(); setShowSettingsModal(true); }} />
           <window.MenuItem icon="fa-circle-info" label={lang === 'es' ? 'Acerca de' : 'About'} onClick={() => { window.playClickSound && window.playClickSound(); setShowAbout(true); }} />
-          <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => { window.playClickSound && window.playClickSound(); setShowFeedbackModal(true); }} />
+          <window.MenuItem icon="fa-comment-dots" label={lang === 'es' ? 'Enviar feedback' : 'Send feedback'} onClick={() => { window.playClickSound && window.playClickSound(); window.open('https://forms.gle/wM6YLVeGz6DfHQ4V8', '_blank'); }} />
           <window.MenuDivider />
           <window.MenuItem icon="fa-question" label="¡Te sientes curioso?" onClick={() => { window.playClickSound && window.playClickSound(); setShowCuriosityModal(true); }} />
           <window.MenuDivider />

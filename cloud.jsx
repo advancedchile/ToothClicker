@@ -76,33 +76,27 @@ async function cloudFetchLeaderboard() {
 async function cloudSubmitScore(entry) {
   if (!entry || !entry.name || !_supabase) return { ok: false, error: 'invalid' };
   try {
-    const row = {
-      name: entry.name,
-      total_earned: Math.floor(Number(entry.totalEarned || 0)),
-      prestige: Math.floor(Number(entry.prestige || 0)),
-      prestige_count: Math.floor(Number(entry.prestigeCount || 0)),
-      time_played: Math.floor(Number(entry.timePlayed || 0)),
-      clinic_name: (entry.clinicName && entry.clinicName.trim()) ? entry.clinicName.trim() : null,
-      level: Math.floor(Number(entry.level || 0)),
-      teeth: Math.floor(Number(entry.teeth || 0)),
-      updated_at: new Date().toISOString()
-    };
-    // Optional fields — only include if they have real values
-    if (entry.password) row.password = entry.password;
-    if (entry.saveData) row.save_data = entry.saveData;
-    if (entry.banUntil && entry.banUntil > 0) {
-      row.ban_until = new Date(entry.banUntil).toISOString();
-      row.ban_indefinite = entry.banUntil === -1;
-    }
+    const { data, error } = await _supabase.rpc('secure_submit_score', {
+      p_name: entry.name,
+      p_password: entry.password || null,
+      p_total_earned: Math.floor(Number(entry.totalEarned || 0)),
+      p_prestige: Math.floor(Number(entry.prestige || 0)),
+      p_prestige_count: Math.floor(Number(entry.prestigeCount || 0)),
+      p_time_played: Math.floor(Number(entry.timePlayed || 0)),
+      p_clinic_name: (entry.clinicName && entry.clinicName.trim()) ? entry.clinicName.trim() : null,
+      p_level: Math.floor(Number(entry.level || 0)),
+      p_teeth: Math.floor(Number(entry.teeth || 0)),
+      p_save_data: entry.saveData || null,
+      p_ban_until: (entry.banUntil && entry.banUntil > 0) ? new Date(entry.banUntil).toISOString() : null,
+      p_ban_indefinite: (entry.banUntil === -1) ? true : null
+    });
 
-    const { data: upsertData, error } = await _supabase.from('players').upsert(row, { onConflict: 'name' }).select();
-
-    if (error) {
-      console.error("[Cloud] Upsert FAILED for", entry.name, ":", error);
-      throw error;
+    if (error || (data && !data.ok)) {
+      console.error("[Cloud] Upsert FAILED for", entry.name, ":", error || data.error);
+      throw new Error(error ? error.message : data.error);
     }
-    const finalRow = (upsertData && upsertData[0]) ? upsertData[0] : row;
-    console.log('[Cloud] Save OK for', entry.name, '| clinic:', finalRow.clinic_name, '| prestige:', finalRow.prestige_count, '| total:', finalRow.total_earned);
+    
+    console.log('[Cloud] Save OK for', entry.name);
     return { ok: true };
   } catch (e) { 
     console.error("[Cloud] Save EXCEPTION for", entry.name, ":", e);
@@ -113,32 +107,19 @@ async function cloudSubmitScore(entry) {
 async function cloudAuthenticate(name, password) {
   try {
     if (!_supabase) throw new Error('No Supabase');
-    const { data, error } = await _supabase
-      .from('players')
-      .select('*')
-      .eq('name', name)
-      .single();
-
-    if (error) throw new Error('User not found');
-    if (data.password && data.password !== password) throw new Error('Invalid password');
-    
-    // Generate a new session ID for this login
     const newSessionId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     
-    // Update the player row with the new session inside save_data (sync)
-    let sdObj = data.save_data;
-    if (typeof sdObj === 'string') { try { sdObj = JSON.parse(sdObj); } catch(e) {} }
-    const newSaveData = { ...(sdObj || {}), sessionId: newSessionId };
+    const { data: res, error } = await _supabase.rpc('secure_authenticate', {
+      p_name: name,
+      p_password: password,
+      p_new_session_id: newSessionId
+    });
 
-    const { error: updateError } = await _supabase.from('players').upsert({ 
-      name: name,
-      save_data: newSaveData,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'name' });
+    if (error) throw new Error(error.message);
+    if (!res || !res.ok) throw new Error(res ? res.error : 'User not found');
+    
+    const data = res.player;
 
-    if (updateError) console.error('[Cloud] Failed to update session ID:', updateError);
-
-    // Return the full player data to sync the progress
     let sd = data.save_data;
     if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e) {} }
 
@@ -170,20 +151,23 @@ async function cloudRegister(name, password, initialData = {}) {
   try {
     if (!_supabase) throw new Error('No Supabase');
     const sessionId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    const { error } = await _supabase.from('players').insert({
-      name,
-      password,
-      total_earned: Math.floor(Number(initialData.totalEarned || 0)),
-      prestige: Math.floor(Number(initialData.prestige || 0)),
-      prestige_count: Math.floor(Number(initialData.prestigeCount || 0)),
-      time_played: Math.floor(Number(initialData.timePlayed || 0)),
-      clinic_name: initialData.clinicName || '',
-      level: Math.floor(Number(initialData.level || 0)),
-      teeth: Math.floor(Number(initialData.teeth || 0)),
-      updated_at: new Date().toISOString(),
-      save_data: { ...initialData, sessionId: sessionId }
+    
+    const { data: res, error } = await _supabase.rpc('secure_register_player', {
+      p_name: name,
+      p_password: password,
+      p_total_earned: Math.floor(Number(initialData.totalEarned || 0)),
+      p_prestige: Math.floor(Number(initialData.prestige || 0)),
+      p_prestige_count: Math.floor(Number(initialData.prestigeCount || 0)),
+      p_time_played: Math.floor(Number(initialData.timePlayed || 0)),
+      p_clinic_name: initialData.clinicName || '',
+      p_level: Math.floor(Number(initialData.level || 0)),
+      p_teeth: Math.floor(Number(initialData.teeth || 0)),
+      p_save_data: { ...initialData, sessionId: sessionId }
     });
-    if (error) throw error;
+    
+    if (error) throw new Error(error.message);
+    if (!res || !res.ok) throw new Error(res ? res.error : 'Registro fallido');
+    
     console.log('[Cloud] Register OK for', name);
     return { ok: true, sessionId };
   } catch (e) {
@@ -211,13 +195,89 @@ async function cloudFetchPlayer(name) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
-async function cloudDeleteScore(name) {
+async function cloudDeleteScore(name, password = null, adminPassword = null) {
   try {
     if (!_supabase) return { ok: false };
-    const { error } = await _supabase.from('players').delete().eq('name', name);
-    if (error) throw error;
+    const { data: res, error } = await _supabase.rpc('secure_delete_score', {
+      p_name: name,
+      p_password: password,
+      p_admin_password: adminPassword
+    });
+    if (error) throw new Error(error.message);
+    if (!res || !res.ok) throw new Error(res ? res.error : 'Borrado fallido');
     return { ok: true };
   } catch (e) { return { ok: false, error: e.message }; }
+}
+
+// ── Google Auth ─────────────────────────────────────────────────────────────
+async function cloudLoginWithGoogle() {
+  if (!_supabase) return { ok: false, error: 'No Supabase' };
+  try {
+    const { data, error } = await _supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname
+      }
+    });
+    if (error) throw error;
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function cloudLinkGoogleAccount(name, password) {
+  if (!_supabase) return { ok: false, error: 'No Supabase' };
+  try {
+    const { data, error } = await _supabase.rpc('secure_link_google_account', {
+      p_name: name,
+      p_password: password
+    });
+    if (error) throw new Error(error.message);
+    if (!data || !data.ok) throw new Error(data ? data.error : 'Error al vincular');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function cloudFetchPlayerByAuth() {
+  if (!_supabase) return { ok: false };
+  try {
+    const { data, error } = await _supabase.rpc('fetch_player_by_auth');
+    if (error) throw error;
+    if (!data || !data.ok) throw new Error(data ? data.error : 'Error fetching auth player');
+    
+    if (!data.found) return { ok: true, found: false };
+    
+    let p = data.player;
+    let sd = p.save_data;
+    if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch(e) {} }
+    
+    if (!sd) sd = {};
+    sd.googleLinked = true;
+    
+    return { 
+      ok: true, 
+      found: true,
+      player: {
+        ...p,
+        saveData: sd,
+        name: p.name,
+        totalEarned: Number(p.total_earned || 0),
+        prestige: Number(p.prestige || 0),
+        prestigeCount: Number(p.prestige_count || 0),
+        timePlayed: Number(p.time_played || 0),
+        clinicName: p.clinic_name || null,
+        level: Number(p.level || 0),
+        teeth: Number(p.teeth || 0),
+        banUntil: p.ban_until ? new Date(p.ban_until).getTime() : 0,
+        banIndefinite: !!p.ban_indefinite,
+        password: p.password,
+        sessionId: sd ? sd.sessionId : null
+      }
+    };
+  } catch(e) { return { ok: false, error: e.message }; }
 }
 
 async function cloudResetAll() {
@@ -454,6 +514,9 @@ Object.assign(window, {
   cloudFetchLeaderboard,
   cloudSubmitScore,
   cloudDeleteScore,
+  cloudLoginWithGoogle,
+  cloudLinkGoogleAccount,
+  cloudFetchPlayerByAuth,
   cloudFetchFeedback,
   cloudDeleteFeedback,
   cloudLoadCustomMessages,

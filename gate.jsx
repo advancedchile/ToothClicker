@@ -744,6 +744,39 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
   const [websiteField, setWebsiteField] = useStateG('');
   const [challengeQuestion, setChallengeQuestion] = useStateG(null);
   const [challengeAnswer, setChallengeAnswer] = useStateG('');
+  
+  const [googleSession, setGoogleSession] = useStateG(false);
+  
+  useEffectG(() => {
+    if (window.cloudFetchPlayerByAuth) {
+      window.cloudFetchPlayerByAuth().then(res => {
+        if (res.ok && res.found) {
+          const intentUser = localStorage.getItem('link_intent_user');
+          const intentPass = localStorage.getItem('link_intent_pass');
+          if (intentUser) {
+             window.cloudLinkGoogleAccount(intentUser, intentPass).then(linkRes => {
+                localStorage.removeItem('link_intent_user');
+                localStorage.removeItem('link_intent_pass');
+                if (linkRes.ok) {
+                   window.cloudFetchPlayerByAuth().then(r => {
+                      if (r.ok && r.found) onSelectUser(r.player.name, r.player, null);
+                   });
+                } else {
+                   alert(lang === 'es' ? 'Error al vincular cuenta: ' + linkRes.error : 'Error linking account: ' + linkRes.error);
+                   onSelectUser(res.player.name, res.player, null);
+                }
+             });
+          } else {
+            onSelectUser(res.player.name, res.player, null);
+          }
+        } else if (res.ok && !res.found) {
+           setGoogleSession(true); // New Google User
+        } else if (res.error && res.error !== 'No estas autenticado con Google' && res.error !== 'Auth session missing!') {
+           console.log('Google Auth Error:', res.error);
+        }
+      });
+    }
+  }, [onSelectUser, lang]);
 
   const RESERVED = (window.ADMIN_NAME || 'James').toLowerCase();
 
@@ -801,14 +834,14 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
       }
     } else {
       // Intentar Registrar
-      if (!showPassword) {
+      if (!googleSession && !showPassword) {
         setShowPassword(true);
         setLoading(false);
         return;
       }
 
       // 2. Dental Captcha check
-      if (challengeQuestion) {
+      if (!googleSession && challengeQuestion) {
         const cleanAns = challengeAnswer.trim().toLowerCase();
         const isCorrect = challengeQuestion.ans.some(a => {
           const expected = a.toLowerCase().trim();
@@ -870,20 +903,43 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
                 value={name}
                 onChange={e => { setName(e.target.value); setError(''); }}
                 maxLength={24}
-                placeholder={lang === 'es' ? 'Tu nombre...' : 'Your name...'}
+                placeholder={googleSession ? (lang === 'es' ? 'Elige tu nombre (Google)' : 'Pick your name (Google)') : (lang === 'es' ? 'Tu nombre...' : 'Your name...')}
                 style={{
                   width: '100%', boxSizing: 'border-box',
                   padding: '13px 22px',
                   fontSize: 16, fontFamily: "'PixelifySans', var(--font-sans)",
                   border: `2px solid ${error ? '#e55' : 'rgba(100,160,230,0.5)'}`,
-                  borderRadius: 999, background: 'rgba(255,255,255,0.88)', color: '#334',
+                  borderRadius: 999, background: googleSession ? 'rgba(230, 245, 255, 0.95)' : 'rgba(255,255,255,0.88)', color: '#334',
                   outline: 'none', backdropFilter: 'blur(4px)',
                   boxShadow: '0 2px 12px rgba(80,140,220,0.10)', transition: 'border 150ms',
                 }}
               />
             </div>
 
-            {showPassword && (
+            {!googleSession && !deviceUser && (
+              <button
+                type="button"
+                onClick={async () => {
+                   setLoading(true);
+                   await window.cloudLoginWithGoogle();
+                }}
+                className="app-btn"
+                style={{
+                  all: 'unset', boxSizing: 'border-box',
+                  width: '100%', padding: '10px 12px', borderRadius: 999,
+                  background: '#fff', color: '#444', fontSize: 14, fontWeight: 600,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  cursor: 'pointer', transition: 'all 0.2s',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  border: '1px solid #ddd'
+                }}
+              >
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="G" style={{ width: 18, height: 18 }} />
+                {lang === 'es' ? 'Continuar con Google' : 'Continue with Google'}
+              </button>
+            )}
+
+            {!googleSession && showPassword && (
               <div style={{ position: 'relative', width: '100%', animation: 'modalIn 0.3s ease' }}>
                 <input
                   autoFocus
@@ -905,7 +961,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
             )}
 
             {/* Custom Dental Captcha Challenge */}
-            {!cloudUser && showPassword && challengeQuestion && (
+            {!googleSession && !cloudUser && showPassword && challengeQuestion && (
               <div style={{
                 width: '100%',
                 background: 'rgba(250, 245, 255, 0.9)',
@@ -960,8 +1016,8 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
             >
               {loading ? <i className="fa-solid fa-circle-notch fa-spin"></i> : (
                 <>
-                  <i className={cloudUser ? "fa-solid fa-cloud-arrow-down" : "fa-solid fa-user-plus"}></i>
-                  {cloudUser ? (lang === 'es' ? 'Continuar Partida' : 'Continue Game') : (lang === 'es' ? 'Empezar a Jugar' : 'Start Playing')}
+                  <i className={googleSession ? "fa-brands fa-google" : (cloudUser ? "fa-solid fa-cloud-arrow-down" : "fa-solid fa-user-plus")}></i>
+                  {googleSession ? (lang === 'es' ? 'Finalizar Registro' : 'Finish Registration') : (cloudUser ? (lang === 'es' ? 'Continuar Partida' : 'Continue Game') : (lang === 'es' ? 'Empezar a Jugar' : 'Start Playing'))}
                 </>
               )}
             </button>
@@ -969,9 +1025,11 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
             <div style={{ fontSize: 12, color: error ? '#c33' : 'rgba(80,110,150,0.7)', fontFamily: 'var(--font-sans)', textAlign: 'center' }}>
               {error || (nameReserved
                 ? (lang === 'es' ? '⚠ Ese nombre está reservado' : '⚠ That name is reserved')
-                : cloudUser 
-                  ? (lang === 'es' ? 'Jugador encontrado en la nube' : 'Player found in cloud')
-                  : (lang === 'es' ? 'Elige un nombre y contraseña para guardar tu progreso' : 'Pick a name and password to save your progress'))}
+                : googleSession
+                  ? (lang === 'es' ? 'Elige tu usuario para vincular a Google' : 'Pick your username to link to Google')
+                  : cloudUser 
+                    ? (lang === 'es' ? 'Jugador encontrado en la nube' : 'Player found in cloud')
+                    : (lang === 'es' ? 'Elige un nombre y contraseña para guardar tu progreso' : 'Pick a name and password to save your progress'))}
             </div>
           </form>
         )}
