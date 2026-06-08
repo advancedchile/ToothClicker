@@ -3965,7 +3965,7 @@ function App() {
     localStorage.setItem(DEVICE_USER_KEY, cleaned);
     
     // Store password locally in the save object
-    persistUserSave(cleaned, { ...defaultState(), password });
+    persistUserSave(cleaned, { ...defaultState(), password, googleLinked: passwordOrOauth === 'oauth' });
     
     setUsers(updated);
     setDeviceUser(cleaned);
@@ -3985,6 +3985,10 @@ function App() {
     
     if (cloudData) {
       let cloudProgress = cloudData.saveData || cloudData.save_data || cloudData; 
+      
+      if (cloudData.auth_id) {
+        cloudProgress.googleLinked = true;
+      }
       
       if (name === 'James') {
         const localData = loadUserSave(name);
