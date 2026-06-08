@@ -3941,6 +3941,18 @@ function App() {
     // Register in cloud
     const res = await window.cloudRegister(cleaned, password, defaultState());
     if (!res.ok) {
+      if (res.error === 'El jugador ya existe' && password === 'oauth') {
+        // Attempt to auto-link if it's an orphaned Google account
+        const linkRes = await window.cloudLinkGoogleAccount(cleaned, 'oauth');
+        if (linkRes.ok) {
+          // Linked successfully! Fetch player data and select
+          const authRes = await window.cloudFetchPlayerByAuth();
+          if (authRes.ok && authRes.found) {
+            handleSelectUser(authRes.player.name, authRes.player, null);
+          }
+          return;
+        }
+      }
       alert(lang === 'es' ? 'Error al registrar: ' + res.error : 'Registration error: ' + res.error);
       return;
     }
