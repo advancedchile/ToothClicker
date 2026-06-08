@@ -4024,12 +4024,17 @@ function App() {
     setScreen('game');
   }, [checkBan]);
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
     setSessionTerminated(false);
     setUsername(null);
     setSessionId(null);
     localStorage.removeItem(SESSION_ID_KEY);
     refreshUsers();
+    try {
+      if (window._supabase) {
+        await window._supabase.auth.signOut();
+      }
+    } catch(e) {}
     setScreen('gate');
   }, [refreshUsers]);
 
