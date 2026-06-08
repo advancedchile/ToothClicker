@@ -855,7 +855,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
         }
       }
 
-      onCreateUser(cleanName, password);
+      onCreateUser(cleanName, googleSession ? 'oauth' : password);
     }
     setLoading(false);
   };
