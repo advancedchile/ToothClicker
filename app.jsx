@@ -4038,6 +4038,7 @@ function App() {
 
   const handleLogout = useCallback(async () => {
     setSessionTerminated(false);
+    setScreen('gate'); // Set screen first to unmount Game
     setUsername(null);
     setSessionId(null);
     localStorage.removeItem(SESSION_ID_KEY);
@@ -4047,7 +4048,6 @@ function App() {
         await window._supabase.auth.signOut();
       }
     } catch(e) {}
-    setScreen('gate');
   }, [refreshUsers]);
 
   const handleDeleteUser = useCallback(() => {
@@ -4118,7 +4118,7 @@ function App() {
           saved={savedState}
           onLogout={handleLogout} onDeleteUser={handleDeleteUser}
           numFormat={numFormat} onNumFormatChange={handleNumFormatChange}
-          onBackToAdmin={isAdmin ? () => setScreen('admin') : undefined} 
+          onBackToAdmin={(isAdmin && username === ADMIN_NAME) ? () => setScreen('admin') : undefined} 
           activeSeasonConfig={activeSeasonConfig}
           isSeasonModalOpen={!!seasonModalData} />
         
