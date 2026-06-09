@@ -2400,7 +2400,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                           const barWidth = Math.min(200, Math.max(1, percentage * 2));
                           return (
                             <div key={g.gen.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center' }}>
+                                {g.gen.iconUrl ? (
+                                  <img src={g.gen.iconUrl} style={{ width: 28, height: 28, objectFit: 'contain', marginRight: 8, flexShrink: 0 }} alt="" />
+                                ) : (
+                                  <i className={g.gen.icon || 'fa-solid fa-tooth'} style={{ fontSize: 24, width: 28, textAlign: 'center', marginRight: 8, flexShrink: 0, color: 'var(--fg-2)' }}></i>
+                                )}
                                 <span className="t-body-m" style={{ fontWeight: 600 }}>
                                   {g.gen.name?.[lang] || g.gen[lang] || g.gen.name || g.gen.id} 
                                   <span style={{ color: 'var(--fg-3)', fontWeight: 'normal', fontSize: '0.9em', marginLeft: 4 }}>x{g.owned}</span>
@@ -3262,7 +3267,12 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                           const barWidth = Math.min(200, Math.max(1, percentage * 2));
                           return (
                             <div key={g.gen.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center' }}>
+                                {g.gen.iconUrl ? (
+                                  <img src={g.gen.iconUrl} style={{ width: 28, height: 28, objectFit: 'contain', marginRight: 8, flexShrink: 0 }} alt="" />
+                                ) : (
+                                  <i className={g.gen.icon || 'fa-solid fa-tooth'} style={{ fontSize: 24, width: 28, textAlign: 'center', marginRight: 8, flexShrink: 0, color: 'var(--fg-2)' }}></i>
+                                )}
                                 <span className="t-body-m" style={{ fontWeight: 600 }}>
                                   {g.gen.name?.[lang] || g.gen[lang] || g.gen.name || g.gen.id} 
                                   <span style={{ color: 'var(--fg-3)', fontWeight: 'normal', fontSize: '0.9em', marginLeft: 4 }}>x{g.owned}</span>
