@@ -61,12 +61,12 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
     .filter(r => r.name.toLowerCase() !== 'james')
     .sort((a, b) => {
       if (sortBy === 'level') {
-        return (b.level || 0) - (a.level || 0) || (b.prestigeCount || 0) - (a.prestigeCount || 0);
+        return (b.level || 0) - (a.level || 0) || (b.prestige || 0) - (a.prestige || 0);
       }
       if (sortBy === 'total') {
-        return (b.totalEarned || 0) - (a.totalEarned || 0) || (b.prestigeCount || 0) - (a.prestigeCount || 0);
+        return (b.totalEarned || 0) - (a.totalEarned || 0) || (b.prestige || 0) - (a.prestige || 0);
       }
-      return (b.prestigeCount || 0) - (a.prestigeCount || 0) || (b.totalEarned || 0) - (a.totalEarned || 0);
+      return (b.prestige || 0) - (a.prestige || 0) || (b.totalEarned || 0) - (a.totalEarned || 0);
     });
   
   if (lb.loading && rows.length === 0 && !lb.error) return (
@@ -182,7 +182,7 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
               </div>
               <div className="leaderboard-prestige-col" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--warning-i130)', fontWeight: 600 }}>
                 <i className="fa-solid fa-crown" style={{ color: 'var(--warning-i100)', fontSize: 11, marginRight: 4 }}></i>
-                <window.Odometer value={r.prestigeCount || 0} />
+                <window.Odometer value={r.prestige || 0} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <button 

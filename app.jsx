@@ -3814,7 +3814,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         </Modal>
       }
       {/* New tooth unlock notification */}
-      {newToothUnlock &&
+      {newToothUnlock && !showLevelUpModal &&
       <div onClick={() => setNewToothUnlock(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, animation: 'fadeIn 200ms ease' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-1)', borderRadius: 'var(--radius-m)', padding: 'var(--spacing-6)', maxWidth: 340, width: '90%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, animation: 'modalIn 250ms ease', boxShadow: 'var(--elevation-30)', border: '2px solid var(--warning-i100)' }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--warning-i100)', background: 'var(--warning-i010)', padding: '4px 12px', borderRadius: 999 }}>
@@ -3843,7 +3843,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         </div>
       }
 
-      {newMusicUnlock && !showLevelUpModal && (
+      {newMusicUnlock && !showLevelUpModal && !newToothUnlock && (
         <div onClick={() => setNewMusicUnlock(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, animation: 'fadeIn 200ms ease' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-2)', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, width: 340, maxWidth: '90%', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', border: '1px solid var(--border-subtle)', animation: 'scaleUp 300ms cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--primary-i010)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-i100)', fontSize: 32, marginBottom: 8 }}>
