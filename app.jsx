@@ -3906,11 +3906,14 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             setState(s => ({ ...s, teeth: Math.max(0, s.teeth - reward.amount) }));
             rewardDesc = lang === 'es' ? `-${window.formatNum(reward.amount)} dientes` : `-${window.formatNum(reward.amount)} teeth`;
           } else if (reward.type === 'randomBonus') {
-            const bonuses = ['gold', 'crystal', 'hold'];
-            const pick = bonuses[Math.floor(Math.random() * bonuses.length)];
-            if (pick === 'gold') { setGoldenActiveUntil(Date.now() + 13000); setCrystalFrenzyUntil(0); setHoldBonusUntil(0); rewardDesc = lang === 'es' ? 'Bonus Diente Dorado x7 activado' : 'Golden Tooth x7 bonus activated'; }
-            else if (pick === 'crystal') { setCrystalFrenzyUntil(Date.now() + 15000); setGoldenActiveUntil(0); setHoldBonusUntil(0); rewardDesc = lang === 'es' ? 'Frenesí Cristal x5 activado' : 'Crystal Frenzy x5 activated'; }
-            else { setHoldBonusUntil(Date.now() + 20000); setGoldenActiveUntil(0); setCrystalFrenzyUntil(0); rewardDesc = lang === 'es' ? 'Auto-click activado' : 'Auto-click activated'; }
+            const list = window.GAME_CONTENT?.randomBonuses || [];
+            if (list.length > 0) {
+              const bonus = list[Math.floor(Math.random() * list.length)];
+              handleBonusClick({ ...bonus, id: 'reward_' + Math.random() });
+              rewardDesc = lang === 'es' ? `Bonus activado: ${bonus.name?.es || 'Misterio'}` : `Bonus activated: ${bonus.name?.en || 'Mystery'}`;
+            } else {
+              rewardDesc = lang === 'es' ? 'Sin bonus disponibles' : 'No bonuses available';
+            }
           }
         } else {
           rewardDesc = lang === 'es' ? 'Sin efecto' : 'No effect';
