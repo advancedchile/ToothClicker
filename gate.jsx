@@ -328,8 +328,7 @@ function PlayerDetailSidebar({ player, lang }) {
     const xpUpgrades = sd.xpUpgrades || {};
     const academyGpsMult = (() => {
       const regular = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (xpUpgrades[up.id] ? (up.gpsBonus || 0) : 0), 0);
-      const special = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (xpUpgrades[up.id] ? (up.gpsBonus || 0) : 0), 0);
-      return 1 + regular + special;
+      return 1 + regular;
     })();
 
     const globalMult = prestigeMult * achMult * storeMults.global * academyGpsMult;

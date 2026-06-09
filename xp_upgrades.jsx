@@ -170,40 +170,4 @@ function generateXPUpgrades() {
   return upgrades;
 }
 
-/**
- * Generates special level-up upgrades.
- * These appear in the Academy when reaching certain levels.
- */
-function generateLevelUpUpgrades() {
-  const upgrades = [];
-  for (let lvl = 1; lvl <= 100; lvl++) {
-    const difficulty = lvl;
-    const baseCost = 25000 * Math.pow(1.5, lvl);
-    
-    // Level rewards alternate or stack
-    const gpsBonus = 0.05 * lvl; // 5% per level, much better!
-    const xpMult = 0.005 * lvl;   // 0.5% XP mult per level
-    
-    upgrades.push({
-      id: `lvl_up_${lvl}`,
-      levelReq: lvl,
-      isLevelSpecial: true,
-      name: {
-        es: `Excelencia Académica Nivel ${lvl}`,
-        en: `Academic Excellence Level ${lvl}`
-      },
-      desc: {
-        es: `Premio por alcanzar el nivel ${lvl}. +${(gpsBonus * 100).toFixed(0)}% prod. global y +${(xpMult * 100).toFixed(1)}% XP global.`,
-        en: `Award for reaching level ${lvl}. +${(gpsBonus * 100).toFixed(0)}% global prod. and +${(xpMult * 100).toFixed(1)}% global XP.`
-      },
-      icon: 'fa-solid fa-award',
-      baseCost: baseCost,
-      gpsBonus,
-      xpMult
-    });
-  }
-  return upgrades;
-}
-
 window.XP_UPGRADES = []; // generateXPUpgrades();
-window.LEVEL_UPGRADES = []; // generateLevelUpUpgrades();
