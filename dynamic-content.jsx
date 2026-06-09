@@ -189,7 +189,7 @@ window.initializeGameContent = function(dbContent, isTemplate = false) {
   });
   window.TOOTH_STAGES = window.GAME_CONTENT.toothStages;
   window.XP_UPGRADES = window.GAME_CONTENT.xpUpgrades;
-  window.LEVEL_UPGRADES = window.GAME_CONTENT.levelUpgrades;
+  window.LEVEL_UPGRADES = []; // Only admin xpUpgrades should be used
   window.STORE_UPGRADES = window.GAME_CONTENT.storeUpgrades;
 };
 

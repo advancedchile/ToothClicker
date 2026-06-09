@@ -151,6 +151,9 @@ function getToothStage(prestigeCount, level = 1, fullState = null) {
       unlocked = window.isToothUnlocked(fullState, s);
     } else {
       unlocked = (prestigeCount || 0) >= s.prestige && level >= (s.reqLevel || 0);
+      if (unlocked && (s.reqGenId || (s.reqAcademyUpgrades && s.reqAcademyUpgrades.length > 0))) {
+        unlocked = false; // Cannot verify without full state, assume locked
+      }
     }
     if (unlocked) {
       stage = s;

@@ -141,7 +141,7 @@ function LeaderboardBody({ lb, lang, currentUser, renderRowExtra, extraColumns =
               <div className="leaderboard-player-col" style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
                 <div className="leaderboard-tooth-wrapper" style={{ position: 'relative', width: 40, height: 40, flexShrink: 0 }}>
                   {window.TOOTH_STAGES && (() => {
-                    const stage = window.getToothStage(r.prestigeCount || 0, r.level || 1);
+                    const stage = window.getToothStage(r.prestigeCount || 0, r.level || 1, r.saveData);
                     return (i === 0 && stage.glbData) ? (
                       <div style={{ position: 'absolute', width: 64, height: 64, pointerEvents: 'none', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1 }}>
                         <window.Tooth3DViewer glbData={stage.glbData} textureUrl={stage.img} style={{ width: '100%', height: '100%' }} animateFloat={false} />
@@ -294,7 +294,7 @@ function LeaderboardPanel({ username, lang }) {
 function PlayerDetailSidebar({ player, lang }) {
   const { name, clinicName, level, teeth, prestigeCount, totalEarned, timePlayed, isOnline, updatedAt, saveData } = player;
   
-  const stage = window.getToothStage ? window.getToothStage(prestigeCount || 0, level || 1) : { img: 'uploads/tooth1.png' };
+  const stage = window.getToothStage ? window.getToothStage(prestigeCount || 0, level || 1, saveData) : { img: 'uploads/tooth1.png' };
   const displayClinic = clinicName || (lang === 'es' ? `Clínica de ${name}` : `${name}'s Clinic`);
   const online = isOnline !== false && (Date.now() - updatedAt) < 60000;
 

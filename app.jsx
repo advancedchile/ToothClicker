@@ -3121,7 +3121,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 const filteredLvl = allLvl.filter(up => {
                   const purchased = !!state.xpUpgrades?.[up.id];
                   const lvlReq = (up.levelReq !== undefined) ? up.levelReq : (up.reqLevel || 0);
-                  const isUnlocked = state.level >= lvlReq;
+                  const isUnlocked = purchased || state.level >= lvlReq;
                   const canAfford = state.teeth >= (up.baseCost || 0);
                   const hasEverAfforded = state.totalEarned >= (up.baseCost || 0);
                   const isShown = purchased || canAfford || hasEverAfforded;
@@ -3142,7 +3142,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                   const lvlReq = (up.levelReq !== undefined) ? up.levelReq : (up.reqLevel || 0);
                   const meetsLevel = state.level >= lvlReq;
                   
-                  const isUnlocked = meetsGenQty && meetsAch && legacyAch && meetsLevel;
+                  const isUnlocked = purchased || (meetsGenQty && meetsAch && legacyAch && meetsLevel);
                   const canAfford = state.teeth >= (up.baseCost || up.costXP || 0);
                   const hasEverAfforded = state.totalEarned >= (up.baseCost || up.costXP || 0);
                   const isShown = purchased || canAfford || hasEverAfforded;
@@ -4042,20 +4042,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             <div className="t-body-m" style={{ marginTop: 8, color: 'var(--fg-2)' }}>
               {lang === 'es' ? `¡Felicidades! Has alcanzado el nivel ${justLeveledTo}.` : `Congratulations! You've reached level ${justLeveledTo}.`}
             </div>
-            {(() => {
-              const up = (window.LEVEL_UPGRADES || []).find(u => u.levelReq === justLeveledTo);
-              if (!up) return null;
-              return (
-                <div style={{ marginTop: 16, padding: '12px', background: 'var(--warning-i005)', borderRadius: 12, border: '1px solid var(--warning-i030)', textAlign: 'left' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--warning-i130)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-                    {lang === 'es' ? '¡NUEVA MEJORA ESPECIAL!' : 'NEW SPECIAL UPGRADE!'}
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>{up.name[lang]}</div>
-                  <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>{up.desc[lang]}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary-i100)', marginTop: 4 }}>{lang === 'es' ? 'Disponible en la Academia' : 'Available in the Academy'}</div>
-                </div>
-              );
-            })()}
+
             <div style={{ marginTop: 16, padding: '12px', background: 'var(--primary-i005)', borderRadius: 12, border: '1px solid var(--primary-i020)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary-i130)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                 {lang === 'es' ? 'Próximo Objetivo' : 'Next Goal'}
