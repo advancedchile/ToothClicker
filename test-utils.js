@@ -107,7 +107,8 @@ window.computePassivePower = function(state, activeBonusEffects = []) {
   const prestigeMult = 1 + bonusPerSmile * (state.prestige || 0);
   const achMult = 1 + 0.01 * Object.values(state.achievements || {}).filter(Boolean).length;
   
-  const academyGpsMult = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades?.[up.id] ? (up.gpsBonus || 0) : 0), 0);
+  const academyGpsMult = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades?.[up.id] ? (up.gpsBonus || 0) : 0), 0) +
+                         (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (state.xpUpgrades?.[up.id] ? (up.gpsBonus || 0) : 0), 0);
   const totalAcademyGpsMult = 1 + academyGpsMult;
 
   const academyGenMults = {};
