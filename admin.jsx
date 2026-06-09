@@ -2766,7 +2766,7 @@ window.AdminCorePanel = function({ activeTab, setActiveTab, lang, onLangChange, 
                       {lang === 'es' ? 'Mensaje Aleatorio' : 'Random Message'}
                     </div>
                     <div style={{ fontSize: 10, color: '#64748b' }}>
-                      {lang === 'es' ? 'Intervalo 5-10 min' : '5-10 min interval'}
+                      {lang === 'es' ? 'Intervalo 2-5 min' : '2-5 min interval'}
                     </div>
                   </div>
                 </div>
