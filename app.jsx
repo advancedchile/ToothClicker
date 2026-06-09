@@ -1160,16 +1160,16 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     }
 
     function scheduleNext() {
-      // Spacing between 5 and 10 minutes (in ms)
-      const randomDelay = (5 + Math.random() * 5) * 60 * 1000;
+      // Spacing between 2 and 5 minutes (in ms)
+      const randomDelay = (2 + Math.random() * 3) * 60 * 1000;
       timeoutId = setTimeout(() => {
         triggerRandomBossMessage();
         scheduleNext();
       }, randomDelay);
     }
 
-    // Initial delay: first message appears randomly between 5 and 7 minutes after entering
-    const initialDelay = (5 + Math.random() * 2) * 60 * 1000;
+    // Initial delay: first message appears randomly between 2 and 5 minutes after entering
+    const initialDelay = (2 + Math.random() * 3) * 60 * 1000;
     timeoutId = setTimeout(() => {
       triggerRandomBossMessage();
       scheduleNext();
