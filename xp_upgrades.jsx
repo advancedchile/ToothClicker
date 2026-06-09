@@ -206,4 +206,3 @@ function generateLevelUpUpgrades() {
 }
 
 window.XP_UPGRADES = []; // generateXPUpgrades();
-window.LEVEL_UPGRADES = []; // generateLevelUpUpgrades();
