@@ -1573,6 +1573,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     // We now handle tooth unlock notifications via a generic useEffect
 
     setState((s) => {
+      const currentlyUnlockedTeeth = window.TOOTH_STAGES.filter(stage => window.isToothUnlocked(s, stage)).map(stage => stage.es);
+      const allUnlocked = [...new Set([...(s.unlockedTeeth || []), ...currentlyUnlockedTeeth])];
+
       const next = { 
         ...defaultState(), 
         prestige: newPrestige, 
@@ -1591,7 +1594,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         // Persist Clinic name and Lifetime Earnings
         clinicName: s.clinicName,
         totalEarned: 0, // Reset run progress
-        lifetimeEarned: s.lifetimeEarned || s.totalEarned // Persist lifetime
+        lifetimeEarned: s.lifetimeEarned || s.totalEarned, // Persist lifetime
+        unlockedTeeth: allUnlocked
       };
 
       // Immediate local persistence

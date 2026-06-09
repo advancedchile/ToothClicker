@@ -130,6 +130,10 @@ window.isToothUnlocked = function(state, s) {
     unlocked = unlocked && s.reqAcademyUpgrades.every(id => !!state.xpUpgrades?.[id]);
   }
   
+  if (state.unlockedTeeth && state.unlockedTeeth.includes(s.es)) {
+    return true;
+  }
+  
   return unlocked;
 };
 
