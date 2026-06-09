@@ -216,7 +216,8 @@ function LedMarquee({ msg, onDismiss, isMobile }) {
     }, 1000);
     const t2 = setTimeout(() => setPhase(2), 2000);
     
-    const durStr = msg.ledSpeed === 'fast' ? 5 : msg.ledSpeed === 'slow' ? 15 : 10;
+    const effectiveSpeed = msg.msgType === 'normal' ? 'slow' : msg.ledSpeed;
+    const durStr = effectiveSpeed === 'fast' ? 5 : effectiveSpeed === 'slow' ? 15 : 10;
     const t3 = setTimeout(() => {
       if (onDismissRef.current) onDismissRef.current();
     }, 2000 + durStr * 1000 + 500);
@@ -236,7 +237,8 @@ function LedMarquee({ msg, onDismiss, isMobile }) {
   const bgColor = msg.ledBgColor || '#000000';
   const dotColor = msg.ledColor || '#ff0000';
   const blurPx = msg.ledBrightness === 'high' ? 8 : msg.ledBrightness === 'low' ? 2 : 4;
-  const speedSecs = msg.ledSpeed === 'fast' ? '5s' : msg.ledSpeed === 'slow' ? '15s' : '10s';
+  const effectiveSpeed = msg.msgType === 'normal' ? 'slow' : msg.ledSpeed;
+  const speedSecs = effectiveSpeed === 'fast' ? '5s' : effectiveSpeed === 'slow' ? '15s' : '10s';
   const dir = msg.ledDirection === 'ltr' ? 'led-marquee-ltr' : 'led-marquee-rtl';
   const text = msg.text || msg.es || msg.en || '';
   const textSize = msg.ledTextSize || 'normal';
@@ -495,6 +497,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem(SOUND_KEY) !== '0');
   const [visualEffects, setVisualEffects] = useState(() => localStorage.getItem('tooth-clicker-visual-effects') !== '0');
   const [tab, setTab] = useState('generators');
+  const [activeStatsTab, setActiveStatsTab] = useState('current');
   const [floats, setFloats] = useState([]);
 
   const [toast, setToast] = useState(null);
@@ -1811,6 +1814,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
            </div>
 
+           <div className="t-body-xs" style={{ color: 'var(--fg-3)', textAlign: 'center', marginBottom: 4, fontWeight: 600 }}>{lang === 'es' ? 'Tienda de mejoras' : 'Upgrades store'}</div>
            <div className="mobile-upgrades-row">
               {(window.STORE_UPGRADES || []).filter(up => {
                  if (state.storeUpgrades[up.id]) return false;
@@ -2322,33 +2326,98 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                     <div className="t-heading-m">{t.statsTitle}</div>
                     <div className="t-body-s" style={{ color: 'var(--fg-3)', marginTop: 2 }}>{lang === 'es' ? 'Todo lo que pasó en tu consulta.' : 'Everything that happened in your practice.'}</div>
                   </div>
-                  <window.StatsGroup title={t.general} icon="fa-solid fa-chart-line" rows={[
-                    { label: t.currentTeeth, value: <window.Odometer value={state.teeth} formatFn={fmt} />, strong: true },
-                    { label: t.perSecond, value: <><window.Odometer value={displayedPerSecond} formatFn={(v) => fmt(v, true)} />/s</>, color: 'var(--positive-i100)' },
-                    { label: t.perClick, value: <window.Odometer value={perClick} formatFn={(v) => fmt(v, true)} />, color: 'var(--alternative-i100)' },
-                    { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: <>x<window.Odometer value={globalMult} formatFn={(v) => fmt(Math.floor(v * 100) / 100)} /></>, color: 'var(--warning-i130)' },
-                    { label: lang === 'es' ? 'Récord CPS' : 'CPS Record', value: <window.Odometer value={state.maxCPS || 0} formatFn={fmt} />, color: 'var(--positive-i100)' }
-                  ]} />
-                  <window.StatsGroup title={lang === 'es' ? 'Progresión' : 'Progression'} icon="fa-solid fa-arrow-trend-up" accent="var(--primary-i100)" rows={[
-                    { label: lang === 'es' ? 'Nivel del jugador' : 'Player level', value: <window.Odometer value={state.level || 0} formatFn={fmt} />, strong: true, color: 'var(--primary-i100)' },
-                    { label: lang === 'es' ? 'Experiencia (XP)' : 'Experience (XP)', value: <>{(state.xp || 0).toLocaleString(lang === 'es' ? 'es-ES' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / <window.Odometer value={window.getXPRequired(state.level || 0)} formatFn={fmt} /></> },
-                    { label: t.totalTeeth, value: <window.Odometer value={state.totalEarned} formatFn={fmt} /> },
-                    { label: t.totalClicks, value: <window.Odometer value={state.totalClicks} formatFn={fmt} /> },
-                    { label: lang === 'es' ? 'Generadores totales' : 'Total generators', value: <window.Odometer value={Object.values(state.generators || {}).reduce((a, b) => a + (b || 0), 0)} formatFn={fmt} /> },
-                    { label: lang === 'es' ? 'Mejoras compradas' : 'Upgrades bought', value: `${Object.values(state.clickUpgrades || {}).filter(Boolean).length}/${window.CLICK_UPGRADES.length}` },
-                    { label: lang === 'es' ? 'Logros' : 'Achievements', value: `${Object.keys(state.achievements || {}).length}/${window.ACHIEVEMENTS.length}` }
-                  ]} />
-                  <window.StatsGroup title={lang === 'es' ? 'Prestigio y Dientes Dorados' : 'Prestige & Golden Teeth'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
-                    { label: t.prestigeHave, value: <window.Odometer value={state.prestige} formatFn={fmt} />, strong: true },
-                    { label: lang === 'es' ? 'Veces prestigiado' : 'Times prestiged', value: <window.Odometer value={state.prestigeCount || 0} formatFn={fmt} />, color: 'var(--warning-i100)' },
-                    { label: lang === 'es' ? 'Próxima ganancia' : 'Next gain', value: <>+<window.Odometer value={prestigeGain} formatFn={fmt} /></> },
-                    { label: lang === 'es' ? 'Dientes dorados' : 'Golden teeth', value: <window.Odometer value={state.goldenClicks} formatFn={fmt} />, color: 'var(--warning-i100)' }
-                  ]} />
-                  <window.StatsGroup title={lang === 'es' ? 'Tiempo' : 'Time'} icon="fa-solid fa-clock" accent="var(--fg-2)" rows={[
-                    { label: t.timePlayed, value: window.formatTime(state.timePlayed), strong: true },
-                    { label: lang === 'es' ? 'Empezaste' : 'Started', value: new Date(state.startedAt || Date.now()).toLocaleDateString(lang === 'es' ? 'es' : 'en') },
-                    { label: lang === 'es' ? 'Sesión actual' : 'Current session', value: window.formatTime(Math.max(0, (state.timePlayed || 0) - (bootRef.current?.saved?.timePlayed || 0))) }
-                  ]} />
+                  
+                  <div style={{ display: 'flex', gap: 8, padding: 4, background: 'var(--bg-2)', borderRadius: 8 }}>
+                    <button 
+                      onClick={() => setActiveStatsTab('current')} 
+                      style={{ 
+                        flex: 1, padding: '6px 0', border: 'none', borderRadius: 6, cursor: 'pointer',
+                        background: activeStatsTab === 'current' ? 'var(--primary-i100)' : 'transparent',
+                        color: activeStatsTab === 'current' ? '#fff' : 'var(--fg-2)',
+                        fontWeight: activeStatsTab === 'current' ? 'bold' : 'normal',
+                        transition: 'all 0.2s', fontFamily: 'inherit', fontSize: '0.9em'
+                      }}
+                    >
+                      {lang === 'es' ? 'Datos actuales' : 'Current data'}
+                    </button>
+                    <button 
+                      onClick={() => setActiveStatsTab('production')} 
+                      style={{ 
+                        flex: 1, padding: '6px 0', border: 'none', borderRadius: 6, cursor: 'pointer',
+                        background: activeStatsTab === 'production' ? 'var(--primary-i100)' : 'transparent',
+                        color: activeStatsTab === 'production' ? '#fff' : 'var(--fg-2)',
+                        fontWeight: activeStatsTab === 'production' ? 'bold' : 'normal',
+                        transition: 'all 0.2s', fontFamily: 'inherit', fontSize: '0.9em'
+                      }}
+                    >
+                      {lang === 'es' ? 'Producción' : 'Production'}
+                    </button>
+                  </div>
+
+                  {activeStatsTab === 'current' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)' }}>
+                      <window.StatsGroup title={t.general} icon="fa-solid fa-chart-line" rows={[
+                        { label: t.currentTeeth, value: <window.Odometer value={state.teeth} formatFn={fmt} />, strong: true },
+                        { label: t.perSecond, value: <><window.Odometer value={displayedPerSecond} formatFn={(v) => fmt(v, true)} />/s</>, color: 'var(--positive-i100)' },
+                        { label: t.perClick, value: <window.Odometer value={perClick} formatFn={(v) => fmt(v, true)} />, color: 'var(--alternative-i100)' },
+                        { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: <>x<window.Odometer value={globalMult} formatFn={(v) => fmt(Math.floor(v * 100) / 100)} /></>, color: 'var(--warning-i130)' },
+                        { label: lang === 'es' ? 'Récord CPS' : 'CPS Record', value: <window.Odometer value={state.maxCPS || 0} formatFn={fmt} />, color: 'var(--positive-i100)' }
+                      ]} />
+                      <window.StatsGroup title={lang === 'es' ? 'Progresión' : 'Progression'} icon="fa-solid fa-arrow-trend-up" accent="var(--primary-i100)" rows={[
+                        { label: lang === 'es' ? 'Nivel del jugador' : 'Player level', value: <window.Odometer value={state.level || 0} formatFn={fmt} />, strong: true, color: 'var(--primary-i100)' },
+                        { label: lang === 'es' ? 'Experiencia (XP)' : 'Experience (XP)', value: <>{(state.xp || 0).toLocaleString(lang === 'es' ? 'es-ES' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / <window.Odometer value={window.getXPRequired(state.level || 0)} formatFn={fmt} /></> },
+                        { label: t.totalTeeth, value: <window.Odometer value={state.totalEarned} formatFn={fmt} /> },
+                        { label: t.totalClicks, value: <window.Odometer value={state.totalClicks} formatFn={fmt} /> },
+                        { label: lang === 'es' ? 'Generadores totales' : 'Total generators', value: <window.Odometer value={Object.values(state.generators || {}).reduce((a, b) => a + (b || 0), 0)} formatFn={fmt} /> },
+                        { label: lang === 'es' ? 'Mejoras compradas' : 'Upgrades bought', value: `${Object.values(state.clickUpgrades || {}).filter(Boolean).length}/${window.CLICK_UPGRADES.length}` },
+                        { label: lang === 'es' ? 'Logros' : 'Achievements', value: `${Object.keys(state.achievements || {}).length}/${window.ACHIEVEMENTS.length}` }
+                      ]} />
+                      <window.StatsGroup title={lang === 'es' ? 'Prestigio y Dientes Dorados' : 'Prestige & Golden Teeth'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
+                        { label: t.prestigeHave, value: <window.Odometer value={state.prestige} formatFn={fmt} />, strong: true },
+                        { label: lang === 'es' ? 'Veces prestigiado' : 'Times prestiged', value: <window.Odometer value={state.prestigeCount || 0} formatFn={fmt} />, color: 'var(--warning-i100)' },
+                        { label: lang === 'es' ? 'Próxima ganancia' : 'Next gain', value: <>+<window.Odometer value={prestigeGain} formatFn={fmt} /></> },
+                        { label: lang === 'es' ? 'Dientes dorados' : 'Golden teeth', value: <window.Odometer value={state.goldenClicks} formatFn={fmt} />, color: 'var(--warning-i100)' }
+                      ]} />
+                      <window.StatsGroup title={lang === 'es' ? 'Tiempo' : 'Time'} icon="fa-solid fa-clock" accent="var(--fg-2)" rows={[
+                        { label: t.timePlayed, value: window.formatTime(state.timePlayed), strong: true },
+                        { label: lang === 'es' ? 'Empezaste' : 'Started', value: new Date(state.startedAt || Date.now()).toLocaleDateString(lang === 'es' ? 'es' : 'en') },
+                        { label: lang === 'es' ? 'Sesión actual' : 'Current session', value: window.formatTime(Math.max(0, (state.timePlayed || 0) - (bootRef.current?.saved?.timePlayed || 0))) }
+                      ]} />
+                    </div>
+                  )}
+
+                  {activeStatsTab === 'production' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      {(() => {
+                        const activeGens = genStatus.filter(g => g.owned > 0).sort((a, b) => b.production - a.production);
+                        if (activeGens.length === 0) {
+                          return <div className="t-body-s" style={{ color: 'var(--fg-3)', textAlign: 'center', padding: '20px 0' }}>{lang === 'es' ? 'No has comprado ningún generador.' : 'You haven\'t bought any generators.'}</div>;
+                        }
+                        const totalProd = activeGens.reduce((sum, g) => sum + g.production, 0);
+                        return activeGens.map(g => {
+                          const percentage = totalProd > 0 ? (g.production / totalProd) * 100 : 0;
+                          const barWidth = Math.min(200, Math.max(1, percentage * 2));
+                          return (
+                            <div key={g.gen.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span className="t-body-m" style={{ fontWeight: 600 }}>
+                                  {g.gen.name?.[lang] || g.gen[lang] || g.gen.name || g.gen.id} 
+                                  <span style={{ color: 'var(--fg-3)', fontWeight: 'normal', fontSize: '0.9em', marginLeft: 4 }}>x{g.owned}</span>
+                                  <span style={{ color: 'var(--primary-i100)', fontWeight: 600, fontSize: '0.9em', marginLeft: 8 }}>{percentage.toFixed(1)}%</span>
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ height: 2, background: 'var(--bg-3)', borderRadius: 1, width: 200 }}>
+                                  <div style={{ height: 2, width: `${barWidth}px`, background: 'var(--primary-i100)', borderRadius: 1 }} />
+                                </div>
+                                <span className="t-body-xs" style={{ color: 'var(--fg-3)' }}>+{fmt(g.production, true)}/s</span>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -2677,6 +2746,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             padding: '16px 20px',
             overflowY: 'auto'
           }}>
+            <div className="t-body-s" style={{ color: 'var(--fg-3)', fontWeight: 600, marginBottom: 12 }}>{lang === 'es' ? 'Tienda de mejoras' : 'Upgrades store'}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 64px)', justifyContent: 'space-between', rowGap: '16px', alignContent: 'start' }}>
             {(() => {
               const totalStoreUpgradesCount = (window.STORE_UPGRADES || []).length;
@@ -3112,41 +3182,106 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
           {tab === 'leaderboard' && <window.LeaderboardPanel username={username} lang={lang} />}
 
-          {tab === 'stats' &&
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)' }}>
-              <div>
-                <div className="t-heading-m">{t.statsTitle}</div>
-                <div className="t-body-s" style={{ color: 'var(--fg-3)', marginTop: 2 }}>{lang === 'es' ? 'Todo lo que pasó en tu consulta.' : 'Everything that happened in your practice.'}</div>
-              </div>
-              <window.StatsGroup title={t.general} icon="fa-solid fa-chart-line" rows={[
-            { label: t.currentTeeth, value: <window.Odometer value={state.teeth} formatFn={fmt} />, strong: true },
-            { label: t.perSecond, value: <><window.Odometer value={displayedPerSecond} formatFn={(v) => fmt(v, true)} />/s</>, color: 'var(--positive-i100)' },
-            { label: t.perClick, value: <window.Odometer value={perClick} formatFn={(v) => fmt(v, true)} />, color: 'var(--alternative-i100)' },
-            { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: <>x<window.Odometer value={globalMult} formatFn={(v) => fmt(Math.floor(v * 100) / 100)} /></>, color: 'var(--warning-i130)' },
-            { label: lang === 'es' ? 'Récord CPS' : 'CPS Record', value: <window.Odometer value={state.maxCPS || 0} formatFn={fmt} />, color: 'var(--positive-i100)' }]
-            } />
-              <window.StatsGroup title={lang === 'es' ? 'Progresión' : 'Progression'} icon="fa-solid fa-arrow-trend-up" accent="var(--primary-i100)" rows={[
-            { label: lang === 'es' ? 'Nivel del jugador' : 'Player level', value: <window.Odometer value={state.level || 0} formatFn={fmt} />, strong: true, color: 'var(--primary-i100)' },
-            { label: lang === 'es' ? 'Experiencia (XP)' : 'Experience (XP)', value: <>{(state.xp || 0).toLocaleString(lang === 'es' ? 'es-ES' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / <window.Odometer value={window.getXPRequired(state.level || 0)} formatFn={fmt} /></> },
-            { label: t.totalTeeth, value: <window.Odometer value={state.totalEarned} formatFn={fmt} /> },
-            { label: t.totalClicks, value: <window.Odometer value={state.totalClicks} formatFn={fmt} /> },
-            { label: lang === 'es' ? 'Generadores totales' : 'Total generators', value: <window.Odometer value={Object.values(state.generators || {}).reduce((a, b) => a + (b || 0), 0)} formatFn={fmt} /> },
-            { label: lang === 'es' ? 'Mejoras compradas' : 'Upgrades bought', value: `${Object.values(state.clickUpgrades || {}).filter(Boolean).length}/${window.CLICK_UPGRADES.length}` },
-            { label: lang === 'es' ? 'Logros' : 'Achievements', value: `${Object.keys(state.achievements || {}).length}/${window.ACHIEVEMENTS.length}` }]
-            } />
-              <window.StatsGroup title={lang === 'es' ? 'Prestigio y Dientes Dorados' : 'Prestige & Golden Teeth'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
-            { label: t.prestigeHave, value: <window.Odometer value={state.prestige} formatFn={fmt} />, strong: true },
-            { label: lang === 'es' ? 'Veces prestigiado' : 'Times prestiged', value: <window.Odometer value={state.prestigeCount || 0} formatFn={fmt} />, color: 'var(--warning-i100)' },
-            { label: lang === 'es' ? 'Próxima ganancia' : 'Next gain', value: <>+<window.Odometer value={prestigeGain} formatFn={fmt} /></> },
-            { label: lang === 'es' ? 'Dientes dorados' : 'Golden teeth', value: <window.Odometer value={state.goldenClicks} formatFn={fmt} />, color: 'var(--warning-i100)' }]
-            } />
-              <window.StatsGroup title={lang === 'es' ? 'Tiempo' : 'Time'} icon="fa-solid fa-clock" accent="var(--fg-2)" rows={[
-            { label: t.timePlayed, value: window.formatTime(state.timePlayed), strong: true },
-            { label: lang === 'es' ? 'Empezaste' : 'Started', value: new Date(state.startedAt || Date.now()).toLocaleDateString(lang === 'es' ? 'es' : 'en') },
-            { label: lang === 'es' ? 'Sesión actual' : 'Current session', value: window.formatTime(Math.max(0, (state.timePlayed || 0) - (bootRef.current?.saved?.timePlayed || 0))) }]
-            } />
-            </div>
-          }
+          {tab === 'stats' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)' }}>
+                  <div>
+                    <div className="t-heading-m">{t.statsTitle}</div>
+                    <div className="t-body-s" style={{ color: 'var(--fg-3)', marginTop: 2 }}>{lang === 'es' ? 'Todo lo que pasó en tu consulta.' : 'Everything that happened in your practice.'}</div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: 8, padding: 4, background: 'var(--bg-2)', borderRadius: 8 }}>
+                    <button 
+                      onClick={() => setActiveStatsTab('current')} 
+                      style={{ 
+                        flex: 1, padding: '6px 0', border: 'none', borderRadius: 6, cursor: 'pointer',
+                        background: activeStatsTab === 'current' ? 'var(--primary-i100)' : 'transparent',
+                        color: activeStatsTab === 'current' ? '#fff' : 'var(--fg-2)',
+                        fontWeight: activeStatsTab === 'current' ? 'bold' : 'normal',
+                        transition: 'all 0.2s', fontFamily: 'inherit', fontSize: '0.9em'
+                      }}
+                    >
+                      {lang === 'es' ? 'Datos actuales' : 'Current data'}
+                    </button>
+                    <button 
+                      onClick={() => setActiveStatsTab('production')} 
+                      style={{ 
+                        flex: 1, padding: '6px 0', border: 'none', borderRadius: 6, cursor: 'pointer',
+                        background: activeStatsTab === 'production' ? 'var(--primary-i100)' : 'transparent',
+                        color: activeStatsTab === 'production' ? '#fff' : 'var(--fg-2)',
+                        fontWeight: activeStatsTab === 'production' ? 'bold' : 'normal',
+                        transition: 'all 0.2s', fontFamily: 'inherit', fontSize: '0.9em'
+                      }}
+                    >
+                      {lang === 'es' ? 'Producción' : 'Production'}
+                    </button>
+                  </div>
+
+                  {activeStatsTab === 'current' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)' }}>
+                      <window.StatsGroup title={t.general} icon="fa-solid fa-chart-line" rows={[
+                        { label: t.currentTeeth, value: <window.Odometer value={state.teeth} formatFn={fmt} />, strong: true },
+                        { label: t.perSecond, value: <><window.Odometer value={displayedPerSecond} formatFn={(v) => fmt(v, true)} />/s</>, color: 'var(--positive-i100)' },
+                        { label: t.perClick, value: <window.Odometer value={perClick} formatFn={(v) => fmt(v, true)} />, color: 'var(--alternative-i100)' },
+                        { label: lang === 'es' ? 'Bonus global' : 'Global bonus', value: <>x<window.Odometer value={globalMult} formatFn={(v) => fmt(Math.floor(v * 100) / 100)} /></>, color: 'var(--warning-i130)' },
+                        { label: lang === 'es' ? 'Récord CPS' : 'CPS Record', value: <window.Odometer value={state.maxCPS || 0} formatFn={fmt} />, color: 'var(--positive-i100)' }
+                      ]} />
+                      <window.StatsGroup title={lang === 'es' ? 'Progresión' : 'Progression'} icon="fa-solid fa-arrow-trend-up" accent="var(--primary-i100)" rows={[
+                        { label: lang === 'es' ? 'Nivel del jugador' : 'Player level', value: <window.Odometer value={state.level || 0} formatFn={fmt} />, strong: true, color: 'var(--primary-i100)' },
+                        { label: lang === 'es' ? 'Experiencia (XP)' : 'Experience (XP)', value: <>{(state.xp || 0).toLocaleString(lang === 'es' ? 'es-ES' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / <window.Odometer value={window.getXPRequired(state.level || 0)} formatFn={fmt} /></> },
+                        { label: t.totalTeeth, value: <window.Odometer value={state.totalEarned} formatFn={fmt} /> },
+                        { label: t.totalClicks, value: <window.Odometer value={state.totalClicks} formatFn={fmt} /> },
+                        { label: lang === 'es' ? 'Generadores totales' : 'Total generators', value: <window.Odometer value={Object.values(state.generators || {}).reduce((a, b) => a + (b || 0), 0)} formatFn={fmt} /> },
+                        { label: lang === 'es' ? 'Mejoras compradas' : 'Upgrades bought', value: `${Object.values(state.clickUpgrades || {}).filter(Boolean).length}/${window.CLICK_UPGRADES.length}` },
+                        { label: lang === 'es' ? 'Logros' : 'Achievements', value: `${Object.keys(state.achievements || {}).length}/${window.ACHIEVEMENTS.length}` }
+                      ]} />
+                      <window.StatsGroup title={lang === 'es' ? 'Prestigio y Dientes Dorados' : 'Prestige & Golden Teeth'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
+                        { label: t.prestigeHave, value: <window.Odometer value={state.prestige} formatFn={fmt} />, strong: true },
+                        { label: lang === 'es' ? 'Veces prestigiado' : 'Times prestiged', value: <window.Odometer value={state.prestigeCount || 0} formatFn={fmt} />, color: 'var(--warning-i100)' },
+                        { label: lang === 'es' ? 'Próxima ganancia' : 'Next gain', value: <>+<window.Odometer value={prestigeGain} formatFn={fmt} /></> },
+                        { label: lang === 'es' ? 'Dientes dorados' : 'Golden teeth', value: <window.Odometer value={state.goldenClicks} formatFn={fmt} />, color: 'var(--warning-i100)' }
+                      ]} />
+                      <window.StatsGroup title={lang === 'es' ? 'Tiempo' : 'Time'} icon="fa-solid fa-clock" accent="var(--fg-2)" rows={[
+                        { label: t.timePlayed, value: window.formatTime(state.timePlayed), strong: true },
+                        { label: lang === 'es' ? 'Empezaste' : 'Started', value: new Date(state.startedAt || Date.now()).toLocaleDateString(lang === 'es' ? 'es' : 'en') },
+                        { label: lang === 'es' ? 'Sesión actual' : 'Current session', value: window.formatTime(Math.max(0, (state.timePlayed || 0) - (bootRef.current?.saved?.timePlayed || 0))) }
+                      ]} />
+                    </div>
+                  )}
+
+                  {activeStatsTab === 'production' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      {(() => {
+                        const activeGens = genStatus.filter(g => g.owned > 0).sort((a, b) => b.production - a.production);
+                        if (activeGens.length === 0) {
+                          return <div className="t-body-s" style={{ color: 'var(--fg-3)', textAlign: 'center', padding: '20px 0' }}>{lang === 'es' ? 'No has comprado ningún generador.' : 'You haven\'t bought any generators.'}</div>;
+                        }
+                        const totalProd = activeGens.reduce((sum, g) => sum + g.production, 0);
+                        return activeGens.map(g => {
+                          const percentage = totalProd > 0 ? (g.production / totalProd) * 100 : 0;
+                          const barWidth = Math.min(200, Math.max(1, percentage * 2));
+                          return (
+                            <div key={g.gen.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span className="t-body-m" style={{ fontWeight: 600 }}>
+                                  {g.gen.name?.[lang] || g.gen[lang] || g.gen.name || g.gen.id} 
+                                  <span style={{ color: 'var(--fg-3)', fontWeight: 'normal', fontSize: '0.9em', marginLeft: 4 }}>x{g.owned}</span>
+                                  <span style={{ color: 'var(--primary-i100)', fontWeight: 600, fontSize: '0.9em', marginLeft: 8 }}>{percentage.toFixed(1)}%</span>
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ height: 2, background: 'var(--bg-3)', borderRadius: 1, width: 200 }}>
+                                  <div style={{ height: 2, width: `${barWidth}px`, background: 'var(--primary-i100)', borderRadius: 1 }} />
+                                </div>
+                                <span className="t-body-xs" style={{ color: 'var(--fg-3)' }}>+{fmt(g.production, true)}/s</span>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
           </div>
         </section>
       </main>
