@@ -1120,7 +1120,8 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           position: 'center',
           size: 'large',
           animation: 'rainbow',
-          particles: 'fire'
+          particles: 'fire',
+          msgType: 'normal'
         });
       }
     }
@@ -1154,7 +1155,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           explanationText: pick.explanationText,
           correctReward: pick.correctReward,
           wrongReward: pick.wrongReward
-        } : {})
+        } : { msgType: pick.msgType || 'normal' })
       });
     }
 
@@ -1203,7 +1204,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               explanationText: m.explanationText,
               correctReward: m.correctReward,
               wrongReward: m.wrongReward
-            } : {})
+            } : { msgType: m.msgType || 'normal' })
           });
         }
       }
