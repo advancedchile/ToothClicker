@@ -11,7 +11,7 @@ window.initializeGameContent = function(dbContent, isTemplate = false) {
       achievements: JSON.parse(JSON.stringify(window.ACHIEVEMENTS || [])),
       toothStages: JSON.parse(JSON.stringify(window.TOOTH_STAGES || [])),
       xpUpgrades: JSON.parse(JSON.stringify(window.XP_UPGRADES || [])),
-      // levelUpgrades removed
+      levelUpgrades: JSON.parse(JSON.stringify(window.LEVEL_UPGRADES || [])),
       storeUpgrades: JSON.parse(JSON.stringify(window.STORE_UPGRADES || [])),
       music: JSON.parse(JSON.stringify(window.MUSIC || []))
     };
@@ -189,7 +189,7 @@ window.initializeGameContent = function(dbContent, isTemplate = false) {
   });
   window.TOOTH_STAGES = window.GAME_CONTENT.toothStages;
   window.XP_UPGRADES = window.GAME_CONTENT.xpUpgrades;
-  // LEVEL_UPGRADES removed
+  window.LEVEL_UPGRADES = window.GAME_CONTENT.levelUpgrades;
   window.STORE_UPGRADES = window.GAME_CONTENT.storeUpgrades;
 };
 

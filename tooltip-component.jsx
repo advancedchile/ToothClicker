@@ -175,7 +175,7 @@ const SmartTooltip = ({ tooltip, lang, fmt, state }) => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 6 }}>
                           {tooltip.data.reqAcademyUpgrades.map(id => {
                             const met = !!state.xpUpgrades?.[id];
-                            const up = [...(window.XP_UPGRADES || [])].find(u => u.id === id);
+                            const up = [...(window.LEVEL_UPGRADES || []), ...(window.XP_UPGRADES || [])].find(u => u.id === id);
                             const name = up ? (up[lang] || up.es) : id;
                             return (
                               <div key={id} style={{ opacity: met ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>

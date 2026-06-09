@@ -444,13 +444,18 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           base.xpUpgrades[up.id] = true;
         }
       });
+      (window.LEVEL_UPGRADES || []).forEach(up => {
+        if (base.level >= up.levelReq) {
+          base.xpUpgrades[up.id] = true;
+        }
+      });
       base.legacyAcademyFixDone = true;
     }
 
     if (!base.legacyXpRebalanceDone) {
       if (base.level > 25 && base.timePlayed) {
         const xpFromUpgrades = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (base.xpUpgrades?.[up.id] ? up.xpPassive : 0), 0);
-        const specialPassiveXpMult = 0;
+        const specialPassiveXpMult = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (base.xpUpgrades?.[up.id] && (!up.xpMultType || up.xpMultType === 'passive' || up.xpMultType === 'both') ? (up.xpMult || 0) : 0), 0);
         const globalPassiveXpMult = 1 + specialPassiveXpMult;
         
         const currentXpRate = xpFromUpgrades * globalPassiveXpMult;
@@ -470,6 +475,13 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         base.level = newLevel;
         base.xp = recalculatedTotalXP;
         
+        if (base.xpUpgrades) {
+          (window.LEVEL_UPGRADES || []).forEach(up => {
+            if (base.level < up.levelReq && base.xpUpgrades[up.id]) {
+              delete base.xpUpgrades[up.id];
+            }
+          });
+        }
       }
       base.legacyXpRebalanceDone = true;
     }
@@ -729,7 +741,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     return !!saved?.hasSeenHelpIndicator;
   });
   const buyXpUpgrade = (id) => {
-    const up = [...(window.XP_UPGRADES || [])].find(u => u.id === id);
+    const up = [...(window.XP_UPGRADES || []), ...(window.LEVEL_UPGRADES || [])].find(u => u.id === id);
     if (!up || state.xpUpgrades?.[id]) return;
     const cost = up.baseCost;
     if (state.teeth < cost) return;
@@ -897,7 +909,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   }, [state.totalEarned, prestigeReq, state.prestigeCount]);
 
   const hasAffordableAcademyUpgrades = useMemo(() => {
-    const allUps = [...(window.XP_UPGRADES || [])];
+    const allUps = [...(window.LEVEL_UPGRADES || []), ...(window.XP_UPGRADES || [])];
     return allUps.some(up => {
       const purchased = !!state.xpUpgrades?.[up.id];
       const meetsGenQty = up.reqGeneratorId ? ((state.generators?.[up.reqGeneratorId] || 0) >= (up.reqGenQty || 1)) : true;
@@ -942,7 +954,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         const xpFromUpgrades = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades?.[up.id] ? up.xpPassive : 0), 0);
         
         // Apply global XP multipliers from special
-        const specialPassiveXpMult = 0;
+        const specialPassiveXpMult = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades?.[up.id] && (!up.xpMultType || up.xpMultType === 'passive' || up.xpMultType === 'both') ? (up.xpMult || 0) : 0), 0);
         let activeGlobalBonusMult = 1;
         activeEffectsRef.current.forEach(e => {
           if (e.type === 'multiplier_global' && e.until > Date.now()) {
@@ -1354,7 +1366,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       }
       const xpPerClickBase = 0.1;
       const xpFromUpgrades = (window.XP_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades?.[up.id] ? up.xpPerClick : 0), 0);
-      const specialClickXpMult = 0;
+      const specialClickXpMult = (window.LEVEL_UPGRADES || []).reduce((acc, up) => acc + (s.xpUpgrades?.[up.id] && (up.xpMultType === 'click' || up.xpMultType === 'both') ? (up.xpMult || 0) : 0), 0);
       let activeGlobalBonusMult = 1;
       activeEffectsRef.current.forEach(e => {
         if (e.type === 'multiplier_global' && e.until > Date.now()) {
@@ -2191,7 +2203,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {(() => {
-                      const allUpgrades = [...(window.XP_UPGRADES || [])];
+                      const allUpgrades = [...(window.LEVEL_UPGRADES || []), ...(window.XP_UPGRADES || [])];
                       if (allUpgrades.length === 0) {
                         return (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
@@ -3095,8 +3107,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                 </div>
               </div>
               {(() => {
+                const allLvl = window.LEVEL_UPGRADES || [];
                 const allXp = window.XP_UPGRADES || [];
-                if (allXp.length === 0) {
+                if (allLvl.length === 0 && allXp.length === 0) {
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
                       <img src="assets/academia/academia-empty.png" alt="Empty" style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 16 }} />
@@ -3105,7 +3118,19 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                   );
                 }
 
-                // allLvl logic removed
+                const filteredLvl = allLvl.filter(up => {
+                  const purchased = !!state.xpUpgrades?.[up.id];
+                  const lvlReq = (up.levelReq !== undefined) ? up.levelReq : (up.reqLevel || 0);
+                  const isUnlocked = state.level >= lvlReq;
+                  const canAfford = state.teeth >= (up.baseCost || 0);
+                  const hasEverAfforded = state.totalEarned >= (up.baseCost || 0);
+                  const isShown = purchased || canAfford || hasEverAfforded;
+                  up._isUnlockedCache = isUnlocked;
+
+                  if (academyFilter === 'not_bought') return !purchased && isShown;
+                  if (academyFilter === 'bought') return purchased;
+                  return isShown;
+                });
 
                 const filteredXp = allXp.filter(up => {
                   const purchased = !!state.xpUpgrades?.[up.id];
@@ -3128,7 +3153,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                   return isShown;
                 });
 
-                if (filteredXp.length === 0) {
+                if (filteredLvl.length === 0 && filteredXp.length === 0) {
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}>
                       <img src="assets/academia/academia-empty.png" alt="Empty" style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 16 }} />
@@ -3139,7 +3164,16 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-                    {/* filteredLvl removed */}
+                    {filteredLvl.length > 0 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--spacing-2)' }}>
+                        {filteredLvl.map((up, i) => {
+                          const unlocked = up._isUnlockedCache;
+                          const purchased = !!state.xpUpgrades?.[up.id];
+                          const canAfford = state.teeth >= up.baseCost;
+                          return <window.AcademyUpgradeRow key={up.id || i} up={up} purchased={purchased} canAfford={canAfford} unlocked={unlocked} onBuy={() => buyXpUpgrade(up.id)} lang={lang} totalXP={state.teeth} onHover={setGlobalTooltip} onLeave={() => setGlobalTooltip(null)} state={state} />;
+                        })}
+                      </div>
+                    )}
                     {filteredXp.length > 0 && (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--spacing-2)' }}>
                         {filteredXp.map((up, i) => {
@@ -4008,7 +4042,20 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             <div className="t-body-m" style={{ marginTop: 8, color: 'var(--fg-2)' }}>
               {lang === 'es' ? `¡Felicidades! Has alcanzado el nivel ${justLeveledTo}.` : `Congratulations! You've reached level ${justLeveledTo}.`}
             </div>
-            {/* Special upgrades removed as requested */}
+            {(() => {
+              const up = (window.LEVEL_UPGRADES || []).find(u => u.levelReq === justLeveledTo);
+              if (!up) return null;
+              return (
+                <div style={{ marginTop: 16, padding: '12px', background: 'var(--warning-i005)', borderRadius: 12, border: '1px solid var(--warning-i030)', textAlign: 'left' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--warning-i130)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+                    {lang === 'es' ? '¡NUEVA MEJORA ESPECIAL!' : 'NEW SPECIAL UPGRADE!'}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-1)' }}>{up.name[lang]}</div>
+                  <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>{up.desc[lang]}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary-i100)', marginTop: 4 }}>{lang === 'es' ? 'Disponible en la Academia' : 'Available in the Academy'}</div>
+                </div>
+              );
+            })()}
             <div style={{ marginTop: 16, padding: '12px', background: 'var(--primary-i005)', borderRadius: 12, border: '1px solid var(--primary-i020)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary-i130)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                 {lang === 'es' ? 'Próximo Objetivo' : 'Next Goal'}
