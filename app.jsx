@@ -512,8 +512,10 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
   const [contextMenu, setContextMenu] = useState(null); // { x, y }
   const [showCuriosityModal, setShowCuriosityModal] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
-  const [newToothUnlock, setNewToothUnlock] = useState(null); // { stage, idx }
-  const [newMusicUnlock, setNewMusicUnlock] = useState(null);
+  const [newToothUnlockQueue, setNewToothUnlockQueue] = useState([]);
+  const newToothUnlock = newToothUnlockQueue[0] || null;
+  const [newMusicUnlockQueue, setNewMusicUnlockQueue] = useState([]);
+  const newMusicUnlock = newMusicUnlockQueue[0] || null;
   const [musicScrollToId, setMusicScrollToId] = useState(null);
   const [buyQty, setBuyQty] = useState(1);
   const [visualTick, setVisualTick] = useState(0);
@@ -830,8 +832,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     });
 
     if (newlyUnlocked.length > 0) {
-      const latestUnlocked = newlyUnlocked[newlyUnlocked.length - 1];
-      setTimeout(() => setNewToothUnlock({ stage: latestUnlocked.stage, idx: latestUnlocked.idx }), 600);
+      setTimeout(() => setNewToothUnlockQueue(prev => [...prev, ...newlyUnlocked.map(u => ({ stage: u.stage, idx: u.idx }))]), 600);
       if (soundRef.current) [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => window.playTone(f, 0.15, 'triangle', 0.06), i * 80));
     }
   }, [state.prestigeCount, state.level, state.generators, state.xpUpgrades]);
@@ -860,8 +861,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     });
 
     if (newlyUnlocked.length > 0) {
-      const latestUnlocked = newlyUnlocked[newlyUnlocked.length - 1];
-      setTimeout(() => setNewMusicUnlock(latestUnlocked), 600);
+      setTimeout(() => setNewMusicUnlockQueue(prev => [...prev, ...newlyUnlocked]), 600);
       if (soundRef.current) [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => window.playTone(f, 0.15, 'triangle', 0.06), i * 80));
     }
   }, [state.prestigeCount, state.level, tracks]);
@@ -1572,6 +1572,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     
     // We now handle tooth unlock notifications via a generic useEffect
 
+    let computedNext = null;
     setState((s) => {
       const currentlyUnlockedTeeth = window.TOOTH_STAGES.filter(stage => window.isToothUnlocked(s, stage)).map(stage => stage.es);
       const allUnlocked = [...new Set([...(s.unlockedTeeth || []), ...currentlyUnlockedTeeth])];
@@ -1595,18 +1596,26 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         clinicName: s.clinicName,
         totalEarned: 0, // Reset run progress
         lifetimeEarned: s.lifetimeEarned || s.totalEarned, // Persist lifetime
-        unlockedTeeth: allUnlocked
+        unlockedTeeth: allUnlocked,
+        hasSeenTour: s.hasSeenTour !== undefined ? s.hasSeenTour : stateRef.current?.hasSeenTour,
+        dontShowTourAgain: s.dontShowTourAgain !== undefined ? s.dontShowTourAgain : stateRef.current?.dontShowTourAgain,
+        hasSeenHelpIndicator: s.hasSeenHelpIndicator !== undefined ? s.hasSeenHelpIndicator : stateRef.current?.hasSeenHelpIndicator
       };
 
       // Immediate local persistence
       persistUserSave(username, next);
+      computedNext = next;
       return next;
     });
 
     // Immediate cloud sync
     setTimeout(() => {
-      const s = stateRef.current;
-      if (s) pushScore(s);
+      if (computedNext) {
+        pushScore(computedNext);
+      } else {
+        const s = stateRef.current;
+        if (s) pushScore(s);
+      }
     }, 100);
 
     if (soundRef.current) [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => window.playTone(f, 0.15, 'triangle', 0.06), i * 80));
@@ -3819,7 +3828,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       }
       {/* New tooth unlock notification */}
       {newToothUnlock && !showLevelUpModal &&
-      <div onClick={() => setNewToothUnlock(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, animation: 'fadeIn 200ms ease' }}>
+      <div onClick={() => setNewToothUnlockQueue(q => q.slice(1))} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, animation: 'fadeIn 200ms ease' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-1)', borderRadius: 'var(--radius-m)', padding: 'var(--spacing-6)', maxWidth: 340, width: '90%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, animation: 'modalIn 250ms ease', boxShadow: 'var(--elevation-30)', border: '2px solid var(--warning-i100)' }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--warning-i100)', background: 'var(--warning-i010)', padding: '4px 12px', borderRadius: 999 }}>
               {lang === 'es' ? '¡Nuevo diente desbloqueado!' : 'New tooth unlocked!'}
@@ -3836,10 +3845,10 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               {lang === 'es' ? `Tras ${newToothUnlock.stage.prestige} prestigio${newToothUnlock.stage.prestige === 1 ? '' : 's'} realizados` : `After ${newToothUnlock.stage.prestige} prestige${newToothUnlock.stage.prestige === 1 ? '' : 's'}`}
             </div>
             <div style={{ display: 'flex', gap: 10, width: '100%', marginTop: 4 }}>
-              <button onClick={() => setNewToothUnlock(null)} style={{ ...secondaryBtnStyle, flex: 1 }}>
+              <button onClick={() => setNewToothUnlockQueue(q => q.slice(1))} style={{ ...secondaryBtnStyle, flex: 1 }}>
                 {lang === 'es' ? 'Más tarde' : 'Later'}
               </button>
-              <button onClick={() => {setState((prev) => ({ ...prev, selectedTooth: newToothUnlock.idx }));setNewToothUnlock(null);}} style={{ ...primaryBtnStyle, flex: 1 }}>
+              <button onClick={() => {setState((prev) => ({ ...prev, selectedTooth: newToothUnlock.idx }));setNewToothUnlockQueue(q => q.slice(1));}} style={{ ...primaryBtnStyle, flex: 1 }}>
                 {lang === 'es' ? '¡Equipar!' : 'Equip!'}
               </button>
             </div>
@@ -3848,7 +3857,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       }
 
       {newMusicUnlock && !showLevelUpModal && !newToothUnlock && (
-        <div onClick={() => setNewMusicUnlock(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, animation: 'fadeIn 200ms ease' }}>
+        <div onClick={() => setNewMusicUnlockQueue(q => q.slice(1))} style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,13,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, animation: 'fadeIn 200ms ease' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-2)', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, width: 340, maxWidth: '90%', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', border: '1px solid var(--border-subtle)', animation: 'scaleUp 300ms cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--primary-i010)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-i100)', fontSize: 32, marginBottom: 8 }}>
               <i className="fa-solid fa-music"></i>
@@ -3860,11 +3869,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             <button onClick={() => {
               setMusicScrollToId(newMusicUnlock.id);
               setMusicModalOpen(true);
-              setNewMusicUnlock(null);
+              setNewMusicUnlockQueue(q => q.slice(1));
             }} style={{ ...primaryBtnStyle, width: '100%', marginTop: 8 }}>
               {lang === 'es' ? 'Abrir reproductor' : 'Open player'}
             </button>
-            <button onClick={() => setNewMusicUnlock(null)} style={{ ...secondaryBtnStyle, width: '100%', marginTop: -8 }}>
+            <button onClick={() => setNewMusicUnlockQueue(q => q.slice(1))} style={{ ...secondaryBtnStyle, width: '100%', marginTop: -8 }}>
               {lang === 'es' ? 'Cerrar' : 'Close'}
             </button>
           </div>
