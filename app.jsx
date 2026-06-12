@@ -2386,11 +2386,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                         { label: lang === 'es' ? 'Mejoras compradas' : 'Upgrades bought', value: `${Object.values(state.clickUpgrades || {}).filter(Boolean).length}/${window.CLICK_UPGRADES.length}` },
                         { label: lang === 'es' ? 'Logros' : 'Achievements', value: `${Object.keys(state.achievements || {}).length}/${window.ACHIEVEMENTS.length}` }
                       ]} />
-                      <window.StatsGroup title={lang === 'es' ? 'Prestigio y Dientes Dorados' : 'Prestige & Golden Teeth'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
+                      <window.StatsGroup title={lang === 'es' ? 'Prestigio y Bonus' : 'Prestige & Bonuses'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
                         { label: t.prestigeHave, value: <window.Odometer value={state.prestige} formatFn={fmt} />, strong: true },
                         { label: lang === 'es' ? 'Veces prestigiado' : 'Times prestiged', value: <window.Odometer value={state.prestigeCount || 0} formatFn={fmt} />, color: 'var(--warning-i100)' },
                         { label: lang === 'es' ? 'Próxima ganancia' : 'Next gain', value: <>+<window.Odometer value={prestigeGain} formatFn={fmt} /></> },
-                        { label: lang === 'es' ? 'Dientes dorados' : 'Golden teeth', value: <window.Odometer value={state.goldenClicks} formatFn={fmt} />, color: 'var(--warning-i100)' }
+                        { label: lang === 'es' ? 'Bonus atrapados' : 'Bonuses caught', value: <window.Odometer value={state.goldenClicks} formatFn={fmt} />, color: 'var(--warning-i100)' }
                       ]} />
                       <window.StatsGroup title={lang === 'es' ? 'Tiempo' : 'Time'} icon="fa-solid fa-clock" accent="var(--fg-2)" rows={[
                         { label: t.timePlayed, value: window.formatTime(state.timePlayed), strong: true },
@@ -2478,19 +2478,19 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <i className="fa-solid fa-tooth" style={{ fontSize: 13, color: 'var(--primary-i100)' }}></i>
-            <div>
-              <span className="t-mini-caps" style={{ color: 'var(--fg-3)', marginRight: 6 }}>{t.currentTeeth}</span>
-              <window.Odometer value={state.teeth} formatFn={fmt} className="t-heading-s" style={{ color: 'var(--primary-i100)' }} />
-              <span className="t-body-s" style={{ color: 'var(--fg-3)', marginLeft: 4 }}><window.Odometer value={displayedPerSecond} formatFn={(v) => fmt(v, true)} />/s</span>
+            <div style={{ display: 'flex', alignItems: 'baseline' }}>
+              <span className="t-heading-xs" style={{ color: 'var(--fg-3)', marginRight: 6, textTransform: 'uppercase' }}>{t.currentTeeth}</span>
+              <window.Odometer value={state.teeth} formatFn={fmt} className="t-heading-xs" style={{ color: 'var(--primary-i100)' }} />
+              <span className="t-heading-xs" style={{ color: 'var(--fg-3)', marginLeft: 4, display: 'inline-flex', alignItems: 'baseline' }}><window.Odometer value={displayedPerSecond} formatFn={(v) => fmt(v, true)} /><span style={{ marginLeft: 1 }}>/s</span></span>
             </div>
           </div>
           <div style={{ width: 1, height: 28, background: 'var(--border-subtle)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <i className="fa-solid fa-hand-pointer" style={{ fontSize: 13, color: 'var(--alternative-i100)' }}></i>
-            <div>
-              <span className="t-mini-caps" style={{ color: 'var(--fg-3)', marginRight: 6 }}>{t.perClick}</span>
-              <window.Odometer value={perClick} formatFn={(v) => fmt(v, true)} className="t-heading-s" style={{ color: 'var(--alternative-i100)' }} />
-              {globalMult > 1 && <span className="t-body-s" style={{ color: 'var(--fg-3)', marginLeft: 4 }}>x<window.Odometer value={globalMult} formatFn={(v) => fmt(Math.floor(v * 100) / 100)} /></span>}
+            <div style={{ display: 'flex', alignItems: 'baseline' }}>
+              <span className="t-heading-xs" style={{ color: 'var(--fg-3)', marginRight: 6, textTransform: 'uppercase' }}>{t.perClick}</span>
+              <window.Odometer value={perClick} formatFn={(v) => fmt(v, true)} className="t-heading-xs" style={{ color: 'var(--alternative-i100)' }} />
+              {globalMult > 1 && <span className="t-heading-xs" style={{ color: 'var(--fg-3)', marginLeft: 4, display: 'inline-flex', alignItems: 'baseline' }}><span style={{ marginRight: 1 }}>x</span><window.Odometer value={globalMult} formatFn={(v) => fmt(Math.floor(v * 100) / 100)} /></span>}
             </div>
           </div>
         </div>
@@ -3253,11 +3253,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
                         { label: lang === 'es' ? 'Mejoras compradas' : 'Upgrades bought', value: `${Object.values(state.clickUpgrades || {}).filter(Boolean).length}/${window.CLICK_UPGRADES.length}` },
                         { label: lang === 'es' ? 'Logros' : 'Achievements', value: `${Object.keys(state.achievements || {}).length}/${window.ACHIEVEMENTS.length}` }
                       ]} />
-                      <window.StatsGroup title={lang === 'es' ? 'Prestigio y Dientes Dorados' : 'Prestige & Golden Teeth'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
+                      <window.StatsGroup title={lang === 'es' ? 'Prestigio y Bonus' : 'Prestige & Bonuses'} icon="fa-solid fa-crown" accent="var(--warning-i130)" rows={[
                         { label: t.prestigeHave, value: <window.Odometer value={state.prestige} formatFn={fmt} />, strong: true },
                         { label: lang === 'es' ? 'Veces prestigiado' : 'Times prestiged', value: <window.Odometer value={state.prestigeCount || 0} formatFn={fmt} />, color: 'var(--warning-i100)' },
                         { label: lang === 'es' ? 'Próxima ganancia' : 'Next gain', value: <>+<window.Odometer value={prestigeGain} formatFn={fmt} /></> },
-                        { label: lang === 'es' ? 'Dientes dorados' : 'Golden teeth', value: <window.Odometer value={state.goldenClicks} formatFn={fmt} />, color: 'var(--warning-i100)' }
+                        { label: lang === 'es' ? 'Bonus atrapados' : 'Bonuses caught', value: <window.Odometer value={state.goldenClicks} formatFn={fmt} />, color: 'var(--warning-i100)' }
                       ]} />
                       <window.StatsGroup title={lang === 'es' ? 'Tiempo' : 'Time'} icon="fa-solid fa-clock" accent="var(--fg-2)" rows={[
                         { label: t.timePlayed, value: window.formatTime(state.timePlayed), strong: true },
