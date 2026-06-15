@@ -2767,7 +2767,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             overflowY: 'auto'
           }}>
             <div className="t-body-s" style={{ color: 'var(--fg-3)', fontWeight: 600, marginBottom: 12 }}>{lang === 'es' ? 'Tienda de mejoras' : 'Upgrades store'}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, 64px)', gap: '10px', alignContent: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: '10px', alignContent: 'start' }}>
             {(() => {
               const totalStoreUpgradesCount = (window.STORE_UPGRADES || []).length;
               const visibleUpgrades = (window.STORE_UPGRADES || []).filter(up => {
@@ -2805,7 +2805,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
 
               return gridItems.map((up, index) => {
                 if (!up) {
-                  return <div key={`empty-${index}`} style={{ width: 64, height: 64, borderRadius: 'var(--radius-s)', background: 'rgba(0, 0, 0, 0.04)', boxSizing: 'border-box' }} />;
+                  return <div key={`empty-${index}`} style={{ width: '100%', aspectRatio: '1 / 1', maxWidth: 64, borderRadius: 'var(--radius-s)', background: 'rgba(0, 0, 0, 0.04)', boxSizing: 'border-box' }} />;
                 }
                 
                 const purchased = !!state.storeUpgrades?.[up.id];

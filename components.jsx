@@ -1169,7 +1169,7 @@ function StoreUpgradeIcon({ up, canAfford, purchased, onBuy, lang, fmt, onHover,
       onDrop={onDrop}
       onDragEnd={onDragEnd}
       style={{
-        width: 64, height: 64, padding: 5, boxSizing: 'border-box',
+        width: '100%', aspectRatio: '1 / 1', maxWidth: 64, padding: 5, boxSizing: 'border-box',
         borderRadius: 'var(--radius-s)',
         position: 'relative',
         background: purchased ? 'var(--positive-i010)' : (canAfford ? 'var(--bg-1)' : 'var(--bg-2)'),
