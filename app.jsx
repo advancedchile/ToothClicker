@@ -2752,7 +2752,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         </section>
 
         {/* MIDDLE COLUMN: GRID */}
-        <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)' }}>
           <LedMarquee isMobile={isMobile} key={bossMsg ? (bossMsg.id || bossMsg.createdAt || bossMsg.text) : 'empty'} msg={bossMsg && bossMsg.isCustom && bossMsg.msgType === 'normal' ? bossMsg : null} onDismiss={() => setBossMsg(null)} />
           <section style={{ 
             flex: 1,
@@ -2760,8 +2760,6 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             backgroundColor: '#e6f0f9',
             border: 'none', 
             borderRadius: 0,
-            height: 'calc(100vh - 120px)', 
-            maxHeight: 'calc(100vh - 120px)', 
             boxSizing: 'border-box',
             padding: '16px 20px',
             overflowY: 'auto'

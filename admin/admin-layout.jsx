@@ -129,7 +129,6 @@ window.AdminLayout = function({ lang, onLangChange, onEnterGame, onBack }) {
     switch (activeTab) {
       case 'accounts':
       case 'leaderboard':
-      case 'feedback':
       case 'messages':
       case 'danger':
       case 'versions':
@@ -386,7 +385,6 @@ window.AdminLayout = function({ lang, onLangChange, onEnterGame, onBack }) {
           )}
           <SidebarItem active={activeTab === 'accounts'} onClick={() => setActiveTab('accounts')} icon="fa-sliders" text="Administración" collapsed={sidebarCollapsed} setTooltip={setTooltip} />
           <SidebarItem active={activeTab === 'leaderboard'} onClick={() => setActiveTab('leaderboard')} icon="fa-trophy" text="Ranking" collapsed={sidebarCollapsed} setTooltip={setTooltip} />
-          <SidebarItem active={activeTab === 'feedback'} onClick={() => setActiveTab('feedback')} icon="fa-comment-dots" text="Feedback" collapsed={sidebarCollapsed} setTooltip={setTooltip} />
           <SidebarItem active={activeTab === 'messages'} onClick={() => setActiveTab('messages')} icon="fa-envelope" text="Mensajes" collapsed={sidebarCollapsed} setTooltip={setTooltip} />
           <SidebarItem active={activeTab === 'danger'} onClick={() => setActiveTab('danger')} icon="fa-triangle-exclamation" text="Zona de Peligro" collapsed={sidebarCollapsed} setTooltip={setTooltip} />
           <SidebarItem active={activeTab === 'versions'} onClick={() => setActiveTab('versions')} icon="fa-code-commit" text="Versiones" collapsed={sidebarCollapsed} setTooltip={setTooltip} />
