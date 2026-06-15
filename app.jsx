@@ -1477,12 +1477,13 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         descEn = `+${window.formatNum(Math.floor(amount))} teeth`;
       }
       
-      setState((st) => ({ ...st, teeth: st.teeth + amount, totalEarned: st.totalEarned + amount }));
+      setState((st) => ({ ...st, teeth: st.teeth + amount, totalEarned: st.totalEarned + amount, goldenClicks: (st.goldenClicks || 0) + 1 }));
       setToast({ id: 'bonus_' + bonus.id, es: descEs, en: descEn, img: bonus.image });
       if (soundRef.current) [1047, 1319, 1568, 2093].forEach((f, i) => setTimeout(() => window.playTone(f, 0.14, 'triangle', 0.07), i * 65));
       
     } else {
       // It's a duration-based effect
+      setState((st) => ({ ...st, goldenClicks: (st.goldenClicks || 0) + 1 }));
       const newEffect = { ...bonus, until: now + durMs };
       setActiveBonusEffects([newEffect]); // Only 1 effect at a time
       
@@ -2766,7 +2767,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
             overflowY: 'auto'
           }}>
             <div className="t-body-s" style={{ color: 'var(--fg-3)', fontWeight: 600, marginBottom: 12 }}>{lang === 'es' ? 'Tienda de mejoras' : 'Upgrades store'}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 64px)', justifyContent: 'space-between', rowGap: '16px', alignContent: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, 64px)', gap: '10px', alignContent: 'start' }}>
             {(() => {
               const totalStoreUpgradesCount = (window.STORE_UPGRADES || []).length;
               const visibleUpgrades = (window.STORE_UPGRADES || []).filter(up => {
