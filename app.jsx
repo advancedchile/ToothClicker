@@ -1030,7 +1030,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       teeth: s.teeth || 0, 
       clinicName: s.clinicName, 
       level: s.level || 0,
-      saveData: { ...s, isOnline: !isLeaving, _sig: generateSig({ ...s, name: username }) }, 
+      saveData: { ...s, isOnline: !isLeaving, _sig: window.generateSig({ ...s, name: username }) }, 
       banUntil: ban.until,
       banIndefinite: ban.until === -1
     };
