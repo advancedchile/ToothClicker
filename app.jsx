@@ -982,7 +982,9 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           } else { break; }
         }
 
-        return { ...s, teeth: s.teeth + earned, totalEarned: s.totalEarned + earned, lifetimeEarned: (s.lifetimeEarned || 0) + earned, timePlayed: s.timePlayed + dt, lastTick: now, xp: newXP, level: newLevel };
+        const fixedTotalEarned = Math.max(s.totalEarned + earned, s.teeth + earned);
+        const fixedLifetimeEarned = Math.max((s.lifetimeEarned || 0) + earned, s.teeth + earned);
+        return { ...s, teeth: s.teeth + earned, totalEarned: fixedTotalEarned, lifetimeEarned: fixedLifetimeEarned, timePlayed: s.timePlayed + dt, lastTick: now, xp: newXP, level: newLevel };
       });
     }, 100);
     return () => clearInterval(interval);
@@ -1028,7 +1030,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
       teeth: s.teeth || 0, 
       clinicName: s.clinicName, 
       level: s.level || 0,
-      saveData: { ...s, isOnline: !isLeaving }, 
+      saveData: { ...s, isOnline: !isLeaving, _sig: generateSig({ ...s, name: username }) }, 
       banUntil: ban.until,
       banIndefinite: ban.until === -1
     };
@@ -1399,7 +1401,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         }
       }
 
-      return { ...s, teeth: s.teeth + gain, totalEarned: s.totalEarned + gain, lifetimeEarned: (s.lifetimeEarned || 0) + gain, totalClicks: s.totalClicks + 1, maxCPS: Math.max(s.maxCPS || 0, cps), xp: newXP, level: newLevel };
+      return { ...s, teeth: s.teeth + gain, totalEarned: Math.max(s.totalEarned + gain, s.teeth + gain), lifetimeEarned: Math.max((s.lifetimeEarned || 0) + gain, s.teeth + gain), totalClicks: s.totalClicks + 1, maxCPS: Math.max(s.maxCPS || 0, cps), xp: newXP, level: newLevel };
     });
     setFloats([{ id: Math.random(), x, y, gain, born: Date.now(), tx: (Math.random() - 0.5) * 80 }]);
     setToothParticles([{ id: Math.random(), x, y, born: Date.now(), tx: (Math.random() - 0.5) * 320, rot: (Math.random() - 0.5) * 180 }]);
@@ -1477,7 +1479,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         descEn = `+${window.formatNum(Math.floor(amount))} teeth`;
       }
       
-      setState((st) => ({ ...st, teeth: st.teeth + amount, totalEarned: st.totalEarned + amount, goldenClicks: (st.goldenClicks || 0) + 1 }));
+      setState((st) => ({ ...st, teeth: st.teeth + amount, totalEarned: Math.max(st.totalEarned + amount, st.teeth + amount), lifetimeEarned: Math.max((st.lifetimeEarned || 0) + amount, st.teeth + amount), goldenClicks: (st.goldenClicks || 0) + 1 }));
       setToast({ id: 'bonus_' + bonus.id, es: descEs, en: descEn, img: bonus.image });
       if (soundRef.current) [1047, 1319, 1568, 2093].forEach((f, i) => setTimeout(() => window.playTone(f, 0.14, 'triangle', 0.07), i * 65));
       
@@ -3922,7 +3924,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         let rewardDesc = '';
         if (reward && reward.type !== 'none') {
           if (reward.type === 'addTeeth') {
-            setState(s => ({ ...s, teeth: s.teeth + reward.amount, totalEarned: s.totalEarned + reward.amount, lifetimeEarned: (s.lifetimeEarned || 0) + reward.amount }));
+            setState(s => ({ ...s, teeth: s.teeth + reward.amount, totalEarned: Math.max(s.totalEarned + reward.amount, s.teeth + reward.amount), lifetimeEarned: Math.max((s.lifetimeEarned || 0) + reward.amount, s.teeth + reward.amount) }));
             rewardDesc = lang === 'es' ? `+${window.formatNum(reward.amount)} dientes` : `+${window.formatNum(reward.amount)} teeth`;
           } else if (reward.type === 'removeTeeth') {
             setState(s => ({ ...s, teeth: Math.max(0, s.teeth - reward.amount) }));

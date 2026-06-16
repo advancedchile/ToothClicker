@@ -43,12 +43,22 @@ async function cloudFetchLeaderboard() {
     const lastResetAt = setRes ? setRes.value : 0;
 
     // Map DB fields to app fields
-    const scores = players.map(p => {
+    const scores = [];
+    for (const p of players) {
       let sd = p.save_data || null;
       if (typeof sd === 'string') {
         try { sd = JSON.parse(sd); } catch(e) {}
       }
-      return {
+
+      // Security check: Verify signature for non-admin players
+      if (p.name !== 'James' && p.name !== 'James2' && p.name !== 'admin') {
+        if (!sd || !sd._sig || sd._sig !== generateSig({ ...sd, name: p.name })) {
+          console.warn('[Security] Filtered invalid signature for:', p.name);
+          continue; 
+        }
+      }
+
+      scores.push({
         name: p.name,
         totalEarned: Number(p.total_earned || 0),
         prestige: Number(p.prestige || 0),
@@ -63,8 +73,8 @@ async function cloudFetchLeaderboard() {
         sessionId: sd ? sd.sessionId : null,
         isOnline: sd ? sd.isOnline : false,
         saveData: sd
-      };
-    });
+      });
+    }
 
     return { ok: true, scores, lastResetAt };
   } catch (e) { 
