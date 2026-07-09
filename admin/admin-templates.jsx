@@ -103,6 +103,7 @@ window.AdminTemplates = function({ lang, editingTemplateId, onEditTemplate }) {
         xpUpgrades: [],
         levelUpgrades: [],
         storeUpgrades: [],
+        clinicAssets: [],
         prestigeConfig: { baseReq: 100_000_000_000_000, scaling: 1.5, bonusPerSmile: 0.05 },
         levelConfig: { maxLevel: 100, baseXP: 100, scaling: 1.5, modalMessage: { es: "¡Nivel Completado!", en: "Level Up!" }, showParticles: true, customSound: null }
       });

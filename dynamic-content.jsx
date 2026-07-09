@@ -69,6 +69,10 @@ window.initializeGameContent = function(dbContent, isTemplate = false) {
         },
         typography: defaults.typography,
         randomBonuses: [],
+        clinicAssets: [],
+        clinicMapTiles: [],
+        clinicAreas: [],
+        clinicMapAreas: [],
         music: []
       };
     } else {
@@ -95,6 +99,10 @@ window.initializeGameContent = function(dbContent, isTemplate = false) {
         },
         typography: safeDb.typography || defaults.typography,
         randomBonuses: safeDb.randomBonuses || [],
+        clinicAssets: Array.isArray(safeDb.clinicAssets) ? safeDb.clinicAssets : [],
+        clinicMapTiles: Array.isArray(safeDb.clinicMapTiles) ? safeDb.clinicMapTiles : [],
+        clinicAreas: Array.isArray(safeDb.clinicAreas) ? safeDb.clinicAreas : [],
+        clinicMapAreas: Array.isArray(safeDb.clinicMapAreas) ? safeDb.clinicMapAreas : [],
         music: Array.isArray(safeDb.music) ? safeDb.music : []
       };
       
@@ -128,6 +136,10 @@ window.initializeGameContent = function(dbContent, isTemplate = false) {
         terminology: { ...defaults.terminology, ...(safeDb.terminology || {}) },
         typography: { ...defaults.typography, ...(safeDb.typography || {}) },
         randomBonuses: safeDb.randomBonuses || JSON.parse(JSON.stringify(defaults.randomBonuses)),
+        clinicAssets: Array.isArray(safeDb.clinicAssets) ? safeDb.clinicAssets : JSON.parse(JSON.stringify(defaults.clinicAssets || [])),
+        clinicMapTiles: Array.isArray(safeDb.clinicMapTiles) ? safeDb.clinicMapTiles : JSON.parse(JSON.stringify(defaults.clinicMapTiles || [])),
+        clinicAreas: Array.isArray(safeDb.clinicAreas) ? safeDb.clinicAreas : [],
+        clinicMapAreas: Array.isArray(safeDb.clinicMapAreas) ? safeDb.clinicMapAreas : [],
         music: Array.isArray(safeDb.music) ? safeDb.music : JSON.parse(JSON.stringify(defaults.music || []))
       };
       
@@ -154,6 +166,22 @@ window.initializeGameContent = function(dbContent, isTemplate = false) {
   // Backwards compatibility for the rest of the app:
   window.GENERATORS = window.GAME_CONTENT.generators;
   window.CLICK_UPGRADES = window.GAME_CONTENT.clickUpgrades;
+  window.CLINIC_ASSETS = window.GAME_CONTENT.clinicAssets || [];
+  window.CLINIC_MAP_TILES = window.GAME_CONTENT.clinicMapTiles || [];
+  window.CLINIC_AREAS = window.GAME_CONTENT.clinicAreas || [];
+  window.CLINIC_MAP_AREAS = window.GAME_CONTENT.clinicMapAreas || [];
+  if (!window.CLINIC_TILES) {
+    window.CLINIC_TILES = [
+      { id: 'floor_default', type: 'floor', name: 'Piso', width: 200, length: 200, height: 10, colorTop: '#EAE4DC', colorLeft: '#DFD9D1', colorRight: '#D4CEC6', cost: 10 },
+      { id: 'wall_custom', type: 'wall', name: 'Pared', width: 200, length: 20, height: 300, colorTop: '#F2F8FF', colorLeft: '#E2F1FF', colorRight: '#D2E6FA', cost: 50 },
+      { id: 'wall_custom_y', type: 'wall', name: 'Pared', width: 20, length: 200, height: 300, colorTop: '#F2F8FF', colorLeft: '#E2F1FF', colorRight: '#D2E6FA', cost: 50, hidden: true },
+      { id: 'tile_floor_1', name: 'Piso Simple', type: 'floor', colorTop: '#EAE4DC' },
+      { id: 'tile_floor_2', name: 'Piso Madera', type: 'floor', colorTop: '#d9c0a3' },
+      { id: 'tile_wall_1', name: 'Pared Azul', type: 'wall', colorTop: '#CADDFB' },
+      { id: 'tile_wall_2', name: 'Pared Blanca', type: 'wall', colorTop: '#F2F8FF' }
+    ];
+  }
+
   if (!window.ORIGINAL_ACH_CHECKS && window.ACHIEVEMENTS) {
     window.ORIGINAL_ACH_CHECKS = {};
     window.ACHIEVEMENTS.forEach(a => {

@@ -818,16 +818,28 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
     setLoading(true);
     setError('');
 
-    if (cloudUser && !googleSession) {
+    let isExistingUser = !!cloudUser;
+    let finalName = cleanName;
+
+    // If not in leaderboard, check the DB directly to see if they exist (old users might be hidden from LB due to missing sig)
+    if (!isExistingUser && !googleSession) {
+      const dbCheck = await window.cloudFetchPlayer(cleanName);
+      if (dbCheck.ok && dbCheck.player) {
+        isExistingUser = true;
+        finalName = dbCheck.player.name;
+      }
+    }
+
+    if (isExistingUser && !googleSession) {
       // Intentar Logear/Continuar
       if (!showPassword) {
         setShowPassword(true);
         setLoading(false);
         return;
       }
-      const res = await window.cloudAuthenticate(cleanName, password);
+      const res = await window.cloudAuthenticate(finalName, password);
       if (res.ok) {
-        onSelectUser(cleanName, res.player, password);
+        onSelectUser(finalName, res.player, password);
       } else {
         setError(lang === 'es' ? 'Contraseña incorrecta' : 'Invalid password');
       }
@@ -844,7 +856,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
         const cleanAns = challengeAnswer.trim().toLowerCase();
         const isCorrect = challengeQuestion.ans.some(a => {
           const expected = a.toLowerCase().trim();
-          return cleanAns === expected || cleanAns.includes(expected) || expected.includes(cleanAns) && cleanAns.length >= 2;
+          return cleanAns === expected || cleanAns.includes(expected) || (expected.includes(cleanAns) && cleanAns.length >= 2);
         });
 
         if (!cleanAns || !isCorrect) {
@@ -854,7 +866,7 @@ function Gate({ lang, onLangChange, onSelectUser, onCreateUser, onAdminAccess, o
         }
       }
 
-      onCreateUser(cleanName, googleSession ? 'oauth' : password);
+      onCreateUser(finalName, googleSession ? 'oauth' : password);
     }
     setLoading(false);
   };

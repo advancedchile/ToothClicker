@@ -80,7 +80,7 @@ function resetAllProgress() {
 }
 
 function defaultState() {
-  return { teeth: 0, totalEarned: 0, lifetimeEarned: 0, totalClicks: 0, goldenClicks: 0, specialGoldClicks: 0, diamondClicks: 0, crystalClicks: 0, generators: {}, clickUpgrades: {}, achievements: {}, newAchievementIds: {}, storeUpgrades: {}, prestige: 0, prestigeCount: 0, selectedTooth: 0, startedAt: Date.now(), timePlayed: 0, lastTick: Date.now(), feedbackSent: false, feedbackCount: 0, dontShowTourAgain: false, hasSeenTour: false, hasSeenHelpIndicator: false, clinicName: null, level: 0, xp: 0, xpUpgrades: {}, musicSettings: { volume: 0.4, muted: false, playMode: 'shuffle', currentTrackId: null }, googleLinked: false };
+  return { teeth: 0, totalEarned: 0, lifetimeEarned: 0, totalClicks: 0, goldenClicks: 0, specialGoldClicks: 0, diamondClicks: 0, crystalClicks: 0, generators: {}, clickUpgrades: {}, achievements: {}, newAchievementIds: {}, storeUpgrades: {}, prestige: 0, prestigeCount: 0, selectedTooth: 0, startedAt: Date.now(), timePlayed: 0, lastTick: Date.now(), feedbackSent: false, feedbackCount: 0, dontShowTourAgain: false, hasSeenTour: false, hasSeenHelpIndicator: false, clinicName: null, level: 0, xp: 0, xpUpgrades: {}, musicSettings: { volume: 0.4, muted: false, playMode: 'shuffle', currentTrackId: null }, googleLinked: false, purchasedClinicAssets: {}, placedClinicAssets: {}, purchasedClinicAssetsCount: {}, recycledClinicAssets: [] };
 }
 
 window.getXPRequired = function(level) {

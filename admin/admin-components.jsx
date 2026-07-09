@@ -91,7 +91,7 @@ window.AdminEditorSidebar = function({ children, onClose, title }) {
   );
 };
 
-window.AdminImageUpload = function({ currentImage, onImageChange, maxSizeKb = 500, size = 64, width, height, style = {} }) {
+window.AdminImageUpload = function({ currentImage, previewComponent, onImageChange, maxSizeKb = 500, size = 64, width, height, style = {} }) {
   const fileInputRef = useRef(null);
   const [error, setError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -164,7 +164,7 @@ window.AdminImageUpload = function({ currentImage, onImageChange, maxSizeKb = 50
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {currentImage ? (
+        {previewComponent ? previewComponent : currentImage ? (
           <img src={currentImage} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="Upload preview" />
         ) : (
           <i className="fa-solid fa-cloud-arrow-up" style={{ color: isDragging ? 'var(--primary-i100)' : 'var(--fg-3)', fontSize: 24 }}></i>
@@ -186,7 +186,7 @@ window.AdminImageUpload = function({ currentImage, onImageChange, maxSizeKb = 50
 
 };
 
-window.AdminGlbUpload = function({ currentGlb, onGlbChange, onSnapshot, maxSizeKb = 2000, width = '100%', height = 64 }) {
+window.AdminGlbUpload = function({ currentGlb, onGlbChange, onSnapshot, maxSizeKb = 2000, width = '100%', height = 64, isometric = false }) {
   const fileInputRef = useRef(null);
   const [error, setError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -263,6 +263,7 @@ window.AdminGlbUpload = function({ currentGlb, onGlbChange, onSnapshot, maxSizeK
               animateFloat={false}
               onModelLoaded={onSnapshot}
               modelScale={3.2}
+              isometric={isometric}
             />
             <button 
               className="app-btn" 

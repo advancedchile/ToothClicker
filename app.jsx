@@ -353,7 +353,7 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     const updateTime = () => {
       const ms = activeSeasonConfig.endDate - Date.now();
       if (ms <= 0) {
-        window.location.reload(); 
+        setSeasonTimeLeft(0);
       } else {
         setSeasonTimeLeft(ms);
       }
@@ -484,6 +484,28 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         }
       }
       base.legacyXpRebalanceDone = true;
+    }
+
+    // Legacy support: Clinic Assets Migration (from object mapping assetId to object mapping instanceId)
+    if (!base.legacyClinicAssetsDone) {
+      if (base.placedClinicAssets) {
+        const newPlaced = {};
+        Object.entries(base.placedClinicAssets).forEach(([key, val]) => {
+          if (!val.assetId) {
+            const instanceId = `inst_${Date.now()}_${Math.random().toString(36).substring(2,9)}`;
+            newPlaced[instanceId] = { ...val, assetId: key, purchasedUpgrades: [], activeUpgrade: null };
+            
+            if (!base.purchasedClinicAssetsCount) base.purchasedClinicAssetsCount = {};
+            base.purchasedClinicAssetsCount[key] = (base.purchasedClinicAssetsCount[key] || 0) + 1;
+          } else {
+            newPlaced[key] = val;
+          }
+        });
+        base.placedClinicAssets = newPlaced;
+      }
+      if (!base.purchasedClinicAssetsCount) base.purchasedClinicAssetsCount = {};
+      if (!base.recycledClinicAssets) base.recycledClinicAssets = [];
+      base.legacyClinicAssetsDone = true;
     }
 
     if (offlineInfo) return { ...base, teeth: (base.teeth || 0) + offlineInfo.earned, totalEarned: (base.totalEarned || 0) + offlineInfo.earned, lifetimeEarned: (base.lifetimeEarned || 0) + offlineInfo.earned, lastTick: Date.now() };
@@ -1505,6 +1527,176 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     setTimeout(() => setToast(null), 4000);
   }, []);
 
+  const handleClinicAssetAction = useCallback((action, targetId, x, y, flipXParam) => {
+    setState(s => {
+      const next = { ...s };
+      next.purchasedClinicAssets = { ...(s.purchasedClinicAssets || {}) };
+      next.placedClinicAssets = { ...(s.placedClinicAssets || {}) };
+      next.purchasedClinicAssetsCount = { ...(s.purchasedClinicAssetsCount || {}) };
+      next.recycledClinicAssets = [...(s.recycledClinicAssets || [])];
+
+      if (action === 'buy_area') {
+        const instId = targetId;
+        const areaDef = x; 
+        
+        if (next.level < areaDef.reqLevel) {
+           setTimeout(() => setToast({ type: 'error', message: lang === 'es' ? `Requiere Nivel ${areaDef.reqLevel}` : `Requires Level ${areaDef.reqLevel}` }), 0);
+           return s;
+        }
+        if (next.teeth < areaDef.price) {
+           setTimeout(() => setToast({ type: 'error', message: lang === 'es' ? 'No tienes suficientes dientes' : 'Not enough teeth' }), 0);
+           return s;
+        }
+        
+        next.teeth -= areaDef.price;
+        next.purchasedAreas = [...(s.purchasedAreas || []), instId];
+        setTimeout(() => {
+           setToast({ type: 'success', message: lang === 'es' ? `¡Has comprado el área "${areaDef.name}"!` : `Purchased area "${areaDef.name}"!` });
+           if (window.playClickSound) window.playClickSound();
+        }, 0);
+        return next;
+      }
+
+      if (action === 'recycle_multiple') {
+        const instIds = targetId; // here targetId is an array of ids
+        instIds.forEach(instanceId => {
+            const instance = next.placedClinicAssets[instanceId];
+            if (instance) {
+                next.recycledClinicAssets.push({ ...instance, instanceId });
+                delete next.placedClinicAssets[instanceId];
+            }
+        });
+        return next;
+      }
+
+      if (action === 'buy_shop_asset') {
+        const assetId = targetId;
+        const instanceId = x;
+        const assetDef = (window.CLINIC_ASSETS || []).find(a => a.id === assetId);
+        if (!assetDef) return s;
+
+        const count = next.purchasedClinicAssetsCount[assetId] || 0;
+        const interest = assetDef.interestRate !== undefined ? assetDef.interestRate : 1.15;
+        const price = Math.floor((assetDef.price || 0) * Math.pow(interest, count));
+
+        if (next.teeth < price) {
+          setTimeout(() => setToast({ type: 'error', message: lang === 'es' ? 'No tienes suficientes dientes' : 'Not enough teeth' }), 0);
+          return s;
+        }
+
+        if (instanceId === 'check_only') {
+          return s;
+        }
+
+        next.teeth -= price;
+        next.purchasedClinicAssetsCount[assetId] = count + 1;
+        next.recycledClinicAssets.push({ instanceId, assetId, scale: 1, purchasedUpgrades: [], activeUpgrade: null });
+        
+        setTimeout(() => {
+          setToast({ type: 'success', message: lang === 'es' ? 'Recurso comprado' : 'Asset purchased' });
+          if (window.playClickSound) window.playClickSound();
+        }, 0);
+        return next;
+      }
+
+      if (action === 'place') {
+        const assetId = targetId;
+        const flipX = flipXParam !== undefined ? flipXParam : false;
+        const assetDef = (window.CLINIC_ASSETS || []).find(a => a.id === assetId);
+        if (!assetDef) return s;
+
+        const count = next.purchasedClinicAssetsCount[assetId] || 0;
+        const interest = assetDef.interestRate !== undefined ? assetDef.interestRate : 1.15;
+        const price = Math.floor((assetDef.price || 0) * Math.pow(interest, count));
+
+        if (next.teeth < price) {
+          setTimeout(() => setToast({ type: 'error', message: lang === 'es' ? 'No tienes suficientes dientes' : 'Not enough teeth' }), 0);
+          return s;
+        }
+
+        next.teeth -= price;
+        next.purchasedClinicAssetsCount[assetId] = count + 1;
+        
+        const instanceId = `inst_${Date.now()}_${Math.random().toString(36).substring(2,9)}`;
+        next.placedClinicAssets[instanceId] = { assetId, x, y, flipX: flipX, scale: 1, purchasedUpgrades: [], activeUpgrade: null };
+        
+        setTimeout(() => {
+          setToast({ type: 'success', message: lang === 'es' ? 'Recurso comprado' : 'Asset purchased' });
+          if (window.playClickSound) window.playClickSound();
+        }, 0);
+      } else if (action === 'place_recycle') {
+        const instanceId = targetId;
+        const instanceIndex = next.recycledClinicAssets.findIndex(inst => inst.instanceId === instanceId);
+        if (instanceIndex === -1) return s;
+        
+        const instanceData = next.recycledClinicAssets[instanceIndex];
+        const flipX = flipXParam !== undefined ? flipXParam : instanceData.flipX;
+        next.recycledClinicAssets.splice(instanceIndex, 1);
+        
+        next.placedClinicAssets[instanceId] = { ...instanceData, x, y, flipX };
+      } else if (action === 'move') {
+        const instanceId = targetId;
+        const instance = next.placedClinicAssets[instanceId];
+        if (!instance) return s;
+        const flipX = flipXParam !== undefined ? flipXParam : instance.flipX;
+        next.placedClinicAssets[instanceId] = { ...instance, x, y, flipX };
+      } else {
+        const instanceId = targetId;
+        const instance = next.placedClinicAssets[instanceId];
+        if (!instance) return s;
+
+        if (action === 'remove') {
+          next.recycledClinicAssets.push({ ...instance, instanceId });
+          delete next.placedClinicAssets[instanceId];
+        } else if (action === 'flip') {
+          next.placedClinicAssets[instanceId] = { ...instance, flipX: !instance.flipX };
+        } else if (action === 'rotate') {
+          const currentRot = instance.rotation !== undefined ? instance.rotation : (instance.flipX ? 2 : 0);
+          next.placedClinicAssets[instanceId] = { ...instance, rotation: (currentRot + 1) % 4 };
+        } else if (action === 'scale') {
+          next.placedClinicAssets[instanceId] = { ...instance, scale: x };
+        } else if (action === 'upgrade') {
+          const upgradeIndex = x;
+          const assetDef = (window.CLINIC_ASSETS || []).find(a => a.id === instance.assetId);
+          if (!assetDef || !assetDef.upgrades) return s;
+          
+          if (upgradeIndex === null) {
+            next.placedClinicAssets[instanceId] = { ...instance, activeUpgrade: null };
+            return next;
+          }
+
+          if (!assetDef.upgrades[upgradeIndex]) return s;
+          
+          const upg = assetDef.upgrades[upgradeIndex];
+          const count = next.purchasedClinicAssetsCount[instance.assetId] || 0;
+          const interest = assetDef.interestRate !== undefined ? assetDef.interestRate : 1.15;
+          const price = Math.floor((upg.price || 0) * Math.pow(interest, count));
+
+          if (!instance.purchasedUpgrades) instance.purchasedUpgrades = [];
+          if (!instance.purchasedUpgrades.includes(upgradeIndex)) {
+            if (next.teeth < price) {
+              setTimeout(() => setToast({ type: 'error', message: lang === 'es' ? 'No tienes suficientes dientes' : 'Not enough teeth' }), 0);
+              return s;
+            }
+            if (next.level < (upg.reqLevel || 0)) {
+              setTimeout(() => setToast({ type: 'error', message: lang === 'es' ? 'Nivel insuficiente' : 'Level too low' }), 0);
+              return s;
+            }
+            next.teeth -= price;
+            instance.purchasedUpgrades.push(upgradeIndex);
+            setTimeout(() => {
+              setToast({ type: 'success', message: lang === 'es' ? 'Mejora comprada' : 'Upgrade purchased' });
+              if (window.playClickSound) window.playClickSound();
+            }, 0);
+          }
+          
+          next.placedClinicAssets[instanceId] = { ...instance, activeUpgrade: upgradeIndex };
+        }
+      }
+      return next;
+    });
+  }, [lang]);
+
   const buyStoreUpgrade = useCallback((up) => {
     if (state.teeth >= up.cost && !state.storeUpgrades[up.id]) {
       setState(s => ({
@@ -1600,6 +1792,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
         totalEarned: 0, // Reset run progress
         lifetimeEarned: s.lifetimeEarned || s.totalEarned, // Persist lifetime
         unlockedTeeth: allUnlocked,
+        purchasedAreas: s.purchasedAreas,
+        purchasedClinicAssets: s.purchasedClinicAssets,
+        purchasedClinicAssetsCount: s.purchasedClinicAssetsCount,
+        placedClinicAssets: s.placedClinicAssets,
+        recycledClinicAssets: s.recycledClinicAssets,
         hasSeenTour: s.hasSeenTour !== undefined ? s.hasSeenTour : stateRef.current?.hasSeenTour,
         dontShowTourAgain: s.dontShowTourAgain !== undefined ? s.dontShowTourAgain : stateRef.current?.dontShowTourAgain,
         hasSeenHelpIndicator: s.hasSeenHelpIndicator !== undefined ? s.hasSeenHelpIndicator : stateRef.current?.hasSeenHelpIndicator
@@ -1717,48 +1914,11 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
     return (
       <div className="mobile-game-container">
         <header className="mobile-header">
-          {isEditingClinic ? (
-            <input 
-              autoFocus
-              className="mobile-clinic-input"
-              value={tempClinicName}
-              onChange={e => setTempClinicName(e.target.value.slice(0, 30))}
-              onBlur={() => {
-                setIsEditingClinic(false);
-                const final = tempClinicName.trim();
-                if (final !== state.clinicName) {
-                  const nextClinic = final || null;
-                  setState(s => ({ ...s, clinicName: nextClinic }));
-                  pushScore({ ...stateRef.current, clinicName: nextClinic });
-                }
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter') e.currentTarget.blur();
-                if (e.key === 'Escape') {
-                  setTempClinicName(state.clinicName || '');
-                  setIsEditingClinic(false);
-                }
-              }}
-              style={{
-                all: 'unset',
-                background: '#f0f4f8',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                width: '100%',
-                maxWidth: '240px',
-                fontSize: '16px',
-                fontFamily: 'inherit',
-                border: '2px solid #0076db',
-                height: '42px',
-                boxSizing: 'border-box'
-              }}
-            />
-          ) : (
-            <div className="mobile-clinic-name" onClick={() => { setIsEditingClinic(true); setTempClinicName(state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)); }} style={{ cursor: 'pointer' }}>
-               {state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)}
-               <i className="fa-solid fa-pen-to-square" style={{ fontSize: 13, opacity: 0.5, marginLeft: 6 }}></i>
-            </div>
-          )}
+          <div className="mobile-clinic-name" onClick={() => setIsEditingClinic(true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+             <img src="assets/clinic/clinica-dental-1.png" style={{ width: 24, height: 24, objectFit: 'contain' }} alt="Clinic Icon" />
+             {state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)}
+             <i className="fa-solid fa-pen-to-square" style={{ fontSize: 13, opacity: 0.5, marginLeft: 6 }}></i>
+          </div>
           <button 
             className={`mobile-player-pill ${menuOpen ? 'open' : ''}`}
             onClick={() => setMenuOpen(!menuOpen)}
@@ -2644,52 +2804,20 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
               </div>
             )}
             <div style={{ textAlign: 'center', marginBottom: 16, marginTop: -10, position: 'relative', zIndex: 10 }}>
-              {isEditingClinic ? (
-                <input 
-                  autoFocus
-                  value={tempClinicName}
-                  onChange={e => setTempClinicName(e.target.value.slice(0, 30))}
-                  onBlur={() => {
-                    setIsEditingClinic(false);
-                    const final = tempClinicName.trim();
-                    if (final !== state.clinicName) {
-                      const nextClinic = final || null;
-                      setState(s => ({ ...s, clinicName: nextClinic }));
-                      // Push immediately with the new value
-                      pushScore({ ...stateRef.current, clinicName: nextClinic });
-                    }
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') e.currentTarget.blur();
-                    if (e.key === 'Escape') {
-                      setTempClinicName(state.clinicName || '');
-                      setIsEditingClinic(false);
-                    }
-                  }}
-                  style={{
-                    all: 'unset', boxSizing: 'border-box',
-                    background: 'var(--bg-1)', border: '2px solid var(--primary-i100)',
-                    borderRadius: 8, padding: '4px 12px', width: 'auto', minWidth: 200,
-                    fontSize: 22, fontWeight: 700, color: 'var(--fg-1)', textAlign: 'center',
-                    boxShadow: '0 4px 12px rgba(0,118,219,0.15)',
-                    fontFamily: 'var(--font-sans)'
-                  }}
-                />
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <span className="t-heading-l" style={{ color: 'var(--fg-1)', letterSpacing: '-0.01em' }}>
-                    {state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)}
-                  </span>
-                  <button 
-                    onClick={() => { window.playClickSound && window.playClickSound(); setIsEditingClinic(true); setTempClinicName(state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)); }} 
-                    style={{ all: 'unset', cursor: 'pointer', color: 'var(--fg-3)', transition: 'color 150ms' }}
-                    onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-i100)'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'var(--fg-3)'}
-                  >
-                    <i className="fa-solid fa-pen-to-square" style={{ fontSize: 16 }}></i>
-                  </button>
-                </div>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <img src="assets/clinic/clinica-dental-1.png" style={{ width: 48, height: 48, objectFit: 'contain' }} alt="Clinic Icon" />
+                <span className="t-heading-l" style={{ color: 'var(--fg-1)', letterSpacing: '-0.01em' }}>
+                  {state.clinicName || (lang === 'es' ? `Clínica de ${username}` : `${username}'s Clinic`)}
+                </span>
+                <button 
+                  onClick={() => { window.playClickSound && window.playClickSound(); setIsEditingClinic(true); }} 
+                  style={{ all: 'unset', cursor: 'pointer', color: 'var(--fg-3)', transition: 'color 150ms' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-i100)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--fg-3)'}
+                >
+                  <i className="fa-solid fa-pen-to-square" style={{ fontSize: 16 }}></i>
+                </button>
+              </div>
             </div>
             <div style={{ position: 'relative', width: '100%', height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
                 {visualEffects && (
@@ -4117,6 +4245,23 @@ function Game({ username, saved: cloudSaved, sessionId, lang: initialLang, onLan
           }}
         />
       )}
+
+      <window.ClinicModal
+        isOpen={isEditingClinic}
+        onClose={() => setIsEditingClinic(false)}
+        state={state}
+        lang={lang}
+        username={username}
+        onAssetAction={handleClinicAssetAction}
+        onSaveName={(newName) => {
+          const final = newName.trim();
+          if (final !== state.clinicName) {
+            const nextClinic = final || null;
+            setState(s => ({ ...s, clinicName: nextClinic }));
+            pushScore({ ...stateRef.current, clinicName: nextClinic });
+          }
+        }}
+      />
     </>
   );
 }

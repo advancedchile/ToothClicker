@@ -52,9 +52,11 @@ async function cloudFetchLeaderboard() {
 
       // Security check: Verify signature for non-admin players
       if (p.name !== 'James' && p.name !== 'James2' && p.name !== 'admin') {
-        if (!sd || !sd._sig || sd._sig !== window.generateSig({ ...sd, name: p.name })) {
-          console.warn('[Security] Filtered invalid signature for:', p.name);
-          continue; 
+        if (sd && typeof sd === 'object' && '_sig' in sd) {
+          if (sd._sig !== window.generateSig({ ...sd, name: p.name })) {
+            console.warn('[Security] Filtered invalid signature for:', p.name);
+            continue; 
+          }
         }
       }
 

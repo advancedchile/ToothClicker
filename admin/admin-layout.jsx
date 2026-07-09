@@ -163,6 +163,8 @@ window.AdminLayout = function({ lang, onLangChange, onEnterGame, onBack }) {
         );
       case 'bonuses':
         return <window.AdminRandomBonuses key={editingTemplate?.id || 'live'} {...commonProps} />;
+      case 'clinicAssets':
+        return <window.AdminClinic key={editingTemplate?.id || 'live'} {...commonProps} />;
       default:
         return <div>WIP</div>;
     }
@@ -219,6 +221,11 @@ window.AdminLayout = function({ lang, onLangChange, onEnterGame, onBack }) {
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    window.handleAdminSaveAll = handleSaveAll;
+    return () => { delete window.handleAdminSaveAll; };
+  }); // Note: removed dependency array so it updates whenever handleSaveAll updates
 
   const handleSaveAll = async () => {
     if (!window.GAME_CONTENT) return;
@@ -405,6 +412,7 @@ window.AdminLayout = function({ lang, onLangChange, onEnterGame, onBack }) {
           <SidebarItem active={activeTab === 'levelConfig'} onClick={() => setActiveTab('levelConfig')} icon="fa-star" text="Nivel de Jugador" collapsed={sidebarCollapsed} setTooltip={setTooltip} />
           <SidebarItem active={activeTab === 'music'} onClick={() => setActiveTab('music')} icon="fa-music" text="Música" collapsed={sidebarCollapsed} setTooltip={setTooltip} />
           <SidebarItem active={activeTab === 'bonuses'} onClick={() => setActiveTab('bonuses')} icon="fa-gift" text="Bonus Aleatorios" collapsed={sidebarCollapsed} setTooltip={setTooltip} />
+          <SidebarItem active={activeTab === 'clinicAssets'} onClick={() => setActiveTab('clinicAssets')} icon="fa-hospital" text="Clínica" collapsed={sidebarCollapsed} setTooltip={setTooltip} />
         </div>
 
         <div style={{ padding: '16px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
