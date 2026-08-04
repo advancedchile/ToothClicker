@@ -1,0 +1,751 @@
+/* Mobile Responsive Styles for Tooth Clicker */
+
+@media (max-width: 768px) {
+  body {
+    overflow: hidden; /* Prevent scrolling on mobile main view */
+    touch-action: none; /* Disable all browser gestures like zoom */
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Explicitly hide desktop elements just in case */
+  .game-container {
+    display: none !important;
+  }
+
+  /* View Container */
+  .mobile-game-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    background: #ffffff;
+    padding: 16px;
+    box-sizing: border-box;
+    gap: 20px;
+    position: relative;
+    overflow: hidden;
+    touch-action: none; /* Disable all browser gestures on this container */
+  }
+
+  /* Header */
+  .mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: calc(100% + 32px);
+    margin: -16px -16px 0 -16px;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eeeeee;
+    box-sizing: border-box;
+  }
+
+  .mobile-clinic-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'PixelifySans', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a1a1b;
+  }
+
+  .mobile-player-pill {
+    all: unset; /* Reset button defaults */
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    background: var(--primary-i010);
+    padding: 10px 15px;
+    border-radius: 999px;
+    border: 1.5px solid transparent;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 118, 219, 0.05);
+    gap: 6px; /* Base gap of 6px between avatar and info */
+    cursor: pointer;
+  }
+
+  .mobile-player-pill.open {
+    background: var(--primary-i020);
+    border-color: var(--primary-i050);
+  }
+
+  .mobile-player-pill:active {
+    background: var(--primary-i020);
+    transform: scale(0.96);
+  }
+
+  .mobile-avatar {
+    width: 28px;
+    height: 28px;
+    background: #0076db;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .mobile-player-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .mobile-player-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #0062b8;
+    line-height: 1;
+  }
+
+  .mobile-player-lvl {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mobile-lvl-text {
+    font-size: 9px;
+    font-weight: 800;
+    color: #0076db;
+    text-transform: uppercase;
+  }
+
+  .mobile-player-pill i {
+    margin-left: 4px; /* Slight extra offset for the arrow to separate from text */
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  .mobile-xp-bar {
+    width: 40px;
+    height: 4px;
+    background: rgba(0, 118, 219, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .mobile-xp-progress {
+    height: 100%;
+    background: #0076db;
+    transition: width 0.3s ease;
+  }
+
+  /* Stats Section */
+  .mobile-stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mobile-stat-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px; /* 10px gap as requested */
+  }
+
+  .mobile-stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #8c8c8d;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .mobile-stat-value {
+    font-family: 'GameNums', sans-serif;
+    font-size: 11px; /* Smaller font to match labels */
+    font-weight: 700;
+    color: #0076db;
+  }
+
+  .mobile-stat-sub {
+    font-family: 'GameNums', sans-serif;
+    font-size: 14px;
+    color: #5f5f5f;
+  }
+
+  .mobile-stat-click {
+    color: #4236ff;
+  }
+
+  /* Center Tooth */
+  .mobile-tooth-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .mobile-main-tooth {
+    width: 280px; /* Even larger tooth */
+    height: 280px;
+    object-fit: contain;
+    position: relative;
+    z-index: 2;
+    transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .mobile-main-tooth:active {
+    transform: scale(0.92);
+  }
+
+  .mobile-click-text {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mobile-click-me {
+    font-family: 'PixelifySans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a1b;
+  }
+
+  .mobile-click-gain {
+    font-size: 13px;
+    color: #5f5f5f;
+  }
+
+  /* Upgrades Row */
+  .mobile-upgrades-row {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-start;
+    padding: 0 24px;
+    padding-bottom: 12px;
+    margin-top: 20px; /* EXACTLY 20px of distance from text above */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+    box-sizing: border-box;
+    touch-action: pan-x !important; /* Restore horizontal touch scrolling on physical mobile devices! */
+  }
+  .mobile-upgrades-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-upgrade-slot {
+    width: 44px; /* Same 44px size as desktop */
+    height: 44px;
+    background: var(--bg-1);
+    border: 2px solid var(--border-subtle);
+    border-radius: 8px; /* Same square-rounded corners as desktop */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: none; /* Same as desktop */
+    transition: opacity 0.2s, filter 0.2s, transform 0.2s;
+    flex-shrink: 0; /* Keep exact aspect ratio, no squishing! */
+  }
+
+  .mobile-upgrade-slot.disabled {
+    opacity: 0.6;
+    filter: none;
+    background: var(--bg-2);
+    border-color: var(--neutral-i020);
+  }
+
+  /* Footer Player */
+  .mobile-footer-player {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    width: 100%;
+    margin-top: auto;
+    padding-bottom: 20px; /* More padding at bottom */
+  }
+
+  .mobile-music-card {
+    flex: 1;
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  }
+
+  .mobile-music-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile-track-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #0076db;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-track-time {
+    font-size: 10px;
+    color: #8c8c8d;
+    font-family: 'GameNums', sans-serif;
+  }
+
+  .mobile-music-bars-btn {
+    all: unset;
+    cursor: pointer;
+    box-sizing: border-box;
+    width: 56px;
+    height: 56px;
+    background: #0076db;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    box-shadow: 0 4px 12px rgba(0,118,219,0.3);
+    flex-shrink: 0;
+  }
+
+  .mobile-hamburger-btn {
+    all: unset;
+    cursor: pointer;
+    box-sizing: border-box;
+    width: 56px;
+    height: 56px;
+    background: #0076db;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    box-shadow: 0 4px 12px rgba(0,118,219,0.3);
+    flex-shrink: 0;
+  }
+
+  /* Mobile Menu Overlay & Drawer */
+  .mobile-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    touch-action: none; /* Prevent interaction with background */
+  }
+
+  .mobile-menu-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .mobile-menu-overlay {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .mobile-menu-drawer {
+    position: fixed;
+    top: 0;
+    right: -280px;
+    width: 280px;
+    height: 100%;
+    background: #ffffff;
+    z-index: 10001;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 0;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+  }
+
+  .mobile-menu-overlay.open .mobile-menu-drawer {
+    transform: translateX(-280px);
+  }
+
+  .mobile-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 24px;
+    width: 100%;
+    border: none;
+    background: transparent !important; /* Force transparent background */
+    cursor: pointer;
+    transition: background 0.2s;
+    text-align: left;
+    font-family: var(--font-sans);
+    border-radius: 0 !important; /* Ensure they are not pills */
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  .mobile-menu-item:active {
+    background: #f4f4f4;
+  }
+
+  .mobile-menu-item i {
+    font-size: 18px;
+    color: #1a1a1b;
+    width: 24px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .mobile-menu-item-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1a1b;
+    flex: 1;
+  }
+
+  .mobile-menu-item-trailing {
+    font-size: 11px;
+    color: #8c8c8d;
+    text-transform: uppercase;
+  }
+
+  .mobile-menu-divider {
+    height: 1px;
+    background: #e8e8e8;
+    margin: 16px 24px;
+  }
+
+  /* Mobile Tabs Menu (Game Navigation) */
+  .mobile-tabs-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    backdrop-filter: blur(2px);
+  }
+
+  .mobile-tabs-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .mobile-tabs-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border-radius: 32px 32px 0 0;
+    padding: 25px 24px calc(env(safe-area-inset-bottom, 20px) + 5px) 24px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mobile-tabs-overlay.open .mobile-tabs-sheet {
+    transform: translateY(0);
+  }
+
+  .mobile-tab-item {
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px; /* Reduced left/right padding */
+    transition: all 0.2s;
+    box-sizing: border-box;
+    width: 100%;
+    border-radius: 12px; /* Added radius for active state */
+  }
+
+  .mobile-tab-item.active {
+    background: #1a8fff !important;
+  }
+
+  .mobile-tab-item.active i,
+  .mobile-tab-item.active .mobile-tab-label {
+    color: #ffffff !important;
+  }
+
+  .mobile-tab-item:active {
+    background: #f4f4f4;
+  }
+
+  .mobile-tab-item i {
+    font-size: 18px;
+    color: #1a1a1b;
+    width: 24px;
+    text-align: center;
+  }
+
+  .mobile-tab-label {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1a1b;
+  }
+
+  .mobile-menu-item.danger {
+    color: #e11d24;
+  }
+
+  .mobile-menu-item.danger i,
+  .mobile-menu-item.danger .mobile-menu-item-text {
+    color: #e11d24;
+  }
+
+  .game-toast-container {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 10px !important;
+    transform: none !important;
+    max-width: none !important;
+    width: calc(100% - 20px) !important;
+    box-sizing: border-box;
+    gap: 12px !important;
+  }
+
+  .game-modal-content {
+    max-width: none !important;
+    max-height: none !important;
+    width: calc(100% - 20px) !important;
+    height: calc(100% - 20px) !important;
+    margin: 10px !important;
+    border-radius: 16px !important;
+    padding: 24px !important;
+    box-sizing: border-box;
+  }
+
+  /* Mobile Tab View Overlay & Sheet */
+  .mobile-tab-view-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2100;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    backdrop-filter: blur(2px);
+  }
+
+  .mobile-tab-view-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .mobile-tab-view-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80vh;
+    height: 80dvh;
+    background: #ffffff;
+    border-radius: 32px 32px 0 0;
+    padding: 24px;
+    padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 5px);
+    box-sizing: border-box;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .mobile-tab-view-overlay.open .mobile-tab-view-sheet {
+    transform: translateY(0);
+  }
+
+  .mobile-tab-view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eeeeee;
+    padding-bottom: 16px;
+    flex-shrink: 0;
+  }
+
+  .mobile-tab-view-title {
+    font-family: 'PixelifySans', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #1a1a1b;
+  }
+
+  .mobile-tab-view-title i {
+    font-size: 18px;
+    color: #4236ff;
+  }
+
+  .mobile-tab-view-close {
+    all: unset;
+    cursor: pointer;
+    font-size: 18px;
+    color: #888888;
+    padding: 8px;
+    margin: -8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .mobile-tab-view-close:active {
+    background: #f0f0f0;
+    color: #333333;
+  }
+
+  .mobile-tab-view-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Leaderboard Parity and Layout Enhancements */
+  .leaderboard-body-list {
+    gap: 0px !important;
+  }
+  .leaderboard-header-row,
+  .leaderboard-row {
+    grid-template-columns: 28px 1fr 60px 85px 36px !important;
+    gap: 8px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+  .leaderboard-row {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    border-radius: 0px !important;
+    box-shadow: none !important;
+  }
+  .leaderboard-row.current-player {
+    background: var(--primary-i010) !important;
+    border-bottom: 1px solid var(--primary-i100) !important;
+  }
+  .leaderboard-player-col {
+    gap: 10px !important;
+  }
+  .leaderboard-player-col div:nth-child(2) div:nth-child(2) {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
+@keyframes musicWave {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
+}
+
+/* Global Mobile Landscape Warning Overlay */
+.mobile-landscape-warning {
+  display: none;
+}
+
+@keyframes warningRotate {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+}
+
+@media (max-width: 932px) and (max-height: 500px) and (orientation: landscape) {
+  .mobile-landscape-warning {
+    display: flex !important;
+    position: fixed;
+    inset: 0;
+    background: #e8f2fb;
+    z-index: 10000000;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+    box-sizing: border-box;
+    font-family: 'PixelifySans', sans-serif;
+  }
+  
+  .mobile-landscape-warning-box {
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    animation: fadeIn 0.4s ease-out;
+  }
+  
+  .mobile-landscape-warning-icon {
+    font-size: 48px;
+    animation: warningRotate 3s ease-in-out infinite;
+  }
+  
+  .mobile-landscape-warning h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a8fff;
+    margin: 12px 0 6px;
+    font-family: 'PixelifySans', sans-serif;
+  }
+  
+  .mobile-landscape-warning p {
+    font-size: 14px;
+    color: #333333;
+    line-height: 1.5;
+    margin: 0;
+    font-family: var(--font-sans), sans-serif;
+  }
+  
+  .mobile-landscape-warning .mobile-landscape-warning-sub {
+    font-size: 12px;
+    color: #556677;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  
+  /* Show Spanish texts by default */
+  .mobile-landscape-warning .warning-es {
+    display: block !important;
+  }
+  .mobile-landscape-warning .warning-en {
+    display: none !important;
+  }
+
+  /* Show English texts if HTML lang is en */
+  html[lang="en"] .mobile-landscape-warning .warning-es {
+    display: none !important;
+  }
+  html[lang="en"] .mobile-landscape-warning .warning-en {
+    display: block !important;
+  }
+}

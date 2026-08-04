@@ -1,0 +1,39 @@
+# System files
+.DS_Store
+Thumbs.db
+
+# Project folders
+node_modules/
+dist/
+build/
+.cache/
+
+# Local configuration
+.env
+.env.local
+
+# Antigravity/AI tools
+.antigravity/
+.gemini/
+.claude/
+.trae/
+.rowboat/
+
+# Temporary and test files
+diff*.txt
+f9_user.txt
+git_log_comp.txt
+grep_tabbar.txt
+history_components.txt
+*.patch
+*.zip
+test-*.js
+test_*.js
+test-*.html
+temp.jsx
+patch*.js
+screenshots/
+scraps/
+lint_check.js
+measure.html
+run-puppeteer.js

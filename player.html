@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tooth Clicker - Reproductor de Música</title>
+  
+  <!-- Open Graph (Metadatos de redes sociales) -->
+  <meta property="og:type" content="music.song" />
+  <meta property="og:title" content="Tooth Clicker - Reproductor" />
+  <meta property="og:description" content="¡Escucha la música retro del consultorio dental de Tooth Clicker!" />
+  <meta property="og:image" content="https://advancedchile.github.io/ToothClicker/uploads/logo-vertical.png" />
+  
+  <!-- Twitter Card (Player para reproducir inline en Discord/Telegram/X) -->
+  <meta name="twitter:card" content="player" />
+  <meta name="twitter:title" content="Tooth Clicker - Reproductor de Música" />
+  <meta name="twitter:description" content="¡Escucha la música de mi clínica dental de Tooth Clicker!" />
+  <meta name="twitter:image" content="https://advancedchile.github.io/ToothClicker/uploads/logo-vertical.png" />
+  <meta name="twitter:player" content="https://advancedchile.github.io/ToothClicker/player.html" />
+  <meta name="twitter:player:width" content="360" />
+  <meta name="twitter:player:height" content="200" />
+  
+  <!-- Font Awesome & Styles -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="colors_and_type.css" />
+  
+  <style>
+    /* Estilos globales y reset */
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary-i200) 0%, var(--complementary-i090) 100%);
+      font-family: var(--font-sans);
+      color: var(--fg-1);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    /* Animaciones */
+    @keyframes discRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Card principal (Vista de navegador) */
+    .player-card {
+      width: 360px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-l);
+      box-shadow: var(--elevation-30);
+      padding: var(--spacing-5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--spacing-4);
+      box-sizing: border-box;
+      transition: all 0.3s ease;
+    }
+
+    /* Mensaje superior */
+    .share-header {
+      width: 100%;
+      text-align: center;
+      font-size: 13px;
+      font-weight: var(--fw-semibold);
+      color: var(--primary-i030);
+      line-height: 1.4;
+      background: rgba(0, 118, 219, 0.12);
+      padding: var(--spacing-2) var(--spacing-3);
+      border-radius: var(--radius-m);
+      border: 1px solid var(--primary-i090);
+      box-sizing: border-box;
+      word-break: break-word;
+    }
+
+    /* Disco de vinilo */
+    .disc-container {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: var(--neutral-i100);
+      border: 4px solid var(--primary-i100);
+      box-shadow: 0 4px 15px rgba(0, 118, 219, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+    
+    .disc-container.playing {
+      animation: discRotate 5s linear infinite;
+    }
+    
+    .disc-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .disc-center {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--neutral-i001);
+      border: 3px solid var(--neutral-i100);
+    }
+
+    /* Información de pista */
+    .track-info {
+      text-align: center;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .track-title {
+      font-size: 16px;
+      font-weight: var(--fw-bold);
+      color: var(--neutral-i000);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .track-status {
+      font-size: 11px;
+      color: var(--fg-3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Controles de reproducción */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-4);
+    }
+
+    .btn-icon {
+      all: unset;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--fg-3);
+      transition: all 0.2s ease;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .btn-icon:hover {
+      color: var(--neutral-i000);
+      background: rgba(255,255,255,0.15);
+      transform: scale(1.05);
+    }
+
+    .btn-icon.play-pause {
+      width: 44px;
+      height: 44px;
+      background: var(--primary-i100);
+      color: #fff;
+    }
+
+    .btn-icon.play-pause:hover {
+      background: var(--primary-i090);
+      transform: scale(1.1);
+    }
+
+    /* Barra de progreso */
+    .progress-bar-container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-2);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      color: var(--fg-3);
+    }
+
+    .progress-slider {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .progress-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--primary-i100);
+      border: 2px solid #fff;
+    }
+
+    /* Controles de volumen */
+    .volume-container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-2);
+      opacity: 0.85;
+    }
+    
+    .volume-slider {
+      width: 80px;
+      height: 3px;
+      -webkit-appearance: none;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--fg-3);
+    }
+
+    .volume-btn {
+      all: unset;
+      cursor: pointer;
+      color: var(--fg-3);
+      font-size: 12px;
+      padding: 4px;
+    }
+
+    .volume-btn:hover {
+      color: var(--neutral-i000);
+    }
+
+    /* Botón CTA Jugar */
+    .cta-button {
+      all: unset;
+      box-sizing: border-box;
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary-i100) 0%, var(--primary-i130) 100%);
+      color: #fff;
+      padding: var(--spacing-3);
+      border-radius: var(--radius-m);
+      font-size: 13px;
+      font-weight: var(--fw-bold);
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 118, 219, 0.35);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-2);
+    }
+
+    .cta-button:hover {
+      transform: translateY(-1.5px);
+      box-shadow: 0 6px 20px rgba(0, 118, 219, 0.5);
+      filter: brightness(1.05);
+    }
+
+    /* ==========================================
+       MODO COMPACTO (Para Iframe / Embed de Chat)
+       ========================================== */
+    @media (max-height: 240px), (max-width: 420px) {
+      body {
+        padding: 0;
+        background: transparent; /* Permite integrarse mejor en chats */
+      }
+      
+      .player-card {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        padding: 8px 12px;
+        background: rgba(26, 35, 54, 0.98);
+        gap: var(--spacing-2);
+        display: grid;
+        grid-template-areas: 
+          "header header header"
+          "disc info controls"
+          "progress progress volume"
+          "cta cta cta";
+        grid-template-columns: 60px 1fr auto;
+        grid-template-rows: auto auto auto auto;
+        align-items: center;
+      }
+
+      .share-header {
+        grid-area: header;
+        font-size: 10.5px;
+        padding: 3px 6px;
+        margin: 0;
+        border-radius: 4px;
+        text-align: left;
+      }
+
+      .disc-container {
+        grid-area: disc;
+        width: 48px;
+        height: 48px;
+        border-width: 2px;
+        margin: 0 auto;
+      }
+
+      .track-info {
+        grid-area: info;
+        text-align: left;
+        padding-left: 8px;
+      }
+
+      .track-title {
+        font-size: 13px;
+        margin: 0;
+      }
+
+      .track-status {
+        font-size: 9px;
+      }
+
+      .controls {
+        grid-area: controls;
+        gap: 6px;
+      }
+
+      .btn-icon {
+        width: 24px;
+        height: 24px;
+        font-size: 10px;
+      }
+
+      .btn-icon.play-pause {
+        width: 30px;
+        height: 30px;
+        font-size: 11px;
+      }
+
+      .progress-bar-container {
+        grid-area: progress;
+        font-size: 9px;
+        gap: 4px;
+      }
+
+      .progress-slider {
+        height: 3px;
+      }
+
+      .progress-slider::-webkit-slider-thumb {
+        width: 8px;
+        height: 8px;
+      }
+
+      .volume-container {
+        grid-area: volume;
+        justify-content: flex-end;
+        padding-left: 8px;
+      }
+
+      .volume-slider {
+        width: 40px;
+      }
+
+      .volume-btn {
+        font-size: 10px;
+      }
+
+      .cta-button {
+        grid-area: cta;
+        padding: 5px 8px;
+        font-size: 11px;
+        border-radius: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="player-card">
+    <!-- Mensaje dinámico de compartido -->
+    <div id="share-msg" class="share-header">
+      Juega ToothClicker, ¡mi clínica ya tiene 0 dientes!
+    </div>
+
+    <!-- Disco Giratorio -->
+    <div id="disc" class="disc-container">
+      <img id="track-cover" src="https://img.icons8.com/color/96/music-record.png" class="disc-img" alt="Cover" />
+      <div class="disc-center"></div>
+    </div>
+
+    <!-- Info de la Canción -->
+    <div class="track-info">
+      <div id="track-title" class="track-title">Cargando canción...</div>
+      <div id="status-label" class="track-status">Pausado</div>
+    </div>
+
+    <!-- Controles -->
+    <div class="controls">
+      <button id="btn-prev" class="btn-icon" title="Anterior">
+        <i class="fa-solid fa-backward-step"></i>
+      </button>
+      <button id="btn-play" class="btn-icon play-pause" title="Reproducir">
+        <i class="fa-solid fa-play"></i>
+      </button>
+      <button id="btn-stop" class="btn-icon" title="Detener">
+        <i class="fa-solid fa-stop"></i>
+      </button>
+      <button id="btn-next" class="btn-icon" title="Siguiente">
+        <i class="fa-solid fa-forward-step"></i>
+      </button>
+    </div>
+
+    <!-- Timeline de Progreso -->
+    <div class="progress-bar-container">
+      <span id="time-curr">0:00</span>
+      <input type="range" id="progress-slider" class="progress-slider" min="0" max="100" value="0" />
+      <span id="time-dur">0:00</span>
+    </div>
+
+    <!-- Control de Volumen -->
+    <div class="volume-container">
+      <button id="btn-mute" class="volume-btn">
+        <i class="fa-solid fa-volume-low"></i>
+      </button>
+      <input type="range" id="volume-slider" class="volume-slider" min="0" max="1" step="0.05" value="0.5" />
+    </div>
+
+    <!-- Llamada a la acción (CTA) -->
+    <button id="btn-cta" class="cta-button">
+      <i class="fa-solid fa-gamepad"></i> <span id="cta-text">Jugar Tooth Clicker</span>
+    </button>
+  </div>
+
+  <!-- Audio Element -->
+  <audio id="audio-player" preload="auto"></audio>
+
+  <script>
+    // Lista de canciones coincidente con el juego
+    let MUSIC_TRACKS = [
+      { id: 'cd7ff5fdd33e3eb3200b3aa5f0c20c53221d2115', title: 'Cartucho Azul', src: 'assets/music/Cartucho_Azul.mp3', cover: 'https://img.icons8.com/color/96/music-record.png' },
+      { id: 'a74df8275125d68ff43f255cd8a350bc88f70d53', title: 'Cartucho Azul 2', src: 'assets/music/Cartucho_Azul_2.mp3', cover: 'https://img.icons8.com/color/96/music-record.png' },
+      { id: '9cdc1a61de104884b8c8471ac0592e58bb2a6dad', title: 'Respira en 8 Bits 1', src: 'assets/music/Respira_en_8_Bits_1.mp3', cover: 'https://img.icons8.com/color/96/music-record.png' },
+      { id: 'a10ec2b508bae9fcd714d76dd012e24901bd6ae9', title: 'Respira en 8 Bits 2', src: 'assets/music/Respira_en_8_Bits_2.mp3', cover: 'https://img.icons8.com/color/96/music-record.png' }
+    ];
+
+    // Cargar parámetros de URL
+    const params = new URLSearchParams(window.location.search);
+    const teethParam = params.get('teeth') || '0';
+    const trackIdParam = params.get('track') || '1';
+    const langParam = params.get('lang') || 'es';
+
+    // Traducciones
+    const t = {
+      es: {
+        shareMsg: `Juega ToothClicker, mi clínica ya tiene ${teethParam}.`,
+        playing: 'Reproduciendo...',
+        paused: 'Pausado',
+        play: 'Reproducir',
+        cta: 'Jugar Tooth Clicker',
+        prev: 'Anterior',
+        next: 'Siguiente',
+        stop: 'Detener'
+      },
+      en: {
+        shareMsg: `Play ToothClicker, my clinic already has ${teethParam}.`,
+        playing: 'Playing...',
+        paused: 'Paused',
+        play: 'Play Tooth Clicker',
+        cta: 'Play Tooth Clicker',
+        prev: 'Previous',
+        next: 'Next',
+        stop: 'Stop'
+      }
+    };
+    
+    const strings = t[langParam] || t.es;
+    document.documentElement.lang = langParam;
+
+    // Elementos DOM
+    const audio = document.getElementById('audio-player');
+    const shareMsg = document.getElementById('share-msg');
+    const disc = document.getElementById('disc');
+    const trackCover = document.getElementById('track-cover');
+    const trackTitle = document.getElementById('track-title');
+    const statusLabel = document.getElementById('status-label');
+    const btnPlay = document.getElementById('btn-play');
+    const btnStop = document.getElementById('btn-stop');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const btnMute = document.getElementById('btn-mute');
+    const btnCta = document.getElementById('btn-cta');
+    const ctaText = document.getElementById('cta-text');
+    const progressSlider = document.getElementById('progress-slider');
+    const volumeSlider = document.getElementById('volume-slider');
+    const timeCurr = document.getElementById('time-curr');
+    const timeDur = document.getElementById('time-dur');
+
+    // Inicializar textos en pantalla
+    shareMsg.textContent = strings.shareMsg;
+    ctaText.textContent = strings.cta;
+    
+    btnPrev.title = strings.prev;
+    btnNext.title = strings.next;
+    btnStop.title = strings.stop;
+
+    let trackIndex = 0;
+    let isMuted = false;
+    let preMuteVolume = 0.5;
+
+    function initPlayer() {
+      trackIndex = MUSIC_TRACKS.findIndex(x => x.id === trackIdParam);
+      if (trackIndex === -1) {
+        const fallbackIdx = parseInt(trackIdParam) - 1;
+        if (!isNaN(fallbackIdx) && fallbackIdx >= 0 && fallbackIdx < MUSIC_TRACKS.length) {
+          trackIndex = fallbackIdx;
+        } else {
+          trackIndex = 0;
+        }
+      }
+      loadTrack(trackIndex);
+    }
+
+    // Cargar canción
+    function loadTrack(index) {
+      const track = MUSIC_TRACKS[index];
+      audio.src = track.src;
+      trackCover.src = track.cover;
+      trackTitle.textContent = track.title;
+      
+      // Resetear barra de progreso
+      progressSlider.value = 0;
+      timeCurr.textContent = "0:00";
+      timeDur.textContent = "0:00";
+
+      // Actualizar parámetros en la URL dinámicamente sin recargar la página
+      const newUrl = `${window.location.pathname}?track=${track.id}&teeth=${encodeURIComponent(teethParam)}&lang=${langParam}`;
+      window.history.replaceState({ path: newUrl }, '', newUrl);
+    }
+
+    // Formateador de tiempo
+    function formatTime(secs) {
+      if (isNaN(secs) || secs < 0) return "0:00";
+      const m = Math.floor(secs / 60);
+      const s = Math.floor(secs % 60);
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    // Play y Pause
+    function togglePlay() {
+      if (audio.paused) {
+        audio.play().then(() => {
+          disc.classList.add('playing');
+          btnPlay.innerHTML = '<i class="fa-solid fa-pause"></i>';
+          statusLabel.textContent = strings.playing;
+        }).catch(e => console.error('Audio play failed:', e));
+      } else {
+        audio.pause();
+        disc.classList.remove('playing');
+        btnPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
+        statusLabel.textContent = strings.paused;
+      }
+    }
+
+    // Detener reproducción
+    function stopTrack() {
+      audio.pause();
+      audio.currentTime = 0;
+      disc.classList.remove('playing');
+      btnPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
+      statusLabel.textContent = strings.paused;
+      progressSlider.value = 0;
+      timeCurr.textContent = "0:00";
+    }
+
+    // Avanzar
+    function nextTrack() {
+      trackIndex = (trackIndex + 1) % MUSIC_TRACKS.length;
+      loadTrack(trackIndex);
+      audio.play().then(() => {
+        disc.classList.add('playing');
+        btnPlay.innerHTML = '<i class="fa-solid fa-pause"></i>';
+        statusLabel.textContent = strings.playing;
+      }).catch(e => console.error('Audio play failed:', e));
+    }
+
+    // Retroceder
+    function prevTrack() {
+      trackIndex = (trackIndex - 1 + MUSIC_TRACKS.length) % MUSIC_TRACKS.length;
+      loadTrack(trackIndex);
+      audio.play().then(() => {
+        disc.classList.add('playing');
+        btnPlay.innerHTML = '<i class="fa-solid fa-pause"></i>';
+        statusLabel.textContent = strings.playing;
+      }).catch(e => console.error('Audio play failed:', e));
+    }
+
+    // Eventos del Audio
+    audio.addEventListener('loadedmetadata', () => {
+      timeDur.textContent = formatTime(audio.duration);
+    });
+
+    audio.addEventListener('timeupdate', () => {
+      if (!isNaN(audio.duration)) {
+        const percent = (audio.currentTime / audio.duration) * 100;
+        progressSlider.value = percent;
+        timeCurr.textContent = formatTime(audio.currentTime);
+      }
+    });
+
+    audio.addEventListener('ended', () => {
+      nextTrack();
+    });
+
+    // Eventos de Controles
+    btnPlay.addEventListener('click', togglePlay);
+    btnStop.addEventListener('click', stopTrack);
+    btnPrev.addEventListener('click', prevTrack);
+    btnNext.addEventListener('click', nextTrack);
+
+    // Arrastrar progreso
+    progressSlider.addEventListener('input', () => {
+      if (!isNaN(audio.duration)) {
+        const time = (progressSlider.value / 100) * audio.duration;
+        audio.currentTime = time;
+        timeCurr.textContent = formatTime(time);
+      }
+    });
+
+    // Control de volumen
+    volumeSlider.addEventListener('input', (e) => {
+      const vol = parseFloat(e.target.value);
+      audio.volume = vol;
+      audio.muted = (vol === 0);
+      updateMuteIcon(vol);
+      if (vol > 0) {
+        preMuteVolume = vol;
+        isMuted = false;
+      } else {
+        isMuted = true;
+      }
+    });
+
+    function updateMuteIcon(vol) {
+      if (vol === 0 || audio.muted) {
+        btnMute.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+        btnMute.style.color = 'var(--negative-i100)';
+      } else if (vol < 0.5) {
+        btnMute.innerHTML = '<i class="fa-solid fa-volume-low"></i>';
+        btnMute.style.color = 'var(--fg-3)';
+      } else {
+        btnMute.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        btnMute.style.color = 'var(--fg-3)';
+      }
+    }
+
+    btnMute.addEventListener('click', () => {
+      isMuted = !isMuted;
+      if (isMuted) {
+        preMuteVolume = audio.volume;
+        audio.volume = 0;
+        audio.muted = true;
+        volumeSlider.value = 0;
+      } else {
+        audio.volume = preMuteVolume > 0 ? preMuteVolume : 0.5;
+        audio.muted = false;
+        volumeSlider.value = audio.volume;
+      }
+      updateMuteIcon(audio.volume);
+    });
+
+    // Evento de CTA
+    btnCta.addEventListener('click', () => {
+      window.open('index.html', '_blank');
+    });
+
+    // Cargar canciones dinámicas de GitHub
+    fetch('https://api.github.com/repos/advancedchile/ToothClicker/contents/assets/music')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const mp3s = data
+            .filter(f => f.name.endsWith('.mp3') && f.name !== 'congrats.mp3')
+            .map(f => ({
+              id: f.sha,
+              title: f.name.replace(/_/g, ' ').replace('.mp3', ''),
+              src: f.download_url || f.path,
+              cover: 'https://img.icons8.com/color/96/music-record.png'
+            }));
+          if (mp3s.length > 0) {
+            MUSIC_TRACKS = mp3s;
+          }
+        }
+        initPlayer();
+      })
+      .catch(err => {
+        console.warn('GitHub Music Sync failed, using fallbacks.', err);
+        initPlayer();
+      });
+  </script>
+</body>
+</html>
