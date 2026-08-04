@@ -1,0 +1,612 @@
+diff --git a/admin.jsx b/admin.jsx
+index 117e93f..4cbe117 100644
+--- a/admin.jsx
++++ b/admin.jsx
+@@ -47,8 +47,105 @@ function getAvatarUrl(who, customImage, msgId) {
+   return null;
+ }
+ 
++// ── Admin Terminology Component ───────────────────────────────────────────────
++window.AdminTerminology = function({ lang }) {
++  const [term, setTerm] = useState(() => {
++    return (window.GAME_CONTENT && window.GAME_CONTENT.terminology) ? { ...window.GAME_CONTENT.terminology } : {
++      mainCurrency: { es: "Diente", en: "Tooth", esPlural: "Dientes", enPlural: "Teeth" },
++      prestigeCurrency: { es: "Sonrisa dorada", en: "Golden smile", esPlural: "Sonrisas doradas", enPlural: "Golden smiles" },
++      prestigeBonus: { es: "Bonus por sonrisa", en: "Smile bonus" },
++      goldenCurrency: { es: "Diente dorado", en: "Golden tooth", esPlural: "Dientes dorados", enPlural: "Golden teeth" },
++      diamondCurrency: { es: "Diente de diamante", en: "Diamond tooth", esPlural: "Dientes de diamante", enPlural: "Diamond teeth" },
++      crystalCurrency: { es: "Diente de cristal", en: "Crystal tooth", esPlural: "Dientes de cristal", enPlural: "Crystal teeth" },
++      images: { mainCurrency: "", prestigeCurrency: "", goldenCurrency: "", diamondCurrency: "", crystalCurrency: "" }
++    };
++  });
++
++  const updateField = (key, field, val) => {
++    const newTerm = { ...term, [key]: { ...term[key], [field]: val } };
++    setTerm(newTerm);
++    if (window.GAME_CONTENT) window.GAME_CONTENT.terminology = newTerm;
++  };
++  
++  const updateImage = (key, val) => {
++    const newTerm = { ...term, images: { ...(term.images || {}), [key]: val } };
++    setTerm(newTerm);
++    if (window.GAME_CONTENT) window.GAME_CONTENT.terminology = newTerm;
++  };
++
++  const card = { background: 'rgba(255,255,255,0.88)', borderRadius: 16, padding: '20px', border: '1px solid rgba(100,160,230,0.25)', boxShadow: '0 2px 16px rgba(80,140,220,0.08)', backdropFilter: 'blur(8px)', marginBottom: 16 };
++  
++  const TermRow = ({ label, keyName }) => (
++    <div style={{ marginBottom: 16, padding: 12, background: 'var(--bg-2)', borderRadius: 8, border: '1px solid var(--border)' }}>
++      <div style={{ fontWeight: 'bold', marginBottom: 8, color: 'var(--fg-1)' }}>{label}</div>
++      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
++        <div>
++          <label style={{ fontSize: 10, color: 'var(--fg-3)' }}>Singular (ES)</label>
++          <input className="app-input" value={term[keyName]?.es || ''} onChange={e => updateField(keyName, 'es', e.target.value)} style={{ width: '100%' }} />
++        </div>
++        <div>
++          <label style={{ fontSize: 10, color: 'var(--fg-3)' }}>Plural (ES)</label>
++          <input className="app-input" value={term[keyName]?.esPlural || ''} onChange={e => updateField(keyName, 'esPlural', e.target.value)} style={{ width: '100%' }} />
++        </div>
++        <div>
++          <label style={{ fontSize: 10, color: 'var(--fg-3)' }}>Singular (EN)</label>
++          <input className="app-input" value={term[keyName]?.en || ''} onChange={e => updateField(keyName, 'en', e.target.value)} style={{ width: '100%' }} />
++        </div>
++        <div>
++          <label style={{ fontSize: 10, color: 'var(--fg-3)' }}>Plural (EN)</label>
++          <input className="app-input" value={term[keyName]?.enPlural || ''} onChange={e => updateField(keyName, 'enPlural', e.target.value)} style={{ width: '100%' }} />
++        </div>
++      </div>
++    </div>
++  );
++
++  return (
++    <div style={card}>
++      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
++        <i className="fa-solid fa-palette" style={{ color: '#e91e63', fontSize: 15 }}></i>
++        <span style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5a' }}>
++          {lang === 'es' ? 'Configuración de Temática y Textos' : 'Theme & Texts Configuration'}
++        </span>
++      </div>
++      <p style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 16 }}>
++        {lang === 'es' 
++          ? 'Personaliza los nombres y las imágenes de las monedas principales para darle una temática única al juego.' 
++          : 'Customize the names and images of the main currencies to give the game a unique theme.'}
++      </p>
++
++      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
++        <div>
++          <TermRow label={lang === 'es' ? 'Moneda Principal' : 'Main Currency'} keyName="mainCurrency" />
++          <div style={{ marginBottom: 16 }}>
++             <label style={{ fontSize: 12, fontWeight: 'bold' }}>{lang === 'es' ? 'Imagen Moneda Principal' : 'Main Currency Image'}</label>
++             <window.AdminImageUpload currentImage={term.images?.mainCurrency} onImageChange={url => updateImage('mainCurrency', url)} />
++          </div>
++        </div>
++        <div>
++          <TermRow label={lang === 'es' ? 'Moneda de Prestigio' : 'Prestige Currency'} keyName="prestigeCurrency" />
++          <div style={{ marginBottom: 16 }}>
++             <label style={{ fontSize: 12, fontWeight: 'bold' }}>{lang === 'es' ? 'Imagen Moneda Prestigio' : 'Prestige Currency Image'}</label>
++             <window.AdminImageUpload currentImage={term.images?.prestigeCurrency} onImageChange={url => updateImage('prestigeCurrency', url)} />
++          </div>
++          
++          <div style={{ marginBottom: 16, padding: 12, background: 'var(--bg-2)', borderRadius: 8, border: '1px solid var(--border)' }}>
++            <div style={{ fontWeight: 'bold', marginBottom: 8, color: 'var(--fg-1)' }}>{lang === 'es' ? 'Nombre del Bonus de Prestigio' : 'Prestige Bonus Name'}</div>
++            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
++              <input className="app-input" value={term.prestigeBonus?.es || ''} onChange={e => updateField('prestigeBonus', 'es', e.target.value)} />
++              <input className="app-input" value={term.prestigeBonus?.en || ''} onChange={e => updateField('prestigeBonus', 'en', e.target.value)} />
++            </div>
++          </div>
++        </div>
++      </div>
++    </div>
++  );
++};
++
++
++
+ // ── Admin Panel ───────────────────────────────────────────────────────────────
+-function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
++
++window.AdminCorePanel = function({ activeTab, setActiveTab, lang, onLangChange, onEnterGame, onBack }) {
+   const [adminUsers, setAdminUsers] = useState([ADMIN_NAME]);
+   const [adminLoading, setAdminLoading] = useState(true);
+   const [publicUsers, setPublicUsers] = useState(() => loadUsers());
+@@ -68,7 +165,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+   const [customMessages, setCustomMessages] = useState([]);
+   const [messagesLoading, setMessagesLoading] = useState(true);
+   const [isSavingMessages, setIsSavingMessages] = useState(false);
+-  const [adminTab, setAdminTab] = useState('accounts'); // 'accounts', 'leaderboard', 'feedback', 'messages'
++  
+   const [playerSort, setPlayerSort] = useState('prestige'); // 'prestige', 'level', 'teeth'
+   const [playerFilter, setPlayerFilter] = useState('all'); // 'all', 'banned'
+   const [cpsThreshold, setCpsThreshold] = useState(() => {
+@@ -326,7 +423,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+ 
+   useEffect(() => {
+     setCurrentPage(1);
+-  }, [msgFilter, adminTab, customMessages.length, msgSearch]);
++  }, [msgFilter, activeTab, customMessages.length, msgSearch]);
+ 
+   const MILESTONE_OPTIONS = [1, 2, 3, 4, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 360];
+ 
+@@ -394,7 +491,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+         }
+       })
+       .catch(err => console.warn("Failed to fetch latest GitHub commit:", err));
+-  }, [adminTab]);
++  }, [activeTab]);
+ 
+   // Fetch commit comparison if they don't match
+   useEffect(() => {
+@@ -690,47 +787,9 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(uploads/background-e5bd6167.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', pointerEvents: 'none', opacity: 0.45 }} />
+ 
+       <div style={{ position: 'relative', zIndex: 1, maxWidth: 900, margin: '0 auto', padding: '32px 20px 56px' }}>
+-        {/* Header */}
+-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+-          <button onClick={onBack} className="app-btn" style={{ ...btn, padding: '8px 12px', background: 'rgba(255,255,255,0.8)', color: '#4a6a8a', fontSize: 13, border: '1px solid rgba(100,160,230,0.35)' }}>
+-            <i className="fa-solid fa-arrow-left"></i>
+-          </button>
+-          <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#1a8fff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+-            <i className="fa-solid fa-shield-halved"></i>
+-          </div>
+-          <div style={{ flex: 1 }}>
+-            <div style={{ fontSize: 20, fontWeight: 700, color: '#1a3a5a', lineHeight: 1 }}>Panel Admin</div>
+-
+-          </div>
+-          <button onClick={onLangChange} className="app-btn" style={{ ...btn, padding: '8px 12px', background: 'rgba(255,255,255,0.8)', color: '#4a6a8a', fontSize: 13, border: '1px solid rgba(100,160,230,0.35)' }}>
+-            {lang === 'es' ? '🇬🇧' : '🇪🇸'}
+-          </button>
+-        </div>
+-
+-        {/* Sub Tabs */}
+-        <div style={{ display: 'flex', gap: 6, marginBottom: 20, background: 'rgba(255,255,255,0.5)', padding: 4, borderRadius: 12, border: '1px solid rgba(100,160,230,0.2)' }}>
+-          {[
+-            { id: 'accounts', label: 'Admin', icon: 'fa-user-shield' },
+-            { id: 'leaderboard', label: lang === 'es' ? 'Jugadores' : 'Players', icon: 'fa-users' },
+-            { id: 'feedback', label: 'Feedback', icon: 'fa-comments' },
+-            { id: 'messages', label: 'Mensajes', icon: 'fa-bullhorn' },
+-            { id: 'versions', label: lang === 'es' ? 'Versiones' : 'Versions', icon: 'fa-code-branch' },
+-            { id: 'danger', label: lang === 'es' ? 'Zona Peligrosa' : 'Danger Zone', icon: 'fa-triangle-exclamation' },
+-          ].map(t => (
+-            <button key={t.id} onClick={() => { window.playClickSound && window.playClickSound(); setAdminTab(t.id); }} className="app-btn" style={{
+-              ...btn, flex: 1, padding: '8px 12px', fontSize: 11, borderRadius: 10,
+-              background: adminTab === t.id ? (t.id === 'danger' ? '#e11d24' : '#1a8fff') : 'transparent',
+-              color: adminTab === t.id ? '#fff' : (t.id === 'danger' ? '#e11d24' : '#4a6a8a'),
+-              border: 'none', boxShadow: adminTab === t.id ? `0 4px 12px ${t.id === 'danger' ? 'rgba(225,29,36,0.25)' : 'rgba(26,143,255,0.25)'}` : 'none'
+-            }}>
+-              <i className={`fa-solid ${t.icon}`} style={{ fontSize: 10 }}></i>
+-              {t.label}
+-            </button>
+-          ))}
+-        </div>
+ 
+         {/* GitHub updates notification snackbar */}
+-        {pendingCommits.length > 0 && adminTab !== 'versions' && (
++        {pendingCommits.length > 0 && activeTab !== 'versions' && (
+           <div style={{
+             background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+             color: '#fff',
+@@ -760,7 +819,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+               </div>
+             </div>
+             <button 
+-              onClick={() => { window.playClickSound && window.playClickSound(); setAdminTab('versions'); }} 
++              onClick={() => { window.playClickSound && window.playClickSound(); setActiveTab('versions'); }} 
+               className="app-btn"
+               style={{
+                 ...btn,
+@@ -778,7 +837,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+           </div>
+         )}
+ 
+-        {adminTab === 'accounts' && (
++        {activeTab === 'accounts' && (
+           <>
+             {/* Admin's own accounts */}
+         <div style={card}>
+@@ -889,10 +948,12 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+           )}
+         </div>
+ 
++
++          <window.AdminTerminology lang={lang} />
+           </>
+         )}
+ 
+-        {adminTab === 'leaderboard' && (
++        {activeTab === 'leaderboard' && (
+           <div style={card}>
+             {(() => {
+               const lbState = { 
+@@ -974,7 +1035,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+           </div>
+         )}
+ 
+-        {adminTab === 'feedback' && (
++        {activeTab === 'feedback' && (
+           <div style={card}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+               <i className="fa-solid fa-comments" style={{ color: 'var(--alternative-i100)', fontSize: 15 }}></i>
+@@ -1047,7 +1108,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+           </div>
+         )}
+ 
+-        {adminTab === 'messages' && (
++        {activeTab === 'messages' && (
+           <div style={card}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+               <i className="fa-solid fa-bullhorn" style={{ color: '#ff9800', fontSize: 15 }}></i>
+@@ -1186,17 +1247,17 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+                 )}
+               </div>
+ 
+-              <select 
++              <window.Dropdown 
+                 value={msgFilter}
+-                onChange={e => setMsgFilter(e.target.value)}
+-                className="app-select"
++                onChange={val => setMsgFilter(val)}
+                 style={{ width: 180, height: 44 }}
+-              >
+-                <option value="all">{lang === 'es' ? 'Todos' : 'All'}</option>
+-                <option value="bosses">{lang === 'es' ? 'Solo jefes' : 'Solo leaders'}</option>
+-                <option value="collabs">{lang === 'es' ? 'Solo colaboradores' : 'Solo staff'}</option>
+-                <option value="json">{lang === 'es' ? 'Importados por JSON' : 'Imported via JSON'}</option>
+-              </select>
++                options={[
++                  { value: "all", label: lang === 'es' ? 'Todos' : 'All' },
++                  { value: "bosses", label: lang === 'es' ? 'Solo jefes' : 'Solo leaders' },
++                  { value: "collabs", label: lang === 'es' ? 'Solo colaboradores' : 'Solo staff' },
++                  { value: "json", label: lang === 'es' ? 'Importados por JSON' : 'Imported via JSON' }
++                ]}
++              />
+ 
+               <button
+                 onClick={() => setShowAdvancedFiltersModal(true)}
+@@ -1396,29 +1457,13 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+                               })()}
+                               <span style={{ fontWeight: 700, fontSize: 14, color: '#2d3748' }}>{m.who}</span>
+                             </div>
+-                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+-                              <div style={{ fontSize: 11, fontWeight: 700, color: isBoss ? '#b45309' : '#718096', background: isBoss ? '#fffbeb' : '#f7fafc', padding: '3px 10px', borderRadius: 20, border: isBoss ? '1px solid #fef3c7' : '1px solid #edf2f7', display: 'flex', alignItems: 'center', gap: 4 }}>
+-                                {isBoss ? '👑' : '⚡'} {isBoss ? (lang === 'es' ? 'Jefe' : 'Boss') : (lang === 'es' ? 'Aleatorio' : 'Random')}
+-                              </div>
+-                              {isQuestion && (
+-                                <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#f5f3ff', padding: '3px 10px', borderRadius: 20, border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: 4 }}>
+-                                  ❓ {lang === 'es' ? 'Pregunta' : 'Question'}
+-                                </div>
+-                              )}
+-                              {isBoss && (
+-                                <div style={{ fontSize: 11, fontWeight: 700, color: '#718096', background: '#f7fafc', padding: '3px 10px', borderRadius: 20, border: '1px solid #edf2f7' }}>
+-                                  <i className="fa-regular fa-clock" style={{ marginRight: 5 }}></i>
+-                                  {m.milestone >= 60 && m.milestone % 60 === 0 ? `${m.milestone / 60} h` : `${m.milestone} min`}
+-                                </div>
+-                              )}
+-                            </div>
+                           </div>
+                         <div style={{ fontSize: 13, color: '#4a5568', lineHeight: 1.5, fontStyle: 'italic', background: '#fdfdfd', padding: '10px 14px', borderRadius: 10, borderLeft: `3px solid ${m.color || '#1a8fff'}` }}>
+                           "{cleanText}"
+                         </div>
+                         
+-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+-                          <div style={{ display: 'flex', gap: 12 }}>
++                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, flexWrap: 'wrap', gap: 12 }}>
++                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                             <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
+                               <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 10 }}></i>
+                               {m.animation || 'none'}
+@@ -1431,6 +1476,20 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+                               <i className="fa-solid fa-up-down-left-right" style={{ fontSize: 10 }}></i>
+                               {m.position} / {m.size}
+                             </div>
++                            <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
++                              {isBoss ? '👑' : '⚡'} {isBoss ? (lang === 'es' ? 'Jefe' : 'Boss') : (lang === 'es' ? 'Aleatorio' : 'Random')}
++                            </div>
++                            {isQuestion && (
++                              <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
++                                ❓ {lang === 'es' ? 'Pregunta' : 'Question'}
++                              </div>
++                            )}
++                            {isBoss && (
++                              <div style={{ fontSize: 11, color: '#718096', display: 'flex', alignItems: 'center', gap: 6, background: '#f7fafc', padding: '4px 8px', borderRadius: 6 }}>
++                                <i className="fa-regular fa-clock" style={{ fontSize: 10 }}></i>
++                                {m.milestone >= 60 && m.milestone % 60 === 0 ? `${m.milestone / 60} h` : `${m.milestone} min`}
++                              </div>
++                            )}
+                           </div>
+                           <div style={{ display: 'flex', gap: 14 }}>
+                             <button 
+@@ -1438,13 +1497,13 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+                               className="app-btn"
+                               style={{ all: 'unset', color: '#ff9800', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+                             >
+-                              <i className="fa-solid fa-eye"></i> {lang === 'es' ? 'Previsualizar' : 'Preview'}
++                              {lang === 'es' ? 'Previsualizar' : 'Preview'}
+                             </button>
+                             <button onClick={() => handleStartEditMsg(m)} className="app-btn" style={{ all: 'unset', color: '#1a8fff', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+-                              <i className="fa-solid fa-pen-to-square"></i> {lang === 'es' ? 'Editar' : 'Edit'}
++                              {lang === 'es' ? 'Editar' : 'Edit'}
+                             </button>
+                             <button onClick={() => setMsgToDelete(m)} className="app-btn" style={{ all: 'unset', color: '#e53e3e', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+-                              <i className="fa-solid fa-trash"></i> {lang === 'es' ? 'Borrar' : 'Delete'}
++                              {lang === 'es' ? 'Borrar' : 'Delete'}
+                             </button>
+                           </div>
+                         </div>
+@@ -1488,7 +1547,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+           </div>
+         )}
+ 
+-        {adminTab === 'danger' && (
++        {activeTab === 'danger' && (
+           <div style={card}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+               <i className="fa-solid fa-triangle-exclamation" style={{ color: '#e11d24', fontSize: 15 }}></i>
+@@ -1520,7 +1579,7 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+           </div>
+         )}
+ 
+-        {adminTab === 'versions' && (
++        {activeTab === 'versions' && (
+           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+             {/* Sync Status Card */}
+             <div style={card}>
+@@ -1865,54 +1924,74 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+               {/* MsgType */}
+               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                 <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Tipo de Mensaje' : 'Message Type'}</span>
+-                <select value={advancedFilters.msgType} onChange={e => setAdvancedFilters({...advancedFilters, msgType: e.target.value})} className="app-select" style={{ height: 40 }}>
+-                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
+-                  <option value="normal">{lang === 'es' ? 'Normal' : 'Normal'}</option>
+-                  <option value="question">{lang === 'es' ? 'Pregunta' : 'Question'}</option>
+-                </select>
++                <window.Dropdown 
++                  value={advancedFilters.msgType} 
++                  onChange={val => setAdvancedFilters({...advancedFilters, msgType: val})} 
++                  options={[
++                    { value: "all", label: lang === 'es' ? 'Cualquiera' : 'Any' },
++                    { value: "normal", label: lang === 'es' ? 'Normal' : 'Normal' },
++                    { value: "question", label: lang === 'es' ? 'Pregunta' : 'Question' }
++                  ]}
++                />
+               </div>
+               {/* Position */}
+               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                 <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Posición' : 'Position'}</span>
+-                <select value={advancedFilters.position} onChange={e => setAdvancedFilters({...advancedFilters, position: e.target.value})} className="app-select" style={{ height: 40 }}>
+-                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
+-                  <option value="top">Top</option>
+-                  <option value="center">Center</option>
+-                  <option value="bottom">Bottom</option>
+-                </select>
++                <window.Dropdown 
++                  value={advancedFilters.position} 
++                  onChange={val => setAdvancedFilters({...advancedFilters, position: val})} 
++                  options={[
++                    { value: "all", label: lang === 'es' ? 'Cualquiera' : 'Any' },
++                    { value: "top", label: 'Top' },
++                    { value: "center", label: 'Center' },
++                    { value: "bottom", label: 'Bottom' }
++                  ]}
++                />
+               </div>
+               {/* Size */}
+               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                 <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Tamaño' : 'Size'}</span>
+-                <select value={advancedFilters.size} onChange={e => setAdvancedFilters({...advancedFilters, size: e.target.value})} className="app-select" style={{ height: 40 }}>
+-                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
+-                  <option value="small">Small</option>
+-                  <option value="medium">Medium</option>
+-                  <option value="large">Large</option>
+-                </select>
++                <window.Dropdown 
++                  value={advancedFilters.size} 
++                  onChange={val => setAdvancedFilters({...advancedFilters, size: val})} 
++                  options={[
++                    { value: "all", label: lang === 'es' ? 'Cualquiera' : 'Any' },
++                    { value: "small", label: 'Small' },
++                    { value: "medium", label: 'Medium' },
++                    { value: "large", label: 'Large' }
++                  ]}
++                />
+               </div>
+               {/* Animation */}
+               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                 <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Animación' : 'Animation'}</span>
+-                <select value={advancedFilters.animation} onChange={e => setAdvancedFilters({...advancedFilters, animation: e.target.value})} className="app-select" style={{ height: 40 }}>
+-                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
+-                  <option value="none">None</option>
+-                  <option value="pulse">Pulse</option>
+-                  <option value="shake">Shake</option>
+-                  <option value="float">Float</option>
+-                </select>
++                <window.Dropdown 
++                  value={advancedFilters.animation} 
++                  onChange={val => setAdvancedFilters({...advancedFilters, animation: val})} 
++                  options={[
++                    { value: "all", label: lang === 'es' ? 'Cualquiera' : 'Any' },
++                    { value: "none", label: 'None' },
++                    { value: "pulse", label: 'Pulse' },
++                    { value: "shake", label: 'Shake' },
++                    { value: "float", label: 'Float' }
++                  ]}
++                />
+               </div>
+               {/* Particles */}
+               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                 <span style={{ fontSize: 13, fontWeight: 700, color: '#4a5568' }}>{lang === 'es' ? 'Partículas' : 'Particles'}</span>
+-                <select value={advancedFilters.particles} onChange={e => setAdvancedFilters({...advancedFilters, particles: e.target.value})} className="app-select" style={{ height: 40 }}>
+-                  <option value="all">{lang === 'es' ? 'Cualquiera' : 'Any'}</option>
+-                  <option value="none">None</option>
+-                  <option value="stars">Stars</option>
+-                  <option value="teeth">Teeth</option>
+-                  <option value="confetti">Confetti</option>
+-                  <option value="fire">Fire</option>
+-                </select>
++                <window.Dropdown 
++                  value={advancedFilters.particles} 
++                  onChange={val => setAdvancedFilters({...advancedFilters, particles: val})} 
++                  options={[
++                    { value: "all", label: lang === 'es' ? 'Cualquiera' : 'Any' },
++                    { value: "none", label: 'None' },
++                    { value: "stars", label: 'Stars' },
++                    { value: "teeth", label: 'Teeth' },
++                    { value: "confetti", label: 'Confetti' },
++                    { value: "fire", label: 'Fire' }
++                  ]}
++                />
+               </div>
+               {/* Level Req */}
+               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+@@ -2366,14 +2445,16 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+                           <i className="fa-solid fa-check-circle" style={{ marginRight: 4 }}></i>{lang === 'es' ? 'Si acierta' : 'If correct'}
+                         </div>
+                         <div style={{ display: 'flex', gap: 8 }}>
+-                          <select className="app-select" style={{ flex: 2, height: 38 }} value={reward.type} onChange={e => setReward({ ...reward, type: e.target.value })}>
+-                            <option value="addTeeth">{lang === 'es' ? '🦷 Dar dientes' : '🦷 Give teeth'}</option>
+-                            <option value="removeTeeth">{lang === 'es' ? '💀 Quitar dientes' : '💀 Remove teeth'}</option>
+-                            <option value="randomBonus">{lang === 'es' ? '🎲 Bonus aleatorio' : '🎲 Random bonus'}</option>
+-                            <option value="none">{lang === 'es' ? '— Sin efecto' : '— No effect'}</option>
+-                          </select>
++                          <window.Dropdown style={{ flex: 2, height: 38 }} value={reward.type} onChange={val => setReward({ ...reward, type: val })}
++                            options={[
++                              { value: 'addTeeth', label: lang === 'es' ? '🦷 Dar dientes' : '🦷 Give teeth' },
++                              { value: 'removeTeeth', label: lang === 'es' ? '💀 Quitar dientes' : '💀 Remove teeth' },
++                              { value: 'randomBonus', label: lang === 'es' ? '🎲 Bonus aleatorio' : '🎲 Random bonus' },
++                              { value: 'none', label: lang === 'es' ? '— Sin efecto' : '— No effect' }
++                            ]}
++                          />
+                           {reward.type !== 'randomBonus' && reward.type !== 'none' && (
+-                            <input type="number" min={0} className="app-input" style={{ flex: 1, height: 38 }} value={reward.amount || 0} onChange={e => setReward({ ...reward, amount: parseInt(e.target.value) || 0 })} />
++                            <input type="text" className="app-input" style={{ flex: 1, height: 38 }} value={reward.amount != null ? reward.amount.toLocaleString('es-CL') : ''} onChange={e => setReward({ ...reward, amount: parseInt(e.target.value.replace(/\D/g, ''), 10) || 0 })} />
+                           )}
+                         </div>
+                       </div>
+@@ -2390,14 +2471,16 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+                           <i className="fa-solid fa-times-circle" style={{ marginRight: 4 }}></i>{lang === 'es' ? 'Si falla' : 'If wrong'}
+                         </div>
+                         <div style={{ display: 'flex', gap: 8 }}>
+-                          <select className="app-select" style={{ flex: 2, height: 38 }} value={reward.type} onChange={e => setReward({ ...reward, type: e.target.value })}>
+-                            <option value="removeTeeth">{lang === 'es' ? '💀 Quitar dientes' : '💀 Remove teeth'}</option>
+-                            <option value="addTeeth">{lang === 'es' ? '🦷 Dar dientes' : '🦷 Give teeth'}</option>
+-                            <option value="randomBonus">{lang === 'es' ? '🎲 Bonus aleatorio' : '🎲 Random bonus'}</option>
+-                            <option value="none">{lang === 'es' ? '— Sin efecto' : '— No effect'}</option>
+-                          </select>
++                          <window.Dropdown style={{ flex: 2, height: 38 }} value={reward.type} onChange={val => setReward({ ...reward, type: val })}
++                            options={[
++                              { value: 'removeTeeth', label: lang === 'es' ? '💀 Quitar dientes' : '💀 Remove teeth' },
++                              { value: 'addTeeth', label: lang === 'es' ? '🦷 Dar dientes' : '🦷 Give teeth' },
++                              { value: 'randomBonus', label: lang === 'es' ? '🎲 Bonus aleatorio' : '🎲 Random bonus' },
++                              { value: 'none', label: lang === 'es' ? '— Sin efecto' : '— No effect' }
++                            ]}
++                          />
+                           {reward.type !== 'randomBonus' && reward.type !== 'none' && (
+-                            <input type="number" min={0} className="app-input" style={{ flex: 1, height: 38 }} value={reward.amount || 0} onChange={e => setReward({ ...reward, amount: parseInt(e.target.value) || 0 })} />
++                            <input type="text" className="app-input" style={{ flex: 1, height: 38 }} value={reward.amount != null ? reward.amount.toLocaleString('es-CL') : ''} onChange={e => setReward({ ...reward, amount: parseInt(e.target.value.replace(/\D/g, ''), 10) || 0 })} />
+                           )}
+                         </div>
+                       </div>
+@@ -2529,23 +2612,22 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+                             }
+                           }}
+                         />
+-                        <select 
++                        <window.Dropdown 
+                           disabled={isRand}
+-                          className="app-select"
+                           style={{ width: 100, height: 42 }}
+                           value={editingMsg ? editingMsg.playtimeUnit : newMsgPlaytimeUnit}
+-                          onChange={e => {
+-                            const val = e.target.value;
++                          onChange={val => {
+                             if (editingMsg) {
+                               setEditingMsg({...editingMsg, playtimeUnit: val});
+                             } else {
+                               setNewMsgPlaytimeUnit(val);
+                             }
+                           }}
+-                        >
+-                          <option value="minutes">{lang === 'es' ? 'Min' : 'Min'}</option>
+-                          <option value="hours">{lang === 'es' ? 'Hrs' : 'Hrs'}</option>
+-                        </select>
++                          options={[
++                            { value: "minutes", label: lang === 'es' ? 'Min' : 'Min' },
++                            { value: "hours", label: lang === 'es' ? 'Hrs' : 'Hrs' }
++                          ]}
++                        />
+                       </div>
+                     </div>
+                   );
+@@ -2573,35 +2655,43 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+                 <div>
+                   <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Posición y Tamaño' : 'Pos & Size'}</div>
+                   <div style={{ display: 'flex', gap: 8 }}>
+-                    <select className="app-select" style={{ flex: 1 }} value={editingMsg ? editingMsg.position : newMsgPos} onChange={e => editingMsg ? setEditingMsg({...editingMsg, position: e.target.value}) : setNewMsgPos(e.target.value)}>
+-                      <option value="top">Top</option>
+-                      <option value="center">Center</option>
+-                      <option value="bottom">Bottom</option>
+-                    </select>
+-                    <select className="app-select" style={{ flex: 1 }} value={editingMsg ? editingMsg.size : newMsgSize} onChange={e => editingMsg ? setEditingMsg({...editingMsg, size: e.target.value}) : setNewMsgSize(e.target.value)}>
+-                      <option value="small">S</option>
+-                      <option value="medium">M</option>
+-                      <option value="large">L</option>
+-                    </select>
++                    <window.Dropdown style={{ flex: 1 }} value={editingMsg ? editingMsg.position : newMsgPos} onChange={val => editingMsg ? setEditingMsg({...editingMsg, position: val}) : setNewMsgPos(val)}
++                      options={[
++                        { value: 'top', label: 'Top' },
++                        { value: 'center', label: 'Center' },
++                        { value: 'bottom', label: 'Bottom' }
++                      ]}
++                    />
++                    <window.Dropdown style={{ flex: 1 }} value={editingMsg ? editingMsg.size : newMsgSize} onChange={val => editingMsg ? setEditingMsg({...editingMsg, size: val}) : setNewMsgSize(val)}
++                      options={[
++                        { value: 'small', label: 'S' },
++                        { value: 'medium', label: 'M' },
++                        { value: 'large', label: 'L' }
++                      ]}
++                    />
+                   </div>
+                 </div>
+                 <div>
+                   <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lang === 'es' ? 'Efecto y Partículas' : 'Effect & Particles'}</div>
+                   <div style={{ display: 'flex', gap: 8 }}>
+-                    <select className="app-select" style={{ flex: 1 }} value={editingMsg ? editingMsg.animation : newMsgAnim} onChange={e => editingMsg ? setEditingMsg({...editingMsg, animation: e.target.value}) : setNewMsgAnim(e.target.value)}>
+-                      <option value="none">-</option>
+-                      <option value="pulse">Pulse 💓</option>
+-                      <option value="shake">Shake 🫨</option>
+-                      <option value="float">Float ☁️</option>
+-                      <option value="rainbow">Rainbow 🌈</option>
+-                    </select>
+-                    <select className="app-select" style={{ flex: 1 }} value={editingMsg ? editingMsg.particles : newMsgParticles} onChange={e => editingMsg ? setEditingMsg({...editingMsg, particles: e.target.value}) : setNewMsgParticles(e.target.value)}>
+-                      <option value="none">-</option>
+-                      <option value="stars">Stars ✨</option>
+-                      <option value="teeth">Teeth 🦷</option>
+-                      <option value="fire">Fire 🔥</option>
+-                      <option value="confetti">Confetti 🎉</option>
+-                    </select>
++                    <window.Dropdown style={{ flex: 1 }} value={editingMsg ? editingMsg.animation : newMsgAnim} onChange={val => editingMsg ? setEditingMsg({...editingMsg, animation: val}) : setNewMsgAnim(val)}
++                      options={[
++                        { value: 'none', label: '-' },
++                        { value: 'pulse', label: 'Pulse 💓' },
++                        { value: 'shake', label: 'Shake 🫨' },
++                        { value: 'float', label: 'Float ☁️' },
++                        { value: 'rainbow', label: 'Rainbow 🌈' }
++                      ]}
++                    />
++                    <window.Dropdown style={{ flex: 1 }} value={editingMsg ? editingMsg.particles : newMsgParticles} onChange={val => editingMsg ? setEditingMsg({...editingMsg, particles: val}) : setNewMsgParticles(val)}
++                      options={[
++                        { value: 'none', label: '-' },
++                        { value: 'stars', label: 'Stars ✨' },
++                        { value: 'teeth', label: 'Teeth 🦷' },
++                        { value: 'fire', label: 'Fire 🔥' },
++                        { value: 'confetti', label: 'Confetti 🎉' }
++                      ]}
++                    />
+                   </div>
+                 </div>
+               </div>
+@@ -2976,5 +3066,3 @@ function AdminPanel({ lang, onLangChange, onEnterGame, onBack }) {
+     </div>
+   );
+ }
+-
+-window.AdminPanel = AdminPanel;

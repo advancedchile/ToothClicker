@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <img id="img" src="assets/clinic/clinica.png" width="2000" style="border:1px solid red; cursor:crosshair;" />
+  <pre id="out"></pre>
+  <script>
+    const img = document.getElementById('img');
+    const out = document.getElementById('out');
+    img.addEventListener('click', (e) => {
+      const rect = img.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      out.textContent += `x: ${x}, y: ${y}\n`;
+    });
+  </script>
+</body>
+</html>
